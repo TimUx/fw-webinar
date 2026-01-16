@@ -2,6 +2,7 @@ const express = require('express');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs').promises;
+const fsSync = require('fs');
 const { authMiddleware } = require('../middleware/auth');
 const { Storage } = require('../utils/storage');
 const { logAudit } = require('../utils/logger');
@@ -25,7 +26,14 @@ const storage = multer.diskStorage({
     const dir = file.fieldname === 'logo' 
       ? path.join(__dirname, '../../assets') 
       : path.join(__dirname, '../../uploads');
-    cb(null, dir);
+    
+    // Ensure directory exists (async with callback pattern)
+    fsSync.mkdir(dir, { recursive: true }, (err) => {
+      if (err) {
+        return cb(err);
+      }
+      cb(null, dir);
+    });
   },
   filename: (req, file, cb) => {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
