@@ -27,13 +27,13 @@ const storage = multer.diskStorage({
       ? path.join(__dirname, '../../assets') 
       : path.join(__dirname, '../../uploads');
     
-    // Ensure directory exists (synchronous)
-    try {
-      fsSync.mkdirSync(dir, { recursive: true });
+    // Ensure directory exists (async with callback pattern)
+    fsSync.mkdir(dir, { recursive: true }, (err) => {
+      if (err) {
+        return cb(err);
+      }
       cb(null, dir);
-    } catch (error) {
-      cb(error);
-    }
+    });
   },
   filename: (req, file, cb) => {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
