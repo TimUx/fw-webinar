@@ -6,7 +6,7 @@ echo ""
 
 # Check if .env exists
 if [ ! -f .env ]; then
-    echo "⚠️  .env file not found. Using default values from docker-compose.yml"
+    echo "⚠️  .env file not found. Using default values from docker compose configuration"
     EXPECTED_PUID=1000
     EXPECTED_PGID=1000
 else
@@ -22,7 +22,7 @@ echo ""
 
 # Check if containers are running
 if ! docker compose ps | grep -q "Up"; then
-    echo "❌ No containers are running. Please start them with: docker-compose up -d"
+    echo "❌ No containers are running. Please start them with: docker compose up -d"
     exit 1
 fi
 
