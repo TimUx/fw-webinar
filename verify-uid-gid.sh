@@ -10,10 +10,13 @@ if [ ! -f .env ]; then
     EXPECTED_PUID=1000
     EXPECTED_PGID=1000
 else
-    # Load PUID and PGID from .env
-    source .env
-    EXPECTED_PUID=${PUID:-1000}
-    EXPECTED_PGID=${PGID:-1000}
+    # Load PUID and PGID from .env (safely parse only specific variables)
+    EXPECTED_PUID=$(grep -E "^PUID=" .env 2>/dev/null | cut -d'=' -f2 | tr -d '[:space:]')
+    EXPECTED_PGID=$(grep -E "^PGID=" .env 2>/dev/null | cut -d'=' -f2 | tr -d '[:space:]')
+    
+    # Use defaults if variables not found
+    EXPECTED_PUID=${EXPECTED_PUID:-1000}
+    EXPECTED_PGID=${EXPECTED_PGID:-1000}
 fi
 
 echo "Expected PUID: $EXPECTED_PUID"
