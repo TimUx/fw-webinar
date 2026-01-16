@@ -38,8 +38,8 @@ const upload = multer({
   limits: { fileSize: 50 * 1024 * 1024 }, // 50MB limit
   fileFilter: (req, file, cb) => {
     if (file.fieldname === 'pptx') {
-      if (!file.originalname.match(/\.(pptx|ppt)$/i)) {
-        return cb(new Error('Nur PPTX/PPT-Dateien sind erlaubt'));
+      if (!file.originalname.match(/\.(pptx|ppt|pdf)$/i)) {
+        return cb(new Error('Nur PPTX/PPT/PDF-Dateien sind erlaubt'));
       }
     } else if (file.fieldname === 'logo') {
       if (!file.originalname.match(/\.(jpg|jpeg|png|gif|svg)$/i)) {
@@ -181,7 +181,7 @@ router.post('/smtp/test', async (req, res) => {
 
 /**
  * GET /api/admin/pptx
- * List uploaded PPTX files
+ * List uploaded PPTX/PDF files
  */
 router.get('/pptx', async (req, res) => {
   try {
@@ -189,7 +189,7 @@ router.get('/pptx', async (req, res) => {
     await fs.mkdir(uploadsDir, { recursive: true });
     
     const files = await fs.readdir(uploadsDir);
-    const pptxFiles = files.filter(f => f.match(/\.(pptx|ppt)$/i));
+    const pptxFiles = files.filter(f => f.match(/\.(pptx|ppt|pdf)$/i));
     
     const fileDetails = await Promise.all(pptxFiles.map(async (filename) => {
       const filepath = path.join(uploadsDir, filename);
@@ -209,7 +209,7 @@ router.get('/pptx', async (req, res) => {
 
 /**
  * POST /api/admin/pptx/upload
- * Upload PPTX file
+ * Upload PPTX/PDF file
  */
 router.post('/pptx/upload', upload.single('pptx'), async (req, res) => {
   try {
@@ -217,7 +217,8 @@ router.post('/pptx/upload', upload.single('pptx'), async (req, res) => {
       return res.status(400).json({ error: 'Keine Datei hochgeladen' });
     }
     
-    logAudit('PPTX_UPLOAD', req.user.username, `PPTX hochgeladen: ${req.file.filename}`);
+    const fileType = req.file.originalname.toLowerCase().endsWith('.pdf') ? 'PDF' : 'PPTX';
+    logAudit('FILE_UPLOAD', req.user.username, `${fileType} hochgeladen: ${req.file.filename}`);
     
     res.json({
       filename: req.file.filename,
@@ -226,13 +227,13 @@ router.post('/pptx/upload', upload.single('pptx'), async (req, res) => {
       uploadedAt: new Date().toISOString()
     });
   } catch (error) {
-    res.status(500).json({ error: 'Fehler beim Hochladen der PPTX-Datei' });
+    res.status(500).json({ error: 'Fehler beim Hochladen der Datei' });
   }
 });
 
 /**
  * DELETE /api/admin/pptx/:filename
- * Delete PPTX file
+ * Delete PPTX/PDF file
  */
 router.delete('/pptx/:filename', async (req, res) => {
   try {
@@ -240,14 +241,15 @@ router.delete('/pptx/:filename', async (req, res) => {
     const filepath = path.join(__dirname, '../../uploads', filename);
     
     await fs.unlink(filepath);
-    logAudit('PPTX_DELETE', req.user.username, `PPTX gelöscht: ${filename}`);
+    const fileType = filename.toLowerCase().endsWith('.pdf') ? 'PDF' : 'PPTX';
+    logAudit('FILE_DELETE', req.user.username, `${fileType} gelöscht: ${filename}`);
     
-    res.json({ message: 'PPTX-Datei erfolgreich gelöscht' });
+    res.json({ message: 'Datei erfolgreich gelöscht' });
   } catch (error) {
     if (error.code === 'ENOENT') {
       return res.status(404).json({ error: 'Datei nicht gefunden' });
     }
-    res.status(500).json({ error: 'Fehler beim Löschen der PPTX-Datei' });
+    res.status(500).json({ error: 'Fehler beim Löschen der Datei' });
   }
 });
 

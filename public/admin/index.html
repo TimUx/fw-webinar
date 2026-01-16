@@ -14,7 +14,7 @@
     <nav class="header-nav">
       <button onclick="showSection('settings')">Einstellungen</button>
       <button onclick="showSection('smtp')">E-Mail (SMTP)</button>
-      <button onclick="showSection('pptx')">PPTX Verwaltung</button>
+      <button onclick="showImportModal()" style="background: #27ae60;">📤 Import (PPTX/PDF)</button>
       <button onclick="showSection('webinars')">Webinare</button>
       <button onclick="showSection('results')">Ergebnisse</button>
       <button onclick="logout()" class="btn-logout">Abmelden</button>
@@ -101,21 +101,21 @@
   
   <!-- PPTX Section -->
   <section id="pptx-section" class="content-section hidden">
-    <h2>PPTX Verwaltung</h2>
+    <h2>Präsentations-Verwaltung (PPTX/PDF)</h2>
     
     <div class="card">
-      <h3>PPTX hochladen</h3>
+      <h3>PPTX/PDF hochladen</h3>
       <form id="pptxUploadForm">
         <div class="form-group">
-          <label for="pptxFile">PPTX-Datei auswählen</label>
-          <input type="file" id="pptxFile" accept=".pptx,.ppt" required>
+          <label for="pptxFile">PPTX- oder PDF-Datei auswählen</label>
+          <input type="file" id="pptxFile" accept=".pptx,.ppt,.pdf" required>
         </div>
-        <button type="submit" class="btn btn-primary">PPTX hochladen</button>
+        <button type="submit" class="btn btn-primary">Datei hochladen</button>
       </form>
     </div>
     
     <div class="card">
-      <h3>Hochgeladene PPTX-Dateien</h3>
+      <h3>Hochgeladene Präsentationen</h3>
       <div id="pptxList"></div>
     </div>
   </section>
@@ -143,9 +143,9 @@
           </div>
           
           <div class="form-group">
-            <label for="webinarPptx">PPTX-Datei (optional)</label>
+            <label for="webinarPptx">Präsentationsdatei (PPTX/PDF, optional)</label>
             <select id="webinarPptx">
-              <option value="">Keine PPTX</option>
+              <option value="">Keine Präsentationsdatei</option>
             </select>
           </div>
           
@@ -176,6 +176,36 @@
       <div id="resultsTable"></div>
     </div>
   </section>
+  
+  <!-- Import Modal -->
+  <div id="importModal" class="modal hidden">
+    <div class="modal-content">
+      <span class="close" onclick="closeImportModal()">&times;</span>
+      <h3>📤 Präsentationen importieren</h3>
+      
+      <p style="margin-bottom: 20px;">Laden Sie PPTX-Präsentationen oder PDF-Dokumente hoch, um sie als Basis für Webinar-Slides zu verwenden.</p>
+      
+      <form id="importForm">
+        <div class="form-group">
+          <label for="importFiles">Dateien auswählen (PPTX oder PDF)</label>
+          <input type="file" id="importFiles" accept=".pptx,.ppt,.pdf" multiple required>
+          <small>Sie können mehrere Dateien gleichzeitig auswählen</small>
+        </div>
+        
+        <div id="importFilesList" style="margin: 15px 0;"></div>
+        
+        <div class="modal-actions">
+          <button type="submit" class="btn btn-primary">Importieren</button>
+          <button type="button" onclick="closeImportModal()" class="btn btn-secondary">Abbrechen</button>
+        </div>
+      </form>
+      
+      <hr style="margin: 30px 0;">
+      
+      <h3>Importierte Präsentationen</h3>
+      <div id="importedFilesList"></div>
+    </div>
+  </div>
   
   <div id="notification" class="notification hidden"></div>
   

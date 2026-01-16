@@ -184,7 +184,7 @@ document.getElementById('testEmailForm').addEventListener('submit', async (e) =>
   }
 });
 
-// ============ PPTX ============
+// ============ PPTX/PDF ============
 
 async function loadPPTX() {
   try {
@@ -192,26 +192,29 @@ async function loadPPTX() {
     
     const list = document.getElementById('pptxList');
     if (pptxFiles.length === 0) {
-      list.innerHTML = '<p>Keine PPTX-Dateien hochgeladen.</p>';
+      list.innerHTML = '<p>Keine Präsentationen hochgeladen.</p>';
       return;
     }
     
-    list.innerHTML = pptxFiles.map(file => `
+    list.innerHTML = pptxFiles.map(file => {
+      const fileType = file.filename.toLowerCase().endsWith('.pdf') ? 'PDF' : 'PPTX';
+      return `
       <div class="pptx-item">
         <div class="pptx-info">
-          <strong>${file.filename}</strong>
+          <strong>${file.filename}</strong> <span style="color: #7f8c8d; font-size: 14px;">(${fileType})</span>
           <small>Größe: ${(file.size / 1024 / 1024).toFixed(2)} MB | Hochgeladen: ${new Date(file.uploadedAt).toLocaleDateString('de-DE')}</small>
         </div>
         <div class="pptx-actions">
           <button class="btn-danger" onclick="deletePPTX('${file.filename}')">Löschen</button>
         </div>
       </div>
-    `).join('');
+    `;
+    }).join('');
     
     // Update webinar form dropdown
     updatePPTXDropdown();
   } catch (error) {
-    showNotification('Fehler beim Laden der PPTX-Dateien: ' + error.message, true);
+    showNotification('Fehler beim Laden der Präsentationen: ' + error.message, true);
   }
 }
 
@@ -224,6 +227,8 @@ document.getElementById('pptxUploadForm').addEventListener('submit', async (e) =
       throw new Error('Keine Datei ausgewählt');
     }
     
+    const fileType = file.name.toLowerCase().endsWith('.pdf') ? 'PDF' : 'PPTX';
+    
     const formData = new FormData();
     formData.append('pptx', file);
     
@@ -232,7 +237,7 @@ document.getElementById('pptxUploadForm').addEventListener('submit', async (e) =
       body: formData
     });
     
-    showNotification('PPTX erfolgreich hochgeladen');
+    showNotification(`${fileType} erfolgreich hochgeladen`);
     document.getElementById('pptxFile').value = '';
     loadPPTX();
   } catch (error) {
@@ -241,11 +246,12 @@ document.getElementById('pptxUploadForm').addEventListener('submit', async (e) =
 });
 
 async function deletePPTX(filename) {
-  if (!confirm(`PPTX "${filename}" wirklich löschen?`)) return;
+  const fileType = filename.toLowerCase().endsWith('.pdf') ? 'PDF' : 'PPTX';
+  if (!confirm(`${fileType} "${filename}" wirklich löschen?`)) return;
   
   try {
     await apiCall(`/admin/pptx/${filename}`, { method: 'DELETE' });
-    showNotification('PPTX erfolgreich gelöscht');
+    showNotification(`${fileType} erfolgreich gelöscht`);
     loadPPTX();
   } catch (error) {
     showNotification('Fehler: ' + error.message, true);
@@ -254,8 +260,11 @@ async function deletePPTX(filename) {
 
 function updatePPTXDropdown() {
   const select = document.getElementById('webinarPptx');
-  select.innerHTML = '<option value="">Keine PPTX</option>' +
-    pptxFiles.map(f => `<option value="${f.filename}">${f.filename}</option>`).join('');
+  select.innerHTML = '<option value="">Keine Präsentationsdatei</option>' +
+    pptxFiles.map(f => {
+      const fileType = f.filename.toLowerCase().endsWith('.pdf') ? 'PDF' : 'PPTX';
+      return `<option value="${f.filename}">${f.filename} (${fileType})</option>`;
+    }).join('');
 }
 
 // ============ WEBINARS ============
@@ -520,6 +529,131 @@ async function exportResults() {
     showNotification('Ergebnisse erfolgreich exportiert');
   } catch (error) {
     showNotification('Fehler beim Export: ' + error.message, true);
+  }
+}
+
+// ============ IMPORT MODAL ============
+
+function showImportModal() {
+  document.getElementById('importModal').classList.remove('hidden');
+  loadImportedFiles();
+}
+
+function closeImportModal() {
+  document.getElementById('importModal').classList.add('hidden');
+  document.getElementById('importFiles').value = '';
+  document.getElementById('importFilesList').innerHTML = '';
+}
+
+// Show selected files preview
+document.getElementById('importFiles').addEventListener('change', (e) => {
+  const files = Array.from(e.target.files);
+  const listDiv = document.getElementById('importFilesList');
+  
+  if (files.length === 0) {
+    listDiv.innerHTML = '';
+    return;
+  }
+  
+  listDiv.innerHTML = `
+    <div style="background: #f8f9fa; padding: 15px; border-radius: 6px;">
+      <strong>Ausgewählte Dateien (${files.length}):</strong>
+      <ul style="margin: 10px 0; padding-left: 20px;">
+        ${files.map(f => {
+          const fileType = f.name.toLowerCase().endsWith('.pdf') ? 'PDF' : 'PPTX';
+          const sizeInMB = (f.size / 1024 / 1024).toFixed(2);
+          return `<li>${f.name} <span style="color: #7f8c8d;">(${fileType}, ${sizeInMB} MB)</span></li>`;
+        }).join('')}
+      </ul>
+    </div>
+  `;
+});
+
+// Handle import form submission
+document.getElementById('importForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  
+  const files = document.getElementById('importFiles').files;
+  if (files.length === 0) {
+    showNotification('Bitte wählen Sie mindestens eine Datei aus', true);
+    return;
+  }
+  
+  let successCount = 0;
+  let errorCount = 0;
+  
+  for (const file of files) {
+    try {
+      const formData = new FormData();
+      formData.append('pptx', file);
+      
+      await apiCall('/admin/pptx/upload', {
+        method: 'POST',
+        body: formData
+      });
+      
+      successCount++;
+    } catch (error) {
+      console.error(`Fehler beim Hochladen von ${file.name}:`, error);
+      errorCount++;
+    }
+  }
+  
+  if (successCount > 0) {
+    showNotification(`${successCount} Datei(en) erfolgreich importiert!`);
+  }
+  if (errorCount > 0) {
+    showNotification(`${errorCount} Datei(en) konnten nicht importiert werden`, true);
+  }
+  
+  // Reset form and reload list
+  document.getElementById('importFiles').value = '';
+  document.getElementById('importFilesList').innerHTML = '';
+  loadImportedFiles();
+  loadPPTX(); // Also update main PPTX list if user navigates there
+});
+
+// Load imported files list in modal
+async function loadImportedFiles() {
+  try {
+    const files = await apiCall('/admin/pptx');
+    const listDiv = document.getElementById('importedFilesList');
+    
+    if (files.length === 0) {
+      listDiv.innerHTML = '<p style="color: #7f8c8d;">Noch keine Präsentationen importiert.</p>';
+      return;
+    }
+    
+    listDiv.innerHTML = files.map(file => {
+      const fileType = file.filename.toLowerCase().endsWith('.pdf') ? 'PDF' : 'PPTX';
+      return `
+        <div class="pptx-item">
+          <div class="pptx-info">
+            <strong>${file.filename}</strong> <span style="color: #7f8c8d; font-size: 14px;">(${fileType})</span>
+            <small>Größe: ${(file.size / 1024 / 1024).toFixed(2)} MB | Hochgeladen: ${new Date(file.uploadedAt).toLocaleDateString('de-DE')}</small>
+          </div>
+          <div class="pptx-actions">
+            <button class="btn-danger" onclick="deleteImportedFile('${file.filename}')">Löschen</button>
+          </div>
+        </div>
+      `;
+    }).join('');
+  } catch (error) {
+    console.error('Fehler beim Laden der importierten Dateien:', error);
+  }
+}
+
+async function deleteImportedFile(filename) {
+  const fileType = filename.toLowerCase().endsWith('.pdf') ? 'PDF' : 'PPTX';
+  if (!confirm(`${fileType} "${filename}" wirklich löschen?`)) return;
+  
+  try {
+    await apiCall(`/admin/pptx/${filename}`, { method: 'DELETE' });
+    showNotification(`${fileType} erfolgreich gelöscht`);
+    loadImportedFiles();
+    loadPPTX(); // Also update main list
+  } catch (error) {
+    showNotification('Fehler beim Löschen: ' + error.message, true);
   }
 }
 

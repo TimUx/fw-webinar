@@ -7,13 +7,14 @@ Eine vollständig selbst gehostete, automatisierte Webinar- und E-Learning-Platt
 ✨ **Vollständig selbst gehostet** - Keine externen Abhängigkeiten  
 🐳 **Docker-basiert** - Einfache Bereitstellung mit Docker Compose  
 🔒 **Sicher** - JWT-Authentifizierung, bcrypt-Passwort-Hashing, Rate Limiting  
-📊 **Admin-Panel** - Vollständige Verwaltung von Webinaren, PPTX, Quiz und Ergebnissen  
+📊 **Admin-Panel** - Vollständige Verwaltung von Webinaren, PPTX/PDF, Quiz und Ergebnissen  
 🎯 **Quiz-System** - Multiple-Choice-Tests mit automatischer Bewertung  
 📧 **E-Mail-Benachrichtigungen** - Automatischer Versand von Ergebnissen  
 🗣️ **Sprachausgabe** - Browser-basierte automatische Narration (Text-to-Speech)  
 🎨 **Modernes Design** - Basierend auf fw-fragenkatalog Design  
 📱 **Responsive** - Funktioniert auf Desktop, Tablet und Mobile  
 🌐 **Deutsch** - Vollständig auf Deutsch lokalisiert  
+📄 **PDF & PPTX Support** - Import von PDF- und PowerPoint-Präsentationen  
 
 ## Tech Stack
 
@@ -23,7 +24,7 @@ Eine vollständig selbst gehostete, automatisierte Webinar- und E-Learning-Platt
 - **Authentifizierung**: JWT + bcrypt
 - **E-Mail**: Nodemailer (SMTP)
 - **Reverse Proxy**: Caddy
-- **PPTX-Konvertierung**: LibreOffice (optional)
+- **PPTX/PDF-Konvertierung**: LibreOffice (optional), pdftoppm für PDF
 - **Speicher**: Dateibasiert (JSON)
 - **Container**: Docker & Docker Compose
 
@@ -135,11 +136,14 @@ Caddy richtet automatisch Let's Encrypt HTTPS ein.
    - Richtige Antwort markieren
 6. Speichern
 
-### Methode 2: PPTX-Upload (optional)
+### Methode 2: PPTX/PDF-Upload (optional)
 
-1. PPTX-Datei im Bereich "PPTX Verwaltung" hochladen
-2. Bei Webinar-Erstellung PPTX-Datei auswählen
-3. System konvertiert PPTX automatisch (erfordert LibreOffice-Container)
+1. Präsentationsdatei (PPTX oder PDF) im Bereich "Präsentationen" hochladen
+2. Bei Webinar-Erstellung Präsentationsdatei auswählen
+3. System konvertiert automatisch:
+   - **PDF**: Wird in einzelne Bilder umgewandelt (mit pdftoppm)
+   - **PPTX**: Wird mit LibreOffice konvertiert
+   - Bei fehlenden Tools: Manuelle Slides verwenden
 
 ## Dateistruktur
 
