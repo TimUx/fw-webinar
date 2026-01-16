@@ -13,7 +13,7 @@ COPY backend ./backend
 COPY public ./public
 
 # Create directories
-RUN mkdir -p /data /uploads /slides /assets
+RUN mkdir -p /app/data /app/uploads /app/slides /app/assets
 
 # Expose port
 EXPOSE 3000
