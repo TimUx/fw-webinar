@@ -31,15 +31,15 @@ services:
       - NODE_ENV=production
       - PORT=3000
       - JWT_SECRET=${JWT_SECRET:-change-this-to-a-secure-random-string}
-      - DATA_DIR=/data
-      - UPLOADS_DIR=/uploads
-      - SLIDES_DIR=/slides
-      - ASSETS_DIR=/assets
+      - DATA_DIR=/app/data
+      - UPLOADS_DIR=/app/uploads
+      - SLIDES_DIR=/app/slides
+      - ASSETS_DIR=/app/assets
     volumes:
-      - ./data:/data
-      - ./uploads:/uploads
-      - ./slides:/slides
-      - ./assets:/assets
+      - ./data:/app/data
+      - ./uploads:/app/uploads
+      - ./slides:/app/slides
+      - ./assets:/app/assets
     networks:
       - webinar-network
     healthcheck:
@@ -60,8 +60,8 @@ services:
   #     - PGID=${PGID:-1000}
   #     - TZ=Europe/Berlin
   #   volumes:
-  #     - ./uploads:/uploads
-  #     - ./slides:/slides
+  #     - ./uploads:/app/uploads
+  #     - ./slides:/app/slides
   #   networks:
   #     - webinar-network
 
