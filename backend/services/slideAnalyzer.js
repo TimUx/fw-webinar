@@ -54,6 +54,8 @@ const progressTracker = new AnalysisProgress();
 const REPETITIVE_CONTENT_CONFIG = {
   // Minimum percentage of slides that must contain the text to be considered repetitive
   minOccurrencePercentage: 0.6, // 60% of slides
+  // Minimum percentage for known pattern matches (lower threshold)
+  minPatternOccurrencePercentage: 0.3, // 30% of slides
   // Minimum text length to be considered (ignore very short text like single characters)
   minTextLength: 3,
   // Maximum text length to be considered (ignore very long text that's unlikely to be header/footer)
@@ -82,6 +84,8 @@ function detectRepetitiveText(slides) {
   const textOccurrences = new Map();
   
   slides.forEach(slide => {
+    // Note: speakerNote contains the extracted raw text from the slide
+    // This is where analyzePPTX and analyzePDF store the text content
     const text = slide.speakerNote || '';
     
     // Split into lines and individual text segments
@@ -116,8 +120,8 @@ function detectRepetitiveText(slides) {
       const matchesPattern = REPETITIVE_CONTENT_CONFIG.repetitivePatterns.some(
         pattern => pattern.test(text)
       );
-      if (matchesPattern && count >= Math.ceil(slides.length * 0.3)) {
-        // Lower threshold for known patterns (30%)
+      if (matchesPattern && count >= Math.ceil(slides.length * REPETITIVE_CONTENT_CONFIG.minPatternOccurrencePercentage)) {
+        // Lower threshold for known patterns
         repetitiveTexts.add(text);
       }
     }
@@ -196,6 +200,14 @@ function removeRepetitiveImages(images, repetitiveImages) {
 
 /**
  * Apply repetitive content filtering to all slides
+ * This function:
+ * 1. Detects text and images that appear repeatedly across slides
+ * 2. Removes these repetitive elements from each slide
+ * 3. Regenerates the slide content without repetitive elements
+ * 
+ * Note: The speakerNote field contains the raw extracted text and is the source
+ * for both detection and filtering. After filtering, formatSlideContent() is called
+ * to regenerate the HTML content based on the filtered text and images.
  */
 function filterRepetitiveContent(slides) {
   if (slides.length < 2) {
