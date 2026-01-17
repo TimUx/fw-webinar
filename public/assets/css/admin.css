@@ -234,6 +234,11 @@ h3 {
   content: "⊞";
   font-size: 18px;
   font-weight: bold;
+  color: #444;
+}
+
+.ql-toolbar button.ql-table:hover::before {
+  color: #06c;
 }
 
 .quill-editor-container .ql-container {
@@ -833,6 +838,56 @@ hr {
   width: auto !important;
 }
 
+/* Ensure custom toolbar button text/spans are visible */
+.ql-toolbar button.ql-image-small,
+.ql-toolbar button.ql-image-medium,
+.ql-toolbar button.ql-image-large,
+.ql-toolbar button.ql-image-full,
+.ql-toolbar button.ql-image-float-left,
+.ql-toolbar button.ql-image-float-right,
+.ql-toolbar button.ql-image-float-none,
+.ql-toolbar button.ql-columns-2,
+.ql-toolbar button.ql-columns-3 {
+  color: #444 !important;
+}
+
+.ql-toolbar button.ql-image-small span,
+.ql-toolbar button.ql-image-medium span,
+.ql-toolbar button.ql-image-large span,
+.ql-toolbar button.ql-image-full span,
+.ql-toolbar button.ql-image-float-left span,
+.ql-toolbar button.ql-image-float-right span,
+.ql-toolbar button.ql-image-float-none span,
+.ql-toolbar button.ql-columns-2 span,
+.ql-toolbar button.ql-columns-3 span {
+  color: #444;
+  display: inline-block;
+}
+
+.ql-toolbar button.ql-image-small:hover,
+.ql-toolbar button.ql-image-medium:hover,
+.ql-toolbar button.ql-image-large:hover,
+.ql-toolbar button.ql-image-full:hover,
+.ql-toolbar button.ql-image-float-left:hover,
+.ql-toolbar button.ql-image-float-right:hover,
+.ql-toolbar button.ql-image-float-none:hover,
+.ql-toolbar button.ql-columns-2:hover,
+.ql-toolbar button.ql-columns-3:hover {
+  color: #06c !important;
+}
+
+.ql-toolbar button.ql-image-small:hover span,
+.ql-toolbar button.ql-image-medium:hover span,
+.ql-toolbar button.ql-image-large:hover span,
+.ql-toolbar button.ql-image-full:hover span,
+.ql-toolbar button.ql-image-float-left:hover span,
+.ql-toolbar button.ql-image-float-right:hover span,
+.ql-toolbar button.ql-image-float-none:hover span,
+.ql-toolbar button.ql-columns-2:hover span,
+.ql-toolbar button.ql-columns-3:hover span {
+  color: #06c;
+}
+
 .ql-toolbar button.ql-image-small::after {
   content: 'S';
 }
@@ -849,13 +904,13 @@ hr {
   content: 'XL';
 }
 
-/* Column Toolbar Buttons */
+/* Column Toolbar Buttons - Use outlined squares for better visibility */
 .ql-toolbar button.ql-columns-2::after {
-  content: '⬜⬜';
+  content: '▢▢';
 }
 
 .ql-toolbar button.ql-columns-3::after {
-  content: '⬜⬜⬜';
+  content: '▢▢▢';
 }
 
 /* Selected Image Highlight */
