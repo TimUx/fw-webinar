@@ -265,6 +265,116 @@ function updatePPTXDropdown() {
       const fileType = f.filename.toLowerCase().endsWith('.pdf') ? 'PDF' : 'PPTX';
       return `<option value="${f.filename}">${f.filename} (${fileType})</option>`;
     }).join('');
+  
+  // Add change event listener for analysis
+  select.removeEventListener('change', handlePptxSelection);
+  select.addEventListener('change', handlePptxSelection);
+}
+
+async function handlePptxSelection(e) {
+  const filename = e.target.value;
+  if (!filename) return;
+  
+  const fileType = filename.toLowerCase().endsWith('.pdf') ? 'PDF' : 'PPTX';
+  
+  if (!confirm(`Möchten Sie die ${fileType}-Datei analysieren und automatisch Folien erstellen?`)) {
+    return;
+  }
+  
+  // Generate temporary webinar ID for analysis
+  const tempWebinarId = 'temp-' + Date.now();
+  
+  try {
+    showNotification(`${fileType} wird analysiert...`);
+    
+    // Start analysis
+    const { sessionId } = await apiCall(`/admin/pptx/${filename}/analyze`, {
+      method: 'POST',
+      body: { webinarId: tempWebinarId }
+    });
+    
+    // Show progress modal
+    showProgressModal(sessionId);
+    
+  } catch (error) {
+    showNotification('Fehler beim Starten der Analyse: ' + error.message, true);
+  }
+}
+
+function showProgressModal(sessionId) {
+  // Create progress modal if it doesn't exist
+  let modal = document.getElementById('progressModal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'progressModal';
+    modal.className = 'modal';
+    modal.innerHTML = `
+      <div class="modal-content">
+        <h3>Präsentation wird analysiert</h3>
+        <div class="progress-container">
+          <div class="progress-bar">
+            <div id="progressBarFill" class="progress-bar-fill"></div>
+          </div>
+          <div id="progressMessage" style="margin-top: 10px; text-align: center;"></div>
+          <div id="progressPercent" style="margin-top: 5px; text-align: center; font-weight: bold;"></div>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+  }
+  
+  modal.classList.remove('hidden');
+  
+  // Connect to progress stream
+  const eventSource = new EventSource(`/api/admin/pptx/analyze/progress/${sessionId}`);
+  
+  eventSource.onmessage = (event) => {
+    const data = JSON.parse(event.data);
+    
+    if (data.error) {
+      eventSource.close();
+      modal.classList.add('hidden');
+      showNotification('Fehler: ' + data.error, true);
+      return;
+    }
+    
+    // Update progress UI
+    document.getElementById('progressBarFill').style.width = data.progress + '%';
+    document.getElementById('progressMessage').textContent = data.message || '';
+    document.getElementById('progressPercent').textContent = data.progress + '%';
+    
+    if (data.status === 'completed') {
+      eventSource.close();
+      modal.classList.add('hidden');
+      
+      // Load slides into the form
+      if (data.slides && data.slides.length > 0) {
+        loadAnalyzedSlides(data.slides);
+        showNotification(`Analyse abgeschlossen! ${data.slides.length} Folien erstellt.`);
+      }
+    } else if (data.status === 'error') {
+      eventSource.close();
+      modal.classList.add('hidden');
+      showNotification('Analyse fehlgeschlagen: ' + data.message, true);
+    }
+  };
+  
+  eventSource.onerror = () => {
+    eventSource.close();
+    modal.classList.add('hidden');
+    showNotification('Verbindung zur Analyse unterbrochen', true);
+  };
+}
+
+function loadAnalyzedSlides(slides) {
+  const container = document.getElementById('slidesContainer');
+  container.innerHTML = '';
+  
+  slides.forEach(slide => {
+    addSlide(slide);
+  });
+  
+  showNotification(`${slides.length} Folien erfolgreich geladen`);
 }
 
 // ============ WEBINARS ============
