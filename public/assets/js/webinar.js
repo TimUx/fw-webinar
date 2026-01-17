@@ -131,9 +131,10 @@ function nextSlide() {
     updateSlideCounter();
     speakSlideNote(currentSlideIndex);
   } else {
-    // Last slide reached, show quiz button
+    // Last slide reached, show confirmation section
     stopSpeaking();
-    document.getElementById('startQuizBtn').style.display = 'inline-block';
+    document.getElementById('presentation-section').classList.add('hidden');
+    document.getElementById('confirmation-section').classList.remove('hidden');
   }
 }
 
@@ -389,11 +390,31 @@ function stopSpeaking() {
   indicator.classList.remove('speaking');
 }
 
+// Update confirmation button state
+function updateConfirmationButton() {
+  const checkbox = document.getElementById('confirmationCheckbox');
+  const button = document.getElementById('proceedToQuizBtn');
+  button.disabled = !checkbox.checked;
+}
+
+// Proceed to quiz after confirmation
+function proceedToQuiz() {
+  const checkbox = document.getElementById('confirmationCheckbox');
+  if (!checkbox.checked) {
+    alert('Bitte bestätigen Sie, dass Sie das Webinar gelesen und verstanden haben.');
+    return;
+  }
+  
+  document.getElementById('confirmation-section').classList.add('hidden');
+  startQuiz();
+}
+
 // Start quiz
 function startQuiz() {
   stopSpeaking();
   
   document.getElementById('presentation-section').classList.add('hidden');
+  document.getElementById('confirmation-section').classList.add('hidden');
   document.getElementById('quiz-section').classList.remove('hidden');
   
   currentQuestionIndex = 0;
