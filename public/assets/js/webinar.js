@@ -320,6 +320,14 @@ function changeSpeechRate() {
   }
 }
 
+// Helper to check if narration should be restarted when unmuting
+function shouldRestartNarration() {
+  return currentWebinar && 
+         currentWebinar.slides && 
+         currentSlideIndex >= 0 && 
+         (currentSlideIndex > 0 || slideMinimumTimePassed);
+}
+
 // Toggle mute
 function toggleMute() {
   isMuted = !isMuted;
@@ -332,8 +340,8 @@ function toggleMute() {
   } else {
     muteBtn.textContent = '🔊 Ton';
     muteBtn.classList.remove('muted');
-    // Restart narration if we're in a presentation and it's not the first slide or time has passed
-    if (currentWebinar && currentWebinar.slides && currentSlideIndex >= 0 && (currentSlideIndex > 0 || slideMinimumTimePassed)) {
+    // Restart narration if appropriate
+    if (shouldRestartNarration()) {
       speakSlideNote(currentSlideIndex);
     }
   }
@@ -402,16 +410,9 @@ function speakSlideNote(slideIndex) {
     updateSlideCounter();
   }, MINIMUM_SLIDE_DURATION);
   
-  // If muted, use helper function for consistent behavior
-  if (isMuted) {
-    narrationComplete = true;
-    updateSlideCounter();
-    return;
-  }
-  
+  // If muted or no content, mark as complete
   const slide = currentWebinar.slides[slideIndex];
-  if (!slide || !slide.speakerNote) {
-    // No narration, mark as complete immediately
+  if (isMuted || !slide || !slide.speakerNote) {
     narrationComplete = true;
     updateSlideCounter();
     return;

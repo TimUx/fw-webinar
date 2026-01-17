@@ -41,6 +41,9 @@ function getCommonPresentationStyles() {
       border: none;
       box-shadow: none;
       background: none;
+      max-width: 100%;
+      max-height: 90vh;
+      object-fit: contain;
     }
     /* Hide Reveal.js controls */
     .reveal .controls {
@@ -142,7 +145,7 @@ async function createImageSlides(webinarId, imageFiles) {
   
   const slides = imageFiles.map((imgFile, index) => `
     <section>
-      <img src="${imgFile}" alt="Slide ${index + 1}" style="max-width: 100%; max-height: 90vh; object-fit: contain;">
+      <img src="${imgFile}" alt="Slide ${index + 1}">
     </section>
   `).join('\n');
   
