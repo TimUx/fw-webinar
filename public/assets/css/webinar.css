@@ -171,18 +171,13 @@ button:disabled {
   background: #000;
   max-height: calc(100vh - var(--viewport-offset));
   overflow: hidden;
-  /* Automatically adapt aspect ratio based on available space */
+  /* Automatically adapt aspect ratio based on available space 
+     56.25% = 16:9 aspect ratio (9/16 = 0.5625)
+     The min() ensures the container doesn't exceed viewport height */
   padding-bottom: min(56.25%, calc((100vh - var(--viewport-offset)) / 100vw * 100%));
 }
 
-/* Legacy aspect ratio classes for backwards compatibility - both now responsive */
-.aspect-ratio-container.ratio-16-9 {
-  padding-bottom: min(56.25%, calc((100vh - var(--viewport-offset)) / 100vw * 100%));
-}
-
-.aspect-ratio-container.ratio-4-3 {
-  padding-bottom: min(56.25%, calc((100vh - var(--viewport-offset)) / 100vw * 100%));
-}
+/* Legacy aspect ratio classes removed - format now adapts automatically */
 
 .presentation-frame {
   position: absolute;
@@ -519,7 +514,7 @@ button:disabled {
 .voice-controls {
   background: #ecf0f1;
   padding: 12px 15px;
-  border-radius: 0;
+  border-radius: 4px;
   margin-bottom: 0;
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
