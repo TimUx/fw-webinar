@@ -563,6 +563,14 @@ function addSlide(slide = null) {
   const div = document.createElement('div');
   div.className = 'slide-item';
   div.innerHTML = `
+    <div class="slide-header">
+      <h4 class="slide-number">Folie ${index + 1}</h4>
+      <div class="slide-controls">
+        <button type="button" class="btn-icon" onclick="moveSlideUp(this)" title="Nach oben">▲</button>
+        <button type="button" class="btn-icon" onclick="moveSlideDown(this)" title="Nach unten">▼</button>
+        <button type="button" class="btn-danger" onclick="removeSlide(this)">Entfernen</button>
+      </div>
+    </div>
     <div class="form-group">
       <label>Folien-Titel</label>
       <input type="text" class="slide-title" value="${escapeHtml(slide?.title || '')}" placeholder="Folie ${index + 1}">
@@ -575,7 +583,6 @@ function addSlide(slide = null) {
       <label>Sprechernotiz (für Sprachausgabe)</label>
       <textarea class="slide-note" placeholder="Text für automatische Sprachausgabe">${escapeHtml(slide?.speakerNote || '')}</textarea>
     </div>
-    <button type="button" class="btn-danger" onclick="removeSlide(this)">Folie entfernen</button>
   `;
   
   container.appendChild(div);
@@ -584,11 +591,14 @@ function addSlide(slide = null) {
   const contentContainer = div.querySelector('.form-group:nth-child(2)');
   const quillEditor = createQuillEditor(contentContainer, slide?.content || '');
   quillEditors.push(quillEditor);
+  
+  // Update all slide numbers after adding
+  updateSlideNumbers();
 }
 
 // Helper function to remove a slide and its Quill editor
 function removeSlide(button) {
-  const slideItem = button.parentElement;
+  const slideItem = button.closest('.slide-item');
   const container = document.getElementById('slidesContainer');
   const slideIndex = Array.from(container.children).indexOf(slideItem);
   
@@ -598,6 +608,68 @@ function removeSlide(button) {
   }
   
   slideItem.remove();
+  
+  // Update slide numbers after removing
+  updateSlideNumbers();
+}
+
+// Helper function to move a slide up
+function moveSlideUp(button) {
+  const slideItem = button.closest('.slide-item');
+  const container = document.getElementById('slidesContainer');
+  const slideIndex = Array.from(container.children).indexOf(slideItem);
+  
+  if (slideIndex > 0) {
+    // Swap in DOM
+    const previousSlide = container.children[slideIndex - 1];
+    container.insertBefore(slideItem, previousSlide);
+    
+    // Swap in Quill editors array
+    if (slideIndex < quillEditors.length && slideIndex - 1 >= 0) {
+      const temp = quillEditors[slideIndex];
+      quillEditors[slideIndex] = quillEditors[slideIndex - 1];
+      quillEditors[slideIndex - 1] = temp;
+    }
+    
+    // Update slide numbers
+    updateSlideNumbers();
+  }
+}
+
+// Helper function to move a slide down
+function moveSlideDown(button) {
+  const slideItem = button.closest('.slide-item');
+  const container = document.getElementById('slidesContainer');
+  const slideIndex = Array.from(container.children).indexOf(slideItem);
+  
+  if (slideIndex < container.children.length - 1) {
+    // Swap in DOM
+    const nextSlide = container.children[slideIndex + 1];
+    container.insertBefore(nextSlide, slideItem);
+    
+    // Swap in Quill editors array
+    if (slideIndex < quillEditors.length - 1 && slideIndex + 1 < quillEditors.length) {
+      const temp = quillEditors[slideIndex];
+      quillEditors[slideIndex] = quillEditors[slideIndex + 1];
+      quillEditors[slideIndex + 1] = temp;
+    }
+    
+    // Update slide numbers
+    updateSlideNumbers();
+  }
+}
+
+// Helper function to update all slide numbers
+function updateSlideNumbers() {
+  const container = document.getElementById('slidesContainer');
+  const slides = container.children;
+  
+  Array.from(slides).forEach((slide, index) => {
+    const numberElement = slide.querySelector('.slide-number');
+    if (numberElement) {
+      numberElement.textContent = `Folie ${index + 1}`;
+    }
+  });
 }
 
 // Question management
