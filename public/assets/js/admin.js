@@ -197,11 +197,12 @@ async function loadPPTX() {
     }
     
     list.innerHTML = pptxFiles.map(file => {
-      const fileType = file.filename.toLowerCase().endsWith('.pdf') ? 'PDF' : 'PPTX';
+      const displayName = file.displayName || file.filename;
+      const fileType = displayName.toLowerCase().endsWith('.pdf') ? 'PDF' : 'PPTX';
       return `
       <div class="pptx-item">
         <div class="pptx-info">
-          <strong>${file.filename}</strong> <span style="color: #7f8c8d; font-size: 14px;">(${fileType})</span>
+          <strong>${displayName}</strong> <span style="color: #7f8c8d; font-size: 14px;">(${fileType})</span>
           <small>Größe: ${(file.size / 1024 / 1024).toFixed(2)} MB | Hochgeladen: ${new Date(file.uploadedAt).toLocaleDateString('de-DE')}</small>
         </div>
         <div class="pptx-actions">
@@ -246,8 +247,11 @@ document.getElementById('pptxUploadForm').addEventListener('submit', async (e) =
 });
 
 async function deletePPTX(filename) {
-  const fileType = filename.toLowerCase().endsWith('.pdf') ? 'PDF' : 'PPTX';
-  if (!confirm(`${fileType} "${filename}" wirklich löschen?`)) return;
+  // Find the file object to get the display name
+  const file = pptxFiles.find(f => f.filename === filename);
+  const displayName = file ? (file.displayName || file.filename) : filename;
+  const fileType = displayName.toLowerCase().endsWith('.pdf') ? 'PDF' : 'PPTX';
+  if (!confirm(`${fileType} "${displayName}" wirklich löschen?`)) return;
   
   try {
     await apiCall(`/admin/pptx/${filename}`, { method: 'DELETE' });
@@ -262,8 +266,9 @@ function updatePPTXDropdown() {
   const select = document.getElementById('webinarPptx');
   select.innerHTML = '<option value="">Keine Präsentationsdatei</option>' +
     pptxFiles.map(f => {
-      const fileType = f.filename.toLowerCase().endsWith('.pdf') ? 'PDF' : 'PPTX';
-      return `<option value="${f.filename}">${f.filename} (${fileType})</option>`;
+      const displayName = f.displayName || f.filename;
+      const fileType = displayName.toLowerCase().endsWith('.pdf') ? 'PDF' : 'PPTX';
+      return `<option value="${f.filename}">${displayName} (${fileType})</option>`;
     }).join('');
 }
 
@@ -625,15 +630,16 @@ async function loadImportedFiles() {
     }
     
     listDiv.innerHTML = files.map(file => {
-      const fileType = file.filename.toLowerCase().endsWith('.pdf') ? 'PDF' : 'PPTX';
+      const displayName = file.displayName || file.filename;
+      const fileType = displayName.toLowerCase().endsWith('.pdf') ? 'PDF' : 'PPTX';
       return `
         <div class="pptx-item">
           <div class="pptx-info">
-            <strong>${file.filename}</strong> <span style="color: #7f8c8d; font-size: 14px;">(${fileType})</span>
+            <strong>${displayName}</strong> <span style="color: #7f8c8d; font-size: 14px;">(${fileType})</span>
             <small>Größe: ${(file.size / 1024 / 1024).toFixed(2)} MB | Hochgeladen: ${new Date(file.uploadedAt).toLocaleDateString('de-DE')}</small>
           </div>
           <div class="pptx-actions">
-            <button class="btn-danger" onclick="deleteImportedFile('${file.filename}')">Löschen</button>
+            <button class="btn-danger" onclick="deleteImportedFile('${file.filename}', '${displayName.replace(/'/g, "\\'")}')">Löschen</button>
           </div>
         </div>
       `;
@@ -643,9 +649,10 @@ async function loadImportedFiles() {
   }
 }
 
-async function deleteImportedFile(filename) {
-  const fileType = filename.toLowerCase().endsWith('.pdf') ? 'PDF' : 'PPTX';
-  if (!confirm(`${fileType} "${filename}" wirklich löschen?`)) return;
+async function deleteImportedFile(filename, displayName) {
+  const name = displayName || filename;
+  const fileType = name.toLowerCase().endsWith('.pdf') ? 'PDF' : 'PPTX';
+  if (!confirm(`${fileType} "${name}" wirklich löschen?`)) return;
   
   try {
     await apiCall(`/admin/pptx/${filename}`, { method: 'DELETE' });

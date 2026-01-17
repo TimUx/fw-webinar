@@ -36,8 +36,10 @@ const storage = multer.diskStorage({
     });
   },
   filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, uniqueSuffix + path.extname(file.originalname));
+    // Preserve original filename with timestamp prefix to prevent collisions
+    const timestamp = Date.now();
+    const originalName = file.originalname;
+    cb(null, `${timestamp}-${originalName}`);
   }
 });
 
@@ -188,6 +190,15 @@ router.post('/smtp/test', async (req, res) => {
 // ============ PPTX MANAGEMENT ============
 
 /**
+ * Helper function to extract original filename from stored filename
+ * Stored format: {timestamp}-{originalname}
+ */
+function getOriginalFilename(storedFilename) {
+  const match = storedFilename.match(/^\d+-(.+)$/);
+  return match ? match[1] : storedFilename;
+}
+
+/**
  * GET /api/admin/pptx
  * List uploaded PPTX/PDF files
  */
@@ -203,7 +214,8 @@ router.get('/pptx', async (req, res) => {
       const filepath = path.join(uploadsDir, filename);
       const stats = await fs.stat(filepath);
       return {
-        filename,
+        filename, // Actual filename on disk (with timestamp)
+        displayName: getOriginalFilename(filename), // Original filename for display
         size: stats.size,
         uploadedAt: stats.birthtime
       };
