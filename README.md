@@ -311,6 +311,8 @@ docker compose up -d
 2. Oder im Browser-DevTools "Disable cache" aktivieren
 3. Die Anwendung nutzt automatisches Cache-Busting mit Versions-Parametern
 
+**Hinweis für Entwickler**: Die Cache-Busting-Version ist aktuell manuell in HTML-Dateien gesetzt. Bei Änderungen an JS/CSS-Dateien sollte die Version aktualisiert werden, um Browser-Cache-Probleme zu vermeiden.
+
 ## Fehlerbehebung
 
 ### Häufige Docker-Warnungen
