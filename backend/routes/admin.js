@@ -3,7 +3,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs').promises;
 const fsSync = require('fs');
-const { authMiddleware } = require('../middleware/auth');
+const { authMiddleware, authMiddlewareSSE } = require('../middleware/auth');
 const { Storage } = require('../utils/storage');
 const { logAudit } = require('../utils/logger');
 const { sendTestEmail } = require('../services/mail');
@@ -12,14 +12,56 @@ const { analyzePresentation, progressTracker } = require('../services/slideAnaly
 
 const router = express.Router();
 
-// Apply authentication to all admin routes
-router.use(authMiddleware);
-
 // Storage instances
 const settingsStorage = new Storage('settings.json');
 const smtpStorage = new Storage('smtp.json');
 const webinarsStorage = new Storage('webinars.json');
 const resultsStorage = new Storage('results.json');
+
+// SSE endpoint needs special auth handling (before global authMiddleware)
+/**
+ * GET /api/admin/pptx/analyze/progress/:sessionId
+ * Get analysis progress via Server-Sent Events
+ */
+router.get('/pptx/analyze/progress/:sessionId', authMiddlewareSSE, (req, res) => {
+  const { sessionId } = req.params;
+  
+  // Set headers for Server-Sent Events
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  
+  // Send progress updates
+  const intervalId = setInterval(() => {
+    const progress = progressTracker.get(sessionId);
+    
+    if (!progress) {
+      res.write(`data: ${JSON.stringify({ error: 'Session not found' })}\n\n`);
+      clearInterval(intervalId);
+      res.end();
+      return;
+    }
+    
+    res.write(`data: ${JSON.stringify(progress)}\n\n`);
+    
+    // End stream when completed or error
+    if (progress.status === 'completed' || progress.status === 'error') {
+      clearInterval(intervalId);
+      setTimeout(() => {
+        progressTracker.delete(sessionId);
+        res.end();
+      }, 1000);
+    }
+  }, 500);
+  
+  // Clean up on client disconnect
+  req.on('close', () => {
+    clearInterval(intervalId);
+  });
+});
+
+// Apply authentication to all other admin routes
+router.use(authMiddleware);
 
 // File upload configuration
 const storage = multer.diskStorage({
@@ -296,47 +338,6 @@ router.post('/pptx/:filename/analyze', async (req, res) => {
     console.error('Analysis start error:', error);
     res.status(500).json({ error: 'Fehler beim Starten der Analyse' });
   }
-});
-
-/**
- * GET /api/admin/pptx/analyze/progress/:sessionId
- * Get analysis progress
- */
-router.get('/pptx/analyze/progress/:sessionId', (req, res) => {
-  const { sessionId } = req.params;
-  
-  // Set headers for Server-Sent Events
-  res.setHeader('Content-Type', 'text/event-stream');
-  res.setHeader('Cache-Control', 'no-cache');
-  res.setHeader('Connection', 'keep-alive');
-  
-  // Send progress updates
-  const intervalId = setInterval(() => {
-    const progress = progressTracker.get(sessionId);
-    
-    if (!progress) {
-      res.write(`data: ${JSON.stringify({ error: 'Session not found' })}\n\n`);
-      clearInterval(intervalId);
-      res.end();
-      return;
-    }
-    
-    res.write(`data: ${JSON.stringify(progress)}\n\n`);
-    
-    // End stream when completed or error
-    if (progress.status === 'completed' || progress.status === 'error') {
-      clearInterval(intervalId);
-      setTimeout(() => {
-        progressTracker.delete(sessionId);
-        res.end();
-      }, 1000);
-    }
-  }, 500);
-  
-  // Clean up on client disconnect
-  req.on('close', () => {
-    clearInterval(intervalId);
-  });
 });
 
 // ============ WEBINAR MANAGEMENT ============

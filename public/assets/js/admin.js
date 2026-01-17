@@ -325,8 +325,9 @@ function showProgressModal(sessionId) {
   
   modal.classList.remove('hidden');
   
-  // Connect to progress stream
-  const eventSource = new EventSource(`/api/admin/pptx/analyze/progress/${sessionId}`);
+  // Connect to progress stream with auth token
+  const token = localStorage.getItem('adminToken');
+  const eventSource = new EventSource(`/api/admin/pptx/analyze/progress/${sessionId}?token=${token}`);
   
   eventSource.onmessage = (event) => {
     const data = JSON.parse(event.data);

@@ -24,4 +24,27 @@ function authMiddleware(req, res, next) {
   next();
 }
 
-module.exports = { authMiddleware };
+/**
+ * Authentication middleware for SSE (accepts token from query)
+ */
+function authMiddlewareSSE(req, res, next) {
+  // Try query parameter first (for EventSource which can't set headers)
+  const tokenFromQuery = req.query.token;
+  
+  if (tokenFromQuery) {
+    const decoded = verifyToken(tokenFromQuery);
+    
+    if (!decoded) {
+      logAudit('AUTH_FAILED', req.ip, 'Ungültiges Token (SSE)');
+      return res.status(401).json({ error: 'Ungültiges oder abgelaufenes Token' });
+    }
+    
+    req.user = decoded;
+    return next();
+  }
+  
+  // Fall back to regular auth header
+  return authMiddleware(req, res, next);
+}
+
+module.exports = { authMiddleware, authMiddlewareSSE };
