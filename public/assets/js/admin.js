@@ -57,6 +57,13 @@ function showNotification(message, isError = false) {
   }, 3000);
 }
 
+// Helper to escape HTML entities to prevent XSS
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
 // Logout
 function logout() {
   localStorage.removeItem('adminToken');
@@ -202,11 +209,11 @@ async function loadPPTX() {
       return `
       <div class="pptx-item">
         <div class="pptx-info">
-          <strong>${displayName}</strong> <span style="color: #7f8c8d; font-size: 14px;">(${fileType})</span>
+          <strong>${escapeHtml(displayName)}</strong> <span style="color: #7f8c8d; font-size: 14px;">(${fileType})</span>
           <small>Größe: ${(file.size / 1024 / 1024).toFixed(2)} MB | Hochgeladen: ${new Date(file.uploadedAt).toLocaleDateString('de-DE')}</small>
         </div>
         <div class="pptx-actions">
-          <button class="btn-danger" onclick="deletePPTX('${file.filename}')">Löschen</button>
+          <button class="btn-danger" onclick="deletePPTX('${escapeHtml(file.filename)}')">Löschen</button>
         </div>
       </div>
     `;
@@ -268,7 +275,7 @@ function updatePPTXDropdown() {
     pptxFiles.map(f => {
       const displayName = f.displayName || f.filename;
       const fileType = displayName.toLowerCase().endsWith('.pdf') ? 'PDF' : 'PPTX';
-      return `<option value="${f.filename}">${displayName} (${fileType})</option>`;
+      return `<option value="${escapeHtml(f.filename)}">${escapeHtml(displayName)} (${fileType})</option>`;
     }).join('');
 }
 
@@ -635,11 +642,11 @@ async function loadImportedFiles() {
       return `
         <div class="pptx-item">
           <div class="pptx-info">
-            <strong>${displayName}</strong> <span style="color: #7f8c8d; font-size: 14px;">(${fileType})</span>
+            <strong>${escapeHtml(displayName)}</strong> <span style="color: #7f8c8d; font-size: 14px;">(${fileType})</span>
             <small>Größe: ${(file.size / 1024 / 1024).toFixed(2)} MB | Hochgeladen: ${new Date(file.uploadedAt).toLocaleDateString('de-DE')}</small>
           </div>
           <div class="pptx-actions">
-            <button class="btn-danger" onclick="deleteImportedFile('${file.filename}', '${displayName.replace(/'/g, "\\'")}')">Löschen</button>
+            <button class="btn-danger" onclick="deleteImportedFile('${escapeHtml(file.filename)}', '${escapeHtml(displayName)}')">Löschen</button>
           </div>
         </div>
       `;

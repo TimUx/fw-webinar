@@ -194,8 +194,9 @@ router.post('/smtp/test', async (req, res) => {
  * Stored format: {timestamp}-{originalname}
  */
 function getOriginalFilename(storedFilename) {
-  const match = storedFilename.match(/^\d+-(.+)$/);
-  return match ? match[1] : storedFilename;
+  // Match 13-digit timestamp (from Date.now()) followed by dash and filename
+  const match = storedFilename.match(/^(\d{13})-(.+)$/);
+  return match ? match[2] : storedFilename;
 }
 
 /**
