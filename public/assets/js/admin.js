@@ -892,7 +892,7 @@ async function deleteImportedFile(filename, displayName) {
 }
 
 // Initialize
-showSection('settings');
+showSection('webinars');
 
 // ============ HELP MODAL ============
 
