@@ -1,54 +1,9 @@
-const { spawn } = require('child_process');
 const fs = require('fs').promises;
 const path = require('path');
+const { spawnAsync } = require('../utils/process');
 
 const UPLOADS_DIR = process.env.UPLOADS_DIR || path.join(__dirname, '../../uploads');
 const SLIDES_DIR = process.env.SLIDES_DIR || path.join(__dirname, '../../slides');
-
-/**
- * Execute a command safely using spawn (avoids shell injection)
- */
-function spawnAsync(command, args, options = {}) {
-  return new Promise((resolve, reject) => {
-    const child = spawn(command, args, { ...options, shell: false });
-    let stdout = '';
-    let stderr = '';
-    
-    if (child.stdout) {
-      child.stdout.on('data', (data) => {
-        stdout += data.toString();
-      });
-    }
-    
-    if (child.stderr) {
-      child.stderr.on('data', (data) => {
-        stderr += data.toString();
-      });
-    }
-    
-    child.on('error', reject);
-    
-    child.on('close', (code) => {
-      if (code === 0) {
-        resolve({ stdout, stderr });
-      } else {
-        const error = new Error(`Command failed with exit code ${code}`);
-        error.stdout = stdout;
-        error.stderr = stderr;
-        error.code = code;
-        reject(error);
-      }
-    });
-    
-    // Handle timeout
-    if (options.timeout) {
-      setTimeout(() => {
-        child.kill();
-        reject(new Error('Command timeout'));
-      }, options.timeout);
-    }
-  });
-}
 
 /**
  * Get common presentation CSS styles

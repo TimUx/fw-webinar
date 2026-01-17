@@ -3,57 +3,12 @@ const fsSync = require('fs');
 const path = require('path');
 const JSZip = require('jszip');
 const pdfParse = require('pdf-parse');
-const { spawn } = require('child_process');
+const { spawnAsync } = require('../utils/process');
 
 const UPLOADS_DIR = process.env.UPLOADS_DIR || path.join(__dirname, '../../uploads');
 const ASSETS_DIR = process.env.ASSETS_DIR || path.join(__dirname, '../../assets');
 const PDF_TEXT_PREVIEW_LENGTH = 500; // Maximum characters to show in PDF text preview
 const SSE_POLL_INTERVAL = 500; // Milliseconds between progress updates
-
-/**
- * Execute a command safely using spawn (avoids shell injection)
- */
-function spawnAsync(command, args, options = {}) {
-  return new Promise((resolve, reject) => {
-    const child = spawn(command, args, { ...options, shell: false });
-    let stdout = '';
-    let stderr = '';
-    
-    if (child.stdout) {
-      child.stdout.on('data', (data) => {
-        stdout += data.toString();
-      });
-    }
-    
-    if (child.stderr) {
-      child.stderr.on('data', (data) => {
-        stderr += data.toString();
-      });
-    }
-    
-    child.on('error', reject);
-    
-    child.on('close', (code) => {
-      if (code === 0) {
-        resolve({ stdout, stderr });
-      } else {
-        const error = new Error(`Command failed with exit code ${code}`);
-        error.stdout = stdout;
-        error.stderr = stderr;
-        error.code = code;
-        reject(error);
-      }
-    });
-    
-    // Handle timeout
-    if (options.timeout) {
-      setTimeout(() => {
-        child.kill();
-        reject(new Error('Command timeout'));
-      }, options.timeout);
-    }
-  });
-}
 
 /**
  * Progress tracking for slide analysis
