@@ -408,16 +408,14 @@ router.post('/webinars', async (req, res) => {
         if (isPDF) {
           // For PDF files, convert pages to images directly
           await convertPDFToSlides(pptxFile, webinar.id);
-          
-          // Analyze PDF to get slide metadata for the webinar object
-          const analyzedSlides = await analyzePresentation(pptxFile, webinar.id, sessionId);
-          webinar.slides = analyzedSlides;
-        } else {
-          // For PPTX files, analyze and generate slides
-          const analyzedSlides = await analyzePresentation(pptxFile, webinar.id, sessionId);
-          webinar.slides = analyzedSlides;
-          
-          // Generate slides presentation
+        }
+        
+        // Analyze presentation to get slide metadata for the webinar object
+        const analyzedSlides = await analyzePresentation(pptxFile, webinar.id, sessionId);
+        webinar.slides = analyzedSlides;
+        
+        // For PPTX files, generate slides presentation from analyzed data
+        if (!isPDF) {
           await generateSimpleSlides(webinar.id, analyzedSlides);
         }
       } catch (analyzeError) {
