@@ -174,7 +174,7 @@ button:disabled {
   /* Automatically adapt aspect ratio based on available space 
      56.25% = 16:9 aspect ratio (9/16 = 0.5625)
      The min() ensures the container doesn't exceed viewport height */
-  padding-bottom: min(56.25%, calc((100vh - var(--viewport-offset)) / 100vw * 100%));
+  padding-bottom: min(56.25%, calc(100vh - var(--viewport-offset)));
 }
 
 /* Legacy aspect ratio classes removed - format now adapts automatically */
