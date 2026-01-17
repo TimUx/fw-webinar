@@ -211,7 +211,7 @@ router.put('/smtp', async (req, res) => {
       password: password || data.password,
       secure: secure !== undefined ? secure : data.secure,
       from: from || data.from,
-      recipient: recipient || data.recipient,
+      recipient: recipient !== undefined ? recipient : data.recipient,
       updatedAt: new Date().toISOString()
     }));
     
