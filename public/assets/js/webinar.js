@@ -1,5 +1,7 @@
 const API_BASE = '/api';
 const MINIMUM_SLIDE_DURATION = 10000; // 10 seconds in milliseconds
+const ASPECT_RATIO_16_9 = '16-9';
+const ASPECT_RATIO_4_3 = '4-3';
 
 let currentWebinar = null;
 let currentSlideIndex = 0;
@@ -9,11 +11,12 @@ let speechSynthesis = window.speechSynthesis;
 let currentUtterance = null;
 let availableVoices = [];
 let selectedVoice = null;
-let speechRate = 0.85;
+let speechRate = 1.0;
 let speechPitch = 1.0;
 let speechErrorCount = 0;
 let narrationComplete = false;
 let slideMinimumTimePassed = false;
+let isMuted = false;
 
 // Load settings and webinars on page load
 document.addEventListener('DOMContentLoaded', async () => {
@@ -103,13 +106,25 @@ function loadPresentation() {
   currentSlideIndex = 0;
   updateSlideCounter();
   
+  // Restore aspect ratio preference
+  const savedRatio = localStorage.getItem('preferredAspectRatio');
+  if (savedRatio && (savedRatio === ASPECT_RATIO_16_9 || savedRatio === ASPECT_RATIO_4_3)) {
+    const aspectRatioSelect = document.getElementById('aspectRatioSelect');
+    const container = document.getElementById('aspectRatioContainer');
+    aspectRatioSelect.value = savedRatio;
+    container.classList.remove(`ratio-${ASPECT_RATIO_16_9}`, `ratio-${ASPECT_RATIO_4_3}`);
+    container.classList.add(`ratio-${savedRatio}`);
+  }
+  
   // Wait for iframe to load
   iframe.onload = () => {
     updateSlideCounter();
     
-    // Start narration for first slide
+    // Start narration for first slide if not muted
     setTimeout(() => {
-      speakSlideNote(0);
+      if (!isMuted) {
+        speakSlideNote(0);
+      }
     }, 1000);
   };
   
@@ -137,7 +152,11 @@ function nextSlide() {
     }
     
     updateSlideCounter();
-    speakSlideNote(currentSlideIndex);
+    if (!isMuted) {
+      speakSlideNote(currentSlideIndex);
+    } else {
+      handleMutedSlideTransition();
+    }
   } else {
     // Last slide reached, show confirmation section
     stopSpeaking();
@@ -158,7 +177,11 @@ function previousSlide() {
     }
     
     updateSlideCounter();
-    speakSlideNote(currentSlideIndex);
+    if (!isMuted) {
+      speakSlideNote(currentSlideIndex);
+    } else {
+      handleMutedSlideTransition();
+    }
   }
 }
 
@@ -299,6 +322,49 @@ function changeSpeechRate() {
   }
 }
 
+// Helper to check if narration should be restarted when unmuting
+function shouldRestartNarration() {
+  return currentWebinar && 
+         currentWebinar.slides && 
+         currentSlideIndex >= 0 && 
+         (currentSlideIndex > 0 || slideMinimumTimePassed);
+}
+
+// Toggle mute
+function toggleMute() {
+  isMuted = !isMuted;
+  const muteBtn = document.getElementById('muteBtn');
+  
+  if (isMuted) {
+    stopSpeaking();
+    muteBtn.textContent = '🔇 Stumm';
+    muteBtn.classList.add('muted');
+  } else {
+    muteBtn.textContent = '🔊 Ton';
+    muteBtn.classList.remove('muted');
+    // Restart narration if appropriate
+    if (shouldRestartNarration()) {
+      speakSlideNote(currentSlideIndex);
+    }
+  }
+}
+
+// Change aspect ratio
+function changeAspectRatio() {
+  const aspectRatioSelect = document.getElementById('aspectRatioSelect');
+  const container = document.getElementById('aspectRatioContainer');
+  const selectedRatio = aspectRatioSelect.value;
+  
+  // Remove existing ratio classes
+  container.classList.remove(`ratio-${ASPECT_RATIO_16_9}`, `ratio-${ASPECT_RATIO_4_3}`);
+  
+  // Add new ratio class
+  container.classList.add(`ratio-${selectedRatio}`);
+  
+  // Save preference to localStorage
+  localStorage.setItem('preferredAspectRatio', selectedRatio);
+}
+
 // Improved text chunking for better pronunciation
 function chunkText(text) {
   // Split by sentences and respect natural pauses
@@ -318,6 +384,19 @@ function chunkText(text) {
   return chunks.filter(chunk => chunk.length > 0);
 }
 
+// Helper function to handle slide transition when muted
+function handleMutedSlideTransition() {
+  narrationComplete = true;
+  slideMinimumTimePassed = false;
+  updateSlideCounter();
+  
+  // Still enforce minimum time even when muted
+  setTimeout(() => {
+    slideMinimumTimePassed = true;
+    updateSlideCounter();
+  }, MINIMUM_SLIDE_DURATION);
+}
+
 // Speech synthesis for narration
 function speakSlideNote(slideIndex) {
   stopSpeaking();
@@ -333,9 +412,9 @@ function speakSlideNote(slideIndex) {
     updateSlideCounter();
   }, MINIMUM_SLIDE_DURATION);
   
+  // If muted or no content, mark as complete
   const slide = currentWebinar.slides[slideIndex];
-  if (!slide || !slide.speakerNote) {
-    // No narration, mark as complete immediately
+  if (isMuted || !slide || !slide.speakerNote) {
     narrationComplete = true;
     updateSlideCounter();
     return;

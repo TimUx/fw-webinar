@@ -34,10 +34,19 @@
     
     <div class="presentation-container">
       <div class="presentation-wrapper">
-        <iframe id="presentationFrame" class="presentation-frame" src=""></iframe>
+        <div id="aspectRatioContainer" class="aspect-ratio-container ratio-16-9">
+          <iframe id="presentationFrame" class="presentation-frame" src=""></iframe>
+        </div>
         
         <!-- Voice Controls -->
         <div class="voice-controls">
+          <div class="voice-control-group">
+            <label for="aspectRatioSelect">📐 Format:</label>
+            <select id="aspectRatioSelect" onchange="changeAspectRatio()">
+              <option value="16-9" selected>16:9 (Breitbild)</option>
+              <option value="4-3">4:3 (Standard)</option>
+            </select>
+          </div>
           <div class="voice-control-group">
             <label for="voiceSelect">🎤 Stimme:</label>
             <select id="voiceSelect" onchange="changeVoice()">
@@ -46,8 +55,11 @@
           </div>
           <div class="voice-control-group">
             <label for="speedControl">⏱️ Geschwindigkeit:</label>
-            <input type="range" id="speedControl" min="0.5" max="1.2" step="0.05" value="0.85" onchange="changeSpeechRate()">
-            <span id="speedValue">0.85x</span>
+            <input type="range" id="speedControl" min="0.5" max="1.5" step="0.05" value="1.0" onchange="changeSpeechRate()">
+            <span id="speedValue">1.0x</span>
+          </div>
+          <div class="voice-control-group">
+            <button id="muteBtn" onclick="toggleMute()">🔊 Ton</button>
           </div>
         </div>
         
