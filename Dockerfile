@@ -3,7 +3,9 @@ FROM node:20-alpine
 WORKDIR /app
 
 # Install poppler-utils for PDF to image conversion (pdftoppm)
-RUN apk add --no-cache poppler-utils
+# Using --repository flag to ensure package is found
+RUN apk add --no-cache --repository=https://dl-cdn.alpinelinux.org/alpine/edge/community poppler-utils || \
+    apk add --no-cache poppler-utils
 
 # Copy package files
 COPY package*.json ./
