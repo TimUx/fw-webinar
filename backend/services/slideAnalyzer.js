@@ -2,7 +2,7 @@ const fs = require('fs').promises;
 const fsSync = require('fs');
 const path = require('path');
 const JSZip = require('jszip');
-const pdfParse = require('pdf-parse');
+const { PDFParse } = require('pdf-parse');
 const { spawnAsync } = require('../utils/process');
 
 const UPLOADS_DIR = process.env.UPLOADS_DIR || path.join(__dirname, '../../uploads');
@@ -479,8 +479,13 @@ async function analyzePDF(filename, webinarId, onProgress) {
   
   onProgress(10, 'PDF-Datei geladen...');
   
-  // Parse PDF for text content
-  const pdfData = await pdfParse(dataBuffer);
+  // Parse PDF for text content using PDFParse v2 API
+  const parser = new PDFParse({ data: dataBuffer });
+  const textResult = await parser.getText();
+  const pdfData = {
+    numpages: textResult.total,
+    text: textResult.text
+  };
   
   onProgress(30, `PDF analysiert: ${pdfData.numpages} Seiten gefunden...`);
   
