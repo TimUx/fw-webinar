@@ -59,9 +59,12 @@ function showNotification(message, isError = false) {
 
 // Helper to escape HTML entities to prevent XSS
 function escapeHtml(text) {
-  const div = document.createElement('div');
-  div.textContent = text;
-  return div.innerHTML;
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#x27;');
 }
 
 // Helper to escape strings for use in JavaScript string literals
@@ -72,7 +75,9 @@ function escapeJs(text) {
     .replace(/"/g, '\\"')
     .replace(/\n/g, '\\n')
     .replace(/\r/g, '\\r')
-    .replace(/\t/g, '\\t');
+    .replace(/\t/g, '\\t')
+    .replace(/\0/g, '\\0')
+    .replace(/\f/g, '\\f');
 }
 
 // Logout

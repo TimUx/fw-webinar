@@ -191,19 +191,29 @@ router.post('/smtp/test', async (req, res) => {
 
 // Minimum number of digits expected in a timestamp prefix (10 digits ~ year 2001)
 const MIN_TIMESTAMP_DIGITS = 10;
+// Maximum reasonable timestamp digits (20 digits ~ year 2286486)
+const MAX_TIMESTAMP_DIGITS = 20;
 
 /**
  * Helper function to extract original filename from stored filename
  * Stored format: {timestamp}-{originalname}
  */
 function getOriginalFilename(storedFilename) {
-  // Match numeric timestamp (typically 13 digits, but flexible for future timestamps)
-  // followed by dash and filename
+  // Match numeric timestamp followed by dash and filename
   const match = storedFilename.match(/^(\d+)-(.+)$/);
-  // Additional validation: check if the numeric part looks like a timestamp
-  if (match && match[1].length >= MIN_TIMESTAMP_DIGITS) {
-    return match[2];
+  
+  if (match) {
+    const timestampStr = match[1];
+    const timestamp = parseInt(timestampStr, 10);
+    
+    // Validate timestamp is reasonable length and value
+    if (timestampStr.length >= MIN_TIMESTAMP_DIGITS && 
+        timestampStr.length <= MAX_TIMESTAMP_DIGITS &&
+        timestamp > 946684800000) { // After year 2000
+      return match[2];
+    }
   }
+  
   return storedFilename;
 }
 
