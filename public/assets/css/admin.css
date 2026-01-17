@@ -213,6 +213,22 @@ h3 {
   resize: vertical;
 }
 
+/* TinyMCE Editor Styles */
+.tinymce-editor-container {
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background: white;
+  min-height: 400px;
+}
+
+.tox .tox-editor-container {
+  border-radius: 4px;
+}
+
+.tox-tinymce {
+  border-radius: 4px;
+}
+
 .form-group small {
   display: block;
   margin-top: 5px;

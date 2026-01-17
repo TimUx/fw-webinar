@@ -1,6 +1,7 @@
 const API_BASE = '/api';
 let currentWebinar = null;
 let pptxFiles = [];
+let tinyMCEEditors = []; // Store TinyMCE editor instances
 
 // Check authentication
 const token = localStorage.getItem('adminToken');
@@ -78,6 +79,116 @@ function escapeJs(text) {
     .replace(/\t/g, '\\t')
     .replace(/\0/g, '\\0')
     .replace(/\f/g, '\\f');
+}
+
+// Helper to create TinyMCE editor with image upload
+function createTinyMCEEditor(textarea, initialContent = '') {
+  // Generate unique ID for the textarea
+  const editorId = 'editor-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+  textarea.id = editorId;
+  
+  // Set initial content
+  if (initialContent) {
+    textarea.value = initialContent;
+  }
+  
+  // Initialize TinyMCE
+  tinymce.init({
+    selector: '#' + editorId,
+    height: 400,
+    menubar: false,
+    plugins: [
+      'advlist', 'autolink', 'lists', 'link', 'image', 'charmap',
+      'anchor', 'searchreplace', 'visualblocks', 'code', 'fullscreen',
+      'insertdatetime', 'media', 'table', 'help', 'wordcount'
+    ],
+    toolbar: 'undo redo | formatselect | bold italic underline strikethrough | ' +
+      'forecolor backcolor | alignleft aligncenter alignright alignjustify | ' +
+      'bullist numlist outdent indent | link image | removeformat | help',
+    content_style: 'body { font-family: Segoe UI, Tahoma, Geneva, Verdana, sans-serif; font-size: 16px; }',
+    image_title: true,
+    automatic_uploads: true,
+    file_picker_types: 'image',
+    // Custom image upload handler
+    images_upload_handler: async (blobInfo, progress) => {
+      return new Promise(async (resolve, reject) => {
+        try {
+          const formData = new FormData();
+          formData.append('image', blobInfo.blob(), blobInfo.filename());
+          
+          const response = await fetch(`${API_BASE}/admin/slides/upload-image`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`
+            },
+            body: formData
+          });
+          
+          if (!response.ok) {
+            const error = await response.json();
+            reject(error.error || 'Upload failed');
+            return;
+          }
+          
+          const data = await response.json();
+          resolve(data.url);
+        } catch (error) {
+          console.error('Image upload error:', error);
+          reject('Fehler beim Hochladen: ' + error.message);
+        }
+      });
+    },
+    // File picker for selecting images
+    file_picker_callback: (callback, value, meta) => {
+      if (meta.filetype === 'image') {
+        const input = document.createElement('input');
+        input.setAttribute('type', 'file');
+        input.setAttribute('accept', 'image/*');
+        
+        input.onchange = async function() {
+          const file = this.files[0];
+          
+          if (file) {
+            // Check file size (max 5MB)
+            if (file.size > 5 * 1024 * 1024) {
+              showNotification('Bild ist zu groß. Maximale Größe: 5MB', true);
+              return;
+            }
+            
+            showNotification('Bild wird hochgeladen...');
+            
+            try {
+              const formData = new FormData();
+              formData.append('image', file);
+              
+              const response = await fetch(`${API_BASE}/admin/slides/upload-image`, {
+                method: 'POST',
+                headers: {
+                  'Authorization': `Bearer ${token}`
+                },
+                body: formData
+              });
+              
+              if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error || 'Upload failed');
+              }
+              
+              const data = await response.json();
+              callback(data.url, { alt: file.name });
+              showNotification('Bild erfolgreich hochgeladen');
+            } catch (error) {
+              showNotification('Fehler beim Hochladen: ' + error.message, true);
+            }
+          }
+        };
+        
+        input.click();
+      }
+    }
+  });
+  
+  return editorId;
 }
 
 // Helper to get file type from filename
@@ -335,6 +446,13 @@ async function loadWebinars() {
 
 function showCreateWebinar() {
   currentWebinar = null;
+  // Clean up existing TinyMCE editors
+  tinyMCEEditors.forEach(editorId => {
+    const editor = tinymce.get(editorId);
+    if (editor) editor.remove();
+  });
+  tinyMCEEditors = [];
+  
   document.getElementById('modalTitle').textContent = 'Neues Webinar';
   document.getElementById('webinarId').value = '';
   document.getElementById('webinarTitle').value = '';
@@ -349,6 +467,13 @@ function showCreateWebinar() {
 async function editWebinar(id) {
   try {
     currentWebinar = await apiCall(`/admin/webinars/${id}`);
+    
+    // Clean up existing TinyMCE editors
+    tinyMCEEditors.forEach(editorId => {
+      const editor = tinymce.get(editorId);
+      if (editor) editor.remove();
+    });
+    tinyMCEEditors = [];
     
     document.getElementById('modalTitle').textContent = 'Webinar bearbeiten';
     document.getElementById('webinarId').value = currentWebinar.id;
@@ -379,6 +504,13 @@ async function editWebinar(id) {
 function closeWebinarModal() {
   document.getElementById('webinarModal').classList.add('hidden');
   currentWebinar = null;
+  
+  // Clean up TinyMCE editors when closing modal
+  tinyMCEEditors.forEach(editorId => {
+    const editor = tinymce.get(editorId);
+    if (editor) editor.remove();
+  });
+  tinyMCEEditors = [];
 }
 
 function viewWebinar(id) {
@@ -407,20 +539,44 @@ function addSlide(slide = null) {
   div.innerHTML = `
     <div class="form-group">
       <label>Folien-Titel</label>
-      <input type="text" class="slide-title" value="${slide?.title || ''}" placeholder="Folie ${index + 1}">
+      <input type="text" class="slide-title" value="${escapeHtml(slide?.title || '')}" placeholder="Folie ${index + 1}">
     </div>
     <div class="form-group">
-      <label>Inhalt</label>
-      <textarea class="slide-content" placeholder="Folieninhalt (HTML erlaubt)">${slide?.content || ''}</textarea>
+      <label>Inhalt (WYSIWYG Editor mit Bildupload)</label>
+      <textarea class="slide-content">${escapeHtml(slide?.content || '')}</textarea>
     </div>
     <div class="form-group">
       <label>Sprechernotiz (für Sprachausgabe)</label>
-      <textarea class="slide-note" placeholder="Text für automatische Sprachausgabe">${slide?.speakerNote || ''}</textarea>
+      <textarea class="slide-note" placeholder="Text für automatische Sprachausgabe">${escapeHtml(slide?.speakerNote || '')}</textarea>
     </div>
-    <button type="button" class="btn-danger" onclick="this.parentElement.remove()">Folie entfernen</button>
+    <button type="button" class="btn-danger" onclick="removeSlide(this)">Folie entfernen</button>
   `;
   
   container.appendChild(div);
+  
+  // Initialize TinyMCE editor for this slide's content
+  const textarea = div.querySelector('.slide-content');
+  const editorId = createTinyMCEEditor(textarea, slide?.content || '');
+  tinyMCEEditors.push(editorId);
+}
+
+// Helper function to remove a slide and its TinyMCE editor
+function removeSlide(button) {
+  const slideItem = button.parentElement;
+  const container = document.getElementById('slidesContainer');
+  const slideIndex = Array.from(container.children).indexOf(slideItem);
+  
+  // Remove the TinyMCE editor
+  if (slideIndex >= 0 && slideIndex < tinyMCEEditors.length) {
+    const editorId = tinyMCEEditors[slideIndex];
+    const editor = tinymce.get(editorId);
+    if (editor) {
+      editor.remove();
+    }
+    tinyMCEEditors.splice(slideIndex, 1);
+  }
+  
+  slideItem.remove();
 }
 
 // Question management
@@ -461,12 +617,21 @@ document.getElementById('webinarForm').addEventListener('submit', async (e) => {
     const title = document.getElementById('webinarTitle').value;
     const pptxFile = document.getElementById('webinarPptx').value;
     
-    // Collect slides
-    const slides = Array.from(document.querySelectorAll('.slide-item')).map(item => ({
-      title: item.querySelector('.slide-title').value,
-      content: item.querySelector('.slide-content').value,
-      speakerNote: item.querySelector('.slide-note').value
-    }));
+    // Collect slides - get content from TinyMCE editors
+    const slideItems = Array.from(document.querySelectorAll('.slide-item'));
+    const slides = slideItems.map((item, index) => {
+      // Get content from TinyMCE editor
+      const textarea = item.querySelector('.slide-content');
+      const editorId = textarea ? textarea.id : null;
+      const editor = editorId ? tinymce.get(editorId) : null;
+      const content = editor ? editor.getContent() : (textarea ? textarea.value : '');
+      
+      return {
+        title: item.querySelector('.slide-title').value,
+        content: content,
+        speakerNote: item.querySelector('.slide-note').value
+      };
+    });
     
     // Collect questions
     const questions = Array.from(document.querySelectorAll('.question-item')).map((item, qIndex) => {
