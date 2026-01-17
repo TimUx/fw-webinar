@@ -9,6 +9,47 @@ const UPLOADS_DIR = process.env.UPLOADS_DIR || path.join(__dirname, '../../uploa
 const SLIDES_DIR = process.env.SLIDES_DIR || path.join(__dirname, '../../slides');
 
 /**
+ * Get common presentation CSS styles
+ */
+function getCommonPresentationStyles() {
+  return `
+    .reveal {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      font-size: 28px;
+    }
+    .reveal h1 {
+      color: #2c3e50;
+      font-size: 2em;
+      margin-bottom: 0.5em;
+    }
+    .reveal h2 {
+      color: #2c3e50;
+      font-size: 1.5em;
+      margin-bottom: 0.5em;
+    }
+    .reveal h3 {
+      color: #2c3e50;
+      font-size: 1.2em;
+      margin-bottom: 0.5em;
+    }
+    .reveal p, .reveal li {
+      font-size: 0.9em;
+      line-height: 1.4;
+      margin-bottom: 0.5em;
+    }
+    .reveal section img {
+      border: none;
+      box-shadow: none;
+      background: none;
+    }
+    /* Hide Reveal.js controls */
+    .reveal .controls {
+      display: none !important;
+    }
+  `;
+}
+
+/**
  * Convert PPTX or PDF to HTML using LibreOffice
  */
 async function convertPPTXToHTML(pptxFilename, webinarId) {
@@ -115,39 +156,7 @@ async function createImageSlides(webinarId, imageFiles) {
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.5.0/dist/reveal.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.5.0/dist/theme/white.css">
   <style>
-    .reveal {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      font-size: 28px;
-    }
-    .reveal h1 {
-      color: #2c3e50;
-      font-size: 2em;
-      margin-bottom: 0.5em;
-    }
-    .reveal h2 {
-      color: #2c3e50;
-      font-size: 1.5em;
-      margin-bottom: 0.5em;
-    }
-    .reveal h3 {
-      color: #2c3e50;
-      font-size: 1.2em;
-      margin-bottom: 0.5em;
-    }
-    .reveal p {
-      font-size: 0.9em;
-      line-height: 1.4;
-      margin-bottom: 0.5em;
-    }
-    .reveal section img {
-      border: none;
-      box-shadow: none;
-      background: none;
-    }
-    /* Hide Reveal.js controls */
-    .reveal .controls {
-      display: none !important;
-    }
+    ${getCommonPresentationStyles()}
   </style>
 </head>
 <body>
@@ -239,40 +248,13 @@ async function createRevealPresentation(htmlFilename, webinarId, speakerNotes = 
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.5.0/dist/reveal.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.5.0/dist/theme/white.css">
   <style>
-    .reveal {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      font-size: 28px;
-    }
-    .reveal h1 {
-      color: #2c3e50;
-      font-size: 2em;
-      margin-bottom: 0.5em;
-    }
-    .reveal h2 {
-      color: #2c3e50;
-      font-size: 1.5em;
-      margin-bottom: 0.5em;
-    }
-    .reveal h3 {
-      color: #2c3e50;
-      font-size: 1.2em;
-      margin-bottom: 0.5em;
-    }
-    .reveal p {
-      font-size: 0.9em;
-      line-height: 1.4;
-      margin-bottom: 0.5em;
-    }
+    ${getCommonPresentationStyles()}
     .slide-content {
       padding: 20px;
       text-align: left;
     }
     .speaker-note {
       display: none;
-    }
-    /* Hide Reveal.js controls */
-    .reveal .controls {
-      display: none !important;
     }
   </style>
 </head>
@@ -349,39 +331,12 @@ async function generateSimpleSlides(webinarId, slideData) {
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.5.0/dist/reveal.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.5.0/dist/theme/white.css">
   <style>
-    .reveal {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      font-size: 28px;
-    }
-    .reveal h1 {
-      color: #2c3e50;
-      font-size: 2em;
-      margin-bottom: 0.5em;
-    }
-    .reveal h2 {
-      color: #2c3e50;
-      font-size: 1.5em;
-      margin-bottom: 0.5em;
-    }
-    .reveal h3 {
-      color: #2c3e50;
-      font-size: 1.2em;
-      margin-bottom: 0.5em;
-    }
-    .reveal p, .reveal li {
-      font-size: 0.9em;
-      line-height: 1.4;
-      margin-bottom: 0.5em;
-    }
+    ${getCommonPresentationStyles()}
     .slide-content {
       padding: 30px;
       text-align: left;
       max-width: 90%;
       margin: 0 auto;
-    }
-    /* Hide Reveal.js controls */
-    .reveal .controls {
-      display: none !important;
     }
   </style>
 </head>

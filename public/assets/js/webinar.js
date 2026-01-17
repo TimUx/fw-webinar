@@ -106,7 +106,7 @@ function loadPresentation() {
   
   // Restore aspect ratio preference
   const savedRatio = localStorage.getItem('preferredAspectRatio');
-  if (savedRatio) {
+  if (savedRatio && (savedRatio === '16-9' || savedRatio === '4-3')) {
     const aspectRatioSelect = document.getElementById('aspectRatioSelect');
     const container = document.getElementById('aspectRatioContainer');
     aspectRatioSelect.value = savedRatio;
@@ -332,8 +332,8 @@ function toggleMute() {
   } else {
     muteBtn.textContent = '🔊 Ton';
     muteBtn.classList.remove('muted');
-    // Restart narration if we're in a presentation
-    if (currentWebinar && currentWebinar.slides && currentSlideIndex >= 0) {
+    // Restart narration if we're in a presentation and it's not the first slide or time has passed
+    if (currentWebinar && currentWebinar.slides && currentSlideIndex >= 0 && (currentSlideIndex > 0 || slideMinimumTimePassed)) {
       speakSlideNote(currentSlideIndex);
     }
   }
@@ -402,7 +402,7 @@ function speakSlideNote(slideIndex) {
     updateSlideCounter();
   }, MINIMUM_SLIDE_DURATION);
   
-  // If muted, mark as complete but still enforce minimum time
+  // If muted, use helper function for consistent behavior
   if (isMuted) {
     narrationComplete = true;
     updateSlideCounter();
