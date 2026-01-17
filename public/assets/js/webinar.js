@@ -498,7 +498,8 @@ document.getElementById('participantForm').addEventListener('submit', async (e) 
       body: JSON.stringify({
         name,
         email,
-        answers: userAnswers
+        answers: userAnswers,
+        confirmed: true  // User has confirmed via checkbox
       })
     });
     
@@ -538,7 +539,7 @@ function displayResult(result) {
   if (passed) {
     messageElement.className = 'result-message success';
     messageElement.innerHTML = `
-      <strong>Glückwunsch!</strong> Sie haben das Quiz erfolgreich bestanden.<br>
+      <strong>Glückwunsch!</strong> Sie haben die Lernkontrolle erfolgreich bestanden.<br>
       Sie erhalten in Kürze eine Bestätigungs-E-Mail mit Ihrem Ergebnis.
     `;
   } else {
