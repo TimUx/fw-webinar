@@ -446,10 +446,56 @@ h3 {
   border: 1px solid #e0e0e0;
 }
 
+.slide-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid #e0e0e0;
+}
+
+.slide-number {
+  margin: 0;
+  font-size: 16px;
+  font-weight: bold;
+  color: #333;
+}
+
+.slide-controls {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.btn-icon {
+  background: #f0f0f0;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  padding: 6px 10px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s;
+  min-width: 36px;
+}
+
+.btn-icon:hover {
+  background: #e0e0e0;
+  border-color: #999;
+}
+
+.btn-icon:active {
+  transform: translateY(1px);
+}
+
 .slide-item button, .question-item button {
   margin-top: 10px;
   padding: 6px 12px;
   font-size: 14px;
+}
+
+.slide-controls button {
+  margin-top: 0;
 }
 
 .answer-inputs {
