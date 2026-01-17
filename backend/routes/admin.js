@@ -8,7 +8,7 @@ const { Storage } = require('../utils/storage');
 const { logAudit } = require('../utils/logger');
 const { sendTestEmail } = require('../services/mail');
 const { generateSimpleSlides } = require('../services/pptx');
-const { analyzePresentation, progressTracker } = require('../services/slideAnalyzer');
+const { analyzePresentation, progressTracker, SSE_POLL_INTERVAL } = require('../services/slideAnalyzer');
 
 const router = express.Router();
 
@@ -18,7 +18,7 @@ const smtpStorage = new Storage('smtp.json');
 const webinarsStorage = new Storage('webinars.json');
 const resultsStorage = new Storage('results.json');
 
-// SSE endpoint needs special auth handling (before global authMiddleware)
+// SSE endpoint with special auth handling (defined before global authMiddleware is applied)
 /**
  * GET /api/admin/pptx/analyze/progress/:sessionId
  * Get analysis progress via Server-Sent Events
@@ -31,7 +31,7 @@ router.get('/pptx/analyze/progress/:sessionId', authMiddlewareSSE, (req, res) =>
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');
   
-  // Send progress updates
+  // Send progress updates at configurable interval
   const intervalId = setInterval(() => {
     const progress = progressTracker.get(sessionId);
     
@@ -52,7 +52,7 @@ router.get('/pptx/analyze/progress/:sessionId', authMiddlewareSSE, (req, res) =>
         res.end();
       }, 1000);
     }
-  }, 500);
+  }, SSE_POLL_INTERVAL);
   
   // Clean up on client disconnect
   req.on('close', () => {

@@ -6,6 +6,8 @@ const pdfParse = require('pdf-parse');
 
 const UPLOADS_DIR = process.env.UPLOADS_DIR || path.join(__dirname, '../../uploads');
 const ASSETS_DIR = process.env.ASSETS_DIR || path.join(__dirname, '../../assets');
+const PDF_TEXT_PREVIEW_LENGTH = 500; // Maximum characters to show in PDF text preview
+const SSE_POLL_INTERVAL = 500; // Milliseconds between progress updates
 
 /**
  * Progress tracking for slide analysis
@@ -259,8 +261,8 @@ async function analyzePDF(filename, webinarId, onProgress) {
     
     slides.push({
       title: `Seite ${i + 1}`,
-      content: `<p>${escapeHtml(pageText.trim().substring(0, 500))}</p>
-                <p><em>Hinweis: Für eine vollständige Darstellung wird die PDF-Seite als Bild gerendert.</em></p>`,
+      content: `<p>${escapeHtml(pageText.trim().substring(0, PDF_TEXT_PREVIEW_LENGTH))}</p>
+                <p><em>Hinweis: PDF-Seiten werden als Text extrahiert. Für eine vollständige Darstellung mit Bildern und Layout verwenden Sie bitte PPTX-Dateien.</em></p>`,
       speakerNote: pageText.trim(),
       images: []
     });
@@ -353,5 +355,6 @@ async function analyzePresentation(filename, webinarId, sessionId) {
 
 module.exports = {
   analyzePresentation,
-  progressTracker
+  progressTracker,
+  SSE_POLL_INTERVAL
 };

@@ -266,9 +266,11 @@ function updatePPTXDropdown() {
       return `<option value="${f.filename}">${f.filename} (${fileType})</option>`;
     }).join('');
   
-  // Add change event listener for analysis
-  select.removeEventListener('change', handlePptxSelection);
-  select.addEventListener('change', handlePptxSelection);
+  // Add change event listener for analysis (only if not already attached)
+  if (!select.dataset.listenerAttached) {
+    select.addEventListener('change', handlePptxSelection);
+    select.dataset.listenerAttached = 'true';
+  }
 }
 
 async function handlePptxSelection(e) {
@@ -281,8 +283,8 @@ async function handlePptxSelection(e) {
     return;
   }
   
-  // Generate temporary webinar ID for analysis
-  const tempWebinarId = 'temp-' + Date.now();
+  // Generate unique session ID using timestamp and random component
+  const tempWebinarId = 'temp-' + Date.now() + '-' + Math.random().toString(36).substring(2, 9);
   
   try {
     showNotification(`${fileType} wird analysiert...`);
