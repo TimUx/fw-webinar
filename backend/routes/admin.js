@@ -36,8 +36,10 @@ const storage = multer.diskStorage({
     });
   },
   filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, uniqueSuffix + path.extname(file.originalname));
+    // Preserve original filename with timestamp prefix to prevent collisions
+    const timestamp = Date.now();
+    const originalName = file.originalname;
+    cb(null, `${timestamp}-${originalName}`);
   }
 });
 
@@ -187,6 +189,36 @@ router.post('/smtp/test', async (req, res) => {
 
 // ============ PPTX MANAGEMENT ============
 
+// Minimum number of digits expected in a timestamp prefix (10 digits ~ year 2001)
+const MIN_TIMESTAMP_DIGITS = 10;
+// Maximum reasonable timestamp digits (20 digits ~ year 2286486)
+const MAX_TIMESTAMP_DIGITS = 20;
+// Minimum timestamp value (year 2000)
+const YEAR_2000_TIMESTAMP = 946684800000;
+
+/**
+ * Helper function to extract original filename from stored filename
+ * Stored format: {timestamp}-{originalname}
+ */
+function getOriginalFilename(storedFilename) {
+  // Match numeric timestamp followed by dash and filename
+  const match = storedFilename.match(/^(\d+)-(.+)$/);
+  
+  if (match) {
+    const timestampStr = match[1];
+    const timestamp = parseInt(timestampStr, 10);
+    
+    // Validate timestamp is reasonable length and value
+    if (timestampStr.length >= MIN_TIMESTAMP_DIGITS && 
+        timestampStr.length <= MAX_TIMESTAMP_DIGITS &&
+        timestamp > YEAR_2000_TIMESTAMP) {
+      return match[2];
+    }
+  }
+  
+  return storedFilename;
+}
+
 /**
  * GET /api/admin/pptx
  * List uploaded PPTX/PDF files
@@ -203,7 +235,8 @@ router.get('/pptx', async (req, res) => {
       const filepath = path.join(uploadsDir, filename);
       const stats = await fs.stat(filepath);
       return {
-        filename,
+        filename, // Actual filename on disk (with timestamp)
+        displayName: getOriginalFilename(filename), // Original filename for display
         size: stats.size,
         uploadedAt: stats.birthtime
       };
