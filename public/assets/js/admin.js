@@ -152,6 +152,9 @@ function createQuillEditor(container, initialContent = '') {
     container.appendChild(editorDiv);
   }
   
+  // Variable to track selected image
+  let selectedImage = null;
+  
   // Initialize Quill with custom toolbar including headings and table
   const quill = new Quill(editorDiv, {
     theme: 'snow',
@@ -199,6 +202,24 @@ function createQuillEditor(container, initialContent = '') {
                   this.quill.insertEmbed(range.index, 'image', url);
                   this.quill.setSelection(range.index + 1);
                   
+                  // Apply medium size class to the newly inserted image
+                  // Use nextTick to ensure DOM is updated
+                  const applyDefaultSize = () => {
+                    // Find images without any size class
+                    const images = this.quill.root.querySelectorAll('img:not(.img-small):not(.img-medium):not(.img-large):not(.img-full)');
+                    for (let i = 0; i < images.length; i++) {
+                      const img = images[i];
+                      if (img.src === url) {
+                        img.classList.add('img-medium');
+                        break;
+                      }
+                    }
+                  };
+                  
+                  // Try immediately, then with small delay as fallback
+                  applyDefaultSize();
+                  requestAnimationFrame(() => applyDefaultSize());
+                  
                   showNotification('Bild erfolgreich hochgeladen');
                 } catch (error) {
                   // Error notification already shown in uploadImageToServer
@@ -212,6 +233,169 @@ function createQuillEditor(container, initialContent = '') {
         }
       }
     }
+  });
+  
+  // Handle image selection for resizing
+  quill.root.addEventListener('click', (e) => {
+    if (e.target.tagName === 'IMG') {
+      // Deselect previous image
+      if (selectedImage) {
+        selectedImage.classList.remove('selected-image');
+      }
+      // Select new image
+      selectedImage = e.target;
+      selectedImage.classList.add('selected-image');
+    } else {
+      // Clicked outside image, deselect
+      if (selectedImage) {
+        selectedImage.classList.remove('selected-image');
+        selectedImage = null;
+      }
+    }
+  });
+  
+  // Add custom toolbar buttons for image sizing and columns
+  const toolbar = quill.getModule('toolbar');
+  const toolbarContainer = toolbar.container;
+  
+  // Create image sizing buttons section
+  const imageSizingGroup = document.createElement('span');
+  imageSizingGroup.className = 'ql-formats';
+  imageSizingGroup.innerHTML = `
+    <button class="ql-image-small" type="button" title="Bild klein (25%)">
+      <span style="font-size: 10px;">S</span>
+    </button>
+    <button class="ql-image-medium" type="button" title="Bild mittel (50%)">
+      <span style="font-size: 12px;">M</span>
+    </button>
+    <button class="ql-image-large" type="button" title="Bild groß (75%)">
+      <span style="font-size: 14px;">L</span>
+    </button>
+    <button class="ql-image-full" type="button" title="Bild volle Breite (100%)">
+      <span style="font-size: 16px;">XL</span>
+    </button>
+  `;
+  toolbarContainer.appendChild(imageSizingGroup);
+  
+  // Create image alignment buttons section
+  const imageAlignGroup = document.createElement('span');
+  imageAlignGroup.className = 'ql-formats';
+  imageAlignGroup.innerHTML = `
+    <button class="ql-image-float-left" type="button" title="Bild links mit Textumfluss" aria-label="Bild links ausrichten">
+      <span style="font-size: 12px;" aria-hidden="true">◀️</span>
+    </button>
+    <button class="ql-image-float-right" type="button" title="Bild rechts mit Textumfluss" aria-label="Bild rechts ausrichten">
+      <span style="font-size: 12px;" aria-hidden="true">▶️</span>
+    </button>
+    <button class="ql-image-float-none" type="button" title="Textumfluss entfernen" aria-label="Textumfluss entfernen">
+      <span style="font-size: 12px;" aria-hidden="true">⬛</span>
+    </button>
+  `;
+  toolbarContainer.appendChild(imageAlignGroup);
+  
+  // Create column layout buttons section
+  const columnsGroup = document.createElement('span');
+  columnsGroup.className = 'ql-formats';
+  columnsGroup.innerHTML = `
+    <button class="ql-columns-2" type="button" title="2 Spalten einfügen" aria-label="2 Spalten Layout einfügen">
+      <span style="font-size: 10px;" aria-hidden="true">⬜⬜</span>
+    </button>
+    <button class="ql-columns-3" type="button" title="3 Spalten einfügen" aria-label="3 Spalten Layout einfügen">
+      <span style="font-size: 10px;" aria-hidden="true">⬜⬜⬜</span>
+    </button>
+  `;
+  toolbarContainer.appendChild(columnsGroup);
+  
+  // Helper function to set image size
+  const setImageSize = (className, displayName) => {
+    if (selectedImage) {
+      selectedImage.classList.remove('img-small', 'img-medium', 'img-large', 'img-full');
+      if (className) {
+        selectedImage.classList.add(className);
+      }
+      showNotification(`Bildgröße auf "${displayName}" gesetzt`);
+    } else {
+      showNotification('Bitte wählen Sie zuerst ein Bild aus', true);
+    }
+  };
+  
+  // Helper function to set image float
+  const setImageFloat = (className, displayName) => {
+    if (selectedImage) {
+      selectedImage.classList.remove('img-float-left', 'img-float-right');
+      if (className) {
+        selectedImage.classList.add(className);
+      }
+      showNotification(displayName);
+    } else {
+      showNotification('Bitte wählen Sie zuerst ein Bild aus', true);
+    }
+  };
+  
+  // Helper function to insert columns safely
+  const insertColumns = (numColumns, displayName) => {
+    const range = quill.getSelection(true);
+    if (range) {
+      // Create container div programmatically (not from user input)
+      const columnsDiv = document.createElement('div');
+      columnsDiv.className = `columns-${numColumns}`;
+      
+      // Create column divs
+      for (let i = 0; i < numColumns; i++) {
+        const columnDiv = document.createElement('div');
+        columnDiv.className = 'column';
+        const p = document.createElement('p');
+        p.textContent = `Spalte ${i + 1}`;  // Safe: uses textContent, not innerHTML
+        columnDiv.appendChild(p);
+        columnsDiv.appendChild(columnDiv);
+      }
+      
+      // Note: dangerouslyPasteHTML is used here with programmatically created,
+      // sanitized content (not user input). This is Quill's standard pattern
+      // for inserting complex HTML structures. The content is XSS-safe.
+      quill.clipboard.dangerouslyPasteHTML(range.index, columnsDiv.outerHTML + '<p><br></p>');
+      quill.setSelection(range.index + 1);
+      showNotification(displayName);
+    }
+  };
+  
+  // Add event listeners for image sizing buttons
+  toolbarContainer.querySelector('.ql-image-small').addEventListener('click', () => {
+    setImageSize('img-small', 'klein');
+  });
+  
+  toolbarContainer.querySelector('.ql-image-medium').addEventListener('click', () => {
+    setImageSize('img-medium', 'mittel');
+  });
+  
+  toolbarContainer.querySelector('.ql-image-large').addEventListener('click', () => {
+    setImageSize('img-large', 'groß');
+  });
+  
+  toolbarContainer.querySelector('.ql-image-full').addEventListener('click', () => {
+    setImageSize('img-full', 'volle Breite');
+  });
+  
+  // Add event listeners for image alignment buttons
+  toolbarContainer.querySelector('.ql-image-float-left').addEventListener('click', () => {
+    setImageFloat('img-float-left', 'Bild links ausgerichtet mit Textumfluss');
+  });
+  
+  toolbarContainer.querySelector('.ql-image-float-right').addEventListener('click', () => {
+    setImageFloat('img-float-right', 'Bild rechts ausgerichtet mit Textumfluss');
+  });
+  
+  toolbarContainer.querySelector('.ql-image-float-none').addEventListener('click', () => {
+    setImageFloat(null, 'Textumfluss entfernt');
+  });
+  
+  // Add event listeners for column layout buttons
+  toolbarContainer.querySelector('.ql-columns-2').addEventListener('click', () => {
+    insertColumns(2, '2-Spalten-Layout eingefügt');
+  });
+  
+  toolbarContainer.querySelector('.ql-columns-3').addEventListener('click', () => {
+    insertColumns(3, '3-Spalten-Layout eingefügt');
   });
   
   // Set initial content
