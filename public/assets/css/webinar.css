@@ -10,7 +10,7 @@ html {
 }
 
 :root {
-  --viewport-offset: 350px; /* Space for header, controls, and padding */
+  --viewport-offset: 280px; /* Space for header, controls, and padding */
   --slide-image-max-height: 50vh; /* Maximum height for images in slides */
 }
 
@@ -27,7 +27,7 @@ header {
   align-items: center;
   justify-content: space-between;
   gap: 15px;
-  padding: 20px;
+  padding: 15px 20px;
   background: #2c3e50;
   color: white;
   box-shadow: 0 2px 5px rgba(0,0,0,0.1);
@@ -41,19 +41,19 @@ header {
 }
 
 .logo {
-  height: 70px;
+  height: 50px;
 }
 
 h1 {
   margin: 0;
-  font-size: 24px;
+  font-size: 20px;
   font-weight: 600;
 }
 
 /* Content sections */
 main, section {
   max-width: 95%;
-  margin: 15px auto;
+  margin: 10px auto;
   background: white;
   padding: 20px;
   border-radius: 8px;
@@ -152,7 +152,7 @@ button:disabled {
   width: 100%;
   max-width: 100%;
   margin: 0 auto;
-  padding: 10px;
+  padding: 0;
 }
 
 .presentation-wrapper {
@@ -164,23 +164,24 @@ button:disabled {
   overflow: hidden;
 }
 
-/* Aspect ratio container for slides */
+/* Aspect ratio container for slides - responsive to window size */
 .aspect-ratio-container {
   position: relative;
   width: 100%;
   background: #000;
   max-height: calc(100vh - var(--viewport-offset));
   overflow: hidden;
+  /* Automatically adapt aspect ratio based on available space */
+  padding-bottom: min(56.25%, calc((100vh - var(--viewport-offset)) / 100vw * 100%));
 }
 
-/* 16:9 aspect ratio (default) */
+/* Legacy aspect ratio classes for backwards compatibility - both now responsive */
 .aspect-ratio-container.ratio-16-9 {
-  padding-bottom: min(56.25%, calc(100vh - var(--viewport-offset))); /* 9/16 = 0.5625, but never exceed viewport */
+  padding-bottom: min(56.25%, calc((100vh - var(--viewport-offset)) / 100vw * 100%));
 }
 
-/* 4:3 aspect ratio */
 .aspect-ratio-container.ratio-4-3 {
-  padding-bottom: min(75%, calc(100vh - var(--viewport-offset))); /* 3/4 = 0.75, but never exceed viewport */
+  padding-bottom: min(56.25%, calc((100vh - var(--viewport-offset)) / 100vw * 100%));
 }
 
 .presentation-frame {
@@ -196,7 +197,7 @@ button:disabled {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 20px;
+  padding: 15px 20px;
   background: #2c3e50;
   color: white;
 }
@@ -517,9 +518,9 @@ button:disabled {
 /* Voice Controls */
 .voice-controls {
   background: #ecf0f1;
-  padding: 15px;
-  border-radius: 8px;
-  margin-bottom: 15px;
+  padding: 12px 15px;
+  border-radius: 0;
+  margin-bottom: 0;
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 15px;
