@@ -3,22 +3,65 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs').promises;
 const fsSync = require('fs');
-const { authMiddleware } = require('../middleware/auth');
+const { authMiddleware, authMiddlewareSSE } = require('../middleware/auth');
 const { Storage } = require('../utils/storage');
 const { logAudit } = require('../utils/logger');
 const { sendTestEmail } = require('../services/mail');
 const { generateSimpleSlides } = require('../services/pptx');
+const { analyzePresentation, progressTracker, SSE_POLL_INTERVAL } = require('../services/slideAnalyzer');
 
 const router = express.Router();
-
-// Apply authentication to all admin routes
-router.use(authMiddleware);
 
 // Storage instances
 const settingsStorage = new Storage('settings.json');
 const smtpStorage = new Storage('smtp.json');
 const webinarsStorage = new Storage('webinars.json');
 const resultsStorage = new Storage('results.json');
+
+// SSE endpoint with special auth handling (defined before global authMiddleware is applied)
+/**
+ * GET /api/admin/pptx/analyze/progress/:sessionId
+ * Get analysis progress via Server-Sent Events
+ */
+router.get('/pptx/analyze/progress/:sessionId', authMiddlewareSSE, (req, res) => {
+  const { sessionId } = req.params;
+  
+  // Set headers for Server-Sent Events
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  
+  // Send progress updates at configurable interval
+  const intervalId = setInterval(() => {
+    const progress = progressTracker.get(sessionId);
+    
+    if (!progress) {
+      res.write(`data: ${JSON.stringify({ error: 'Session not found' })}\n\n`);
+      clearInterval(intervalId);
+      res.end();
+      return;
+    }
+    
+    res.write(`data: ${JSON.stringify(progress)}\n\n`);
+    
+    // End stream when completed or error
+    if (progress.status === 'completed' || progress.status === 'error') {
+      clearInterval(intervalId);
+      setTimeout(() => {
+        progressTracker.delete(sessionId);
+        res.end();
+      }, 1000);
+    }
+  }, SSE_POLL_INTERVAL);
+  
+  // Clean up on client disconnect
+  req.on('close', () => {
+    clearInterval(intervalId);
+  });
+});
+
+// Apply authentication to all other admin routes
+router.use(authMiddleware);
 
 // File upload configuration
 const storage = multer.diskStorage({
@@ -291,6 +334,42 @@ router.delete('/pptx/:filename', async (req, res) => {
       return res.status(404).json({ error: 'Datei nicht gefunden' });
     }
     res.status(500).json({ error: 'Fehler beim Löschen der Datei' });
+  }
+});
+
+/**
+ * POST /api/admin/pptx/:filename/analyze
+ * Analyze PPTX/PDF file and extract slides
+ */
+router.post('/pptx/:filename/analyze', async (req, res) => {
+  try {
+    const { filename } = req.params;
+    const { webinarId } = req.body;
+    
+    if (!webinarId) {
+      return res.status(400).json({ error: 'Webinar-ID erforderlich' });
+    }
+    
+    // Generate session ID for progress tracking
+    const sessionId = `${webinarId}-${Date.now()}`;
+    
+    const fileType = filename.toLowerCase().endsWith('.pdf') ? 'PDF' : 'PPTX';
+    logAudit('FILE_ANALYZE', req.user.username, `${fileType} Analyse gestartet: ${filename}`);
+    
+    // Start analysis in background
+    analyzePresentation(filename, webinarId, sessionId)
+      .catch(error => {
+        console.error('Analysis failed:', error);
+      });
+    
+    // Return session ID for progress tracking
+    res.json({ 
+      sessionId,
+      message: 'Analyse gestartet'
+    });
+  } catch (error) {
+    console.error('Analysis start error:', error);
+    res.status(500).json({ error: 'Fehler beim Starten der Analyse' });
   }
 });
 
