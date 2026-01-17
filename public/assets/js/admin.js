@@ -80,6 +80,11 @@ function escapeJs(text) {
     .replace(/\f/g, '\\f');
 }
 
+// Helper to get file type from filename
+function getFileType(filename) {
+  return filename.toLowerCase().endsWith('.pdf') ? 'PDF' : 'PPTX';
+}
+
 // Logout
 function logout() {
   localStorage.removeItem('adminToken');
@@ -223,7 +228,7 @@ async function loadPPTX() {
     
     list.innerHTML = pptxFiles.map(file => {
       const displayName = file.displayName || file.filename;
-      const fileType = displayName.toLowerCase().endsWith('.pdf') ? 'PDF' : 'PPTX';
+      const fileType = getFileType(displayName);
       return `
       <div class="pptx-item">
         <div class="pptx-info">
@@ -253,7 +258,7 @@ document.getElementById('pptxUploadForm').addEventListener('submit', async (e) =
       throw new Error('Keine Datei ausgewählt');
     }
     
-    const fileType = file.name.toLowerCase().endsWith('.pdf') ? 'PDF' : 'PPTX';
+    const fileType = getFileType(file.name);
     
     const formData = new FormData();
     formData.append('pptx', file);
@@ -275,7 +280,7 @@ async function deletePPTX(filename) {
   // Find the file object to get the display name
   const file = pptxFiles.find(f => f.filename === filename);
   const displayName = file ? (file.displayName || file.filename) : filename;
-  const fileType = displayName.toLowerCase().endsWith('.pdf') ? 'PDF' : 'PPTX';
+  const fileType = getFileType(displayName);
   if (!confirm(`${fileType} "${displayName}" wirklich löschen?`)) return;
   
   try {
@@ -292,7 +297,7 @@ function updatePPTXDropdown() {
   select.innerHTML = '<option value="">Keine Präsentationsdatei</option>' +
     pptxFiles.map(f => {
       const displayName = f.displayName || f.filename;
-      const fileType = displayName.toLowerCase().endsWith('.pdf') ? 'PDF' : 'PPTX';
+      const fileType = getFileType(displayName);
       return `<option value="${f.filename}">${escapeHtml(displayName)} (${fileType})</option>`;
     }).join('');
 }
@@ -481,7 +486,7 @@ document.getElementById('webinarForm').addEventListener('submit', async (e) => {
     // Show loading message if creating new webinar with PPTX but no slides
     const willAutoAnalyze = !id && pptxFile && slides.length === 0;
     if (willAutoAnalyze) {
-      const fileType = pptxFile.toLowerCase().endsWith('.pdf') ? 'PDF' : 'PPTX';
+      const fileType = getFileType(pptxFile);
       showNotification(`Webinar wird erstellt und ${fileType} wird analysiert... Dies kann einige Sekunden dauern.`);
     }
     
@@ -603,7 +608,7 @@ document.getElementById('importFiles').addEventListener('change', (e) => {
       <strong>Ausgewählte Dateien (${files.length}):</strong>
       <ul style="margin: 10px 0; padding-left: 20px;">
         ${files.map(f => {
-          const fileType = f.name.toLowerCase().endsWith('.pdf') ? 'PDF' : 'PPTX';
+          const fileType = getFileType(f.name);
           const sizeInMB = (f.size / 1024 / 1024).toFixed(2);
           return `<li>${f.name} <span style="color: #7f8c8d;">(${fileType}, ${sizeInMB} MB)</span></li>`;
         }).join('')}
@@ -669,7 +674,7 @@ async function loadImportedFiles() {
     
     listDiv.innerHTML = files.map(file => {
       const displayName = file.displayName || file.filename;
-      const fileType = displayName.toLowerCase().endsWith('.pdf') ? 'PDF' : 'PPTX';
+      const fileType = getFileType(displayName);
       return `
         <div class="pptx-item">
           <div class="pptx-info">
@@ -689,7 +694,7 @@ async function loadImportedFiles() {
 
 async function deleteImportedFile(filename, displayName) {
   const name = displayName || filename;
-  const fileType = name.toLowerCase().endsWith('.pdf') ? 'PDF' : 'PPTX';
+  const fileType = getFileType(name);
   if (!confirm(`${fileType} "${name}" wirklich löschen?`)) return;
   
   try {
