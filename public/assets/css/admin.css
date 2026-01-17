@@ -838,7 +838,7 @@ hr {
   width: auto !important;
 }
 
-/* Ensure custom toolbar button text/spans are visible */
+/* Ensure custom toolbar buttons (text-based) are visible */
 .ql-toolbar button.ql-image-small,
 .ql-toolbar button.ql-image-medium,
 .ql-toolbar button.ql-image-large,
@@ -864,6 +864,7 @@ hr {
   display: inline-block;
 }
 
+/* Hover state for custom buttons */
 .ql-toolbar button.ql-image-small:hover,
 .ql-toolbar button.ql-image-medium:hover,
 .ql-toolbar button.ql-image-large:hover,
@@ -872,10 +873,7 @@ hr {
 .ql-toolbar button.ql-image-float-right:hover,
 .ql-toolbar button.ql-image-float-none:hover,
 .ql-toolbar button.ql-columns-2:hover,
-.ql-toolbar button.ql-columns-3:hover {
-  color: #06c !important;
-}
-
+.ql-toolbar button.ql-columns-3:hover,
 .ql-toolbar button.ql-image-small:hover span,
 .ql-toolbar button.ql-image-medium:hover span,
 .ql-toolbar button.ql-image-large:hover span,
@@ -885,7 +883,7 @@ hr {
 .ql-toolbar button.ql-image-float-none:hover span,
 .ql-toolbar button.ql-columns-2:hover span,
 .ql-toolbar button.ql-columns-3:hover span {
-  color: #06c;
+  color: #06c !important;
 }
 
 .ql-toolbar button.ql-image-small::after {
