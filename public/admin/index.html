@@ -19,6 +19,7 @@
       <button onclick="showImportModal()" style="background: #27ae60;">📤 Import (PPTX/PDF)</button>
       <button onclick="showSection('webinars')">Webinare</button>
       <button onclick="showSection('results')">Ergebnisse</button>
+      <button onclick="showHelpModal()" class="btn-help" title="Hilfe">?</button>
       <button onclick="logout()" class="btn-logout">Abmelden</button>
     </nav>
   </header>
@@ -215,6 +216,247 @@
     </div>
   </div>
   
+  <!-- Help Modal -->
+  <div id="helpModal" class="modal hidden">
+    <div class="modal-content help-modal-content">
+      <span class="close" onclick="closeHelpModal()">&times;</span>
+      <h2>❓ Hilfe - Webinar Platform Admin</h2>
+      
+      <div class="help-section">
+        <h3>📚 Übersicht</h3>
+        <p>Willkommen im Admin-Panel der Webinar Platform! Diese Anleitung erklärt Ihnen Schritt für Schritt, wie Sie Webinare erstellen, verwalten und PPTX/PDF-Präsentationen importieren können.</p>
+      </div>
+
+      <div class="help-section">
+        <h3>🎯 Webinar erstellen</h3>
+        
+        <div class="help-step">
+          <strong>Schritt 1: Webinar-Bereich öffnen</strong>
+          <p>Klicken Sie in der Navigationsleiste oben auf <code>Webinare</code>.</p>
+        </div>
+
+        <div class="help-step">
+          <strong>Schritt 2: Neues Webinar erstellen</strong>
+          <p>Klicken Sie auf den Button <code>Neues Webinar erstellen</code>. Ein Formular öffnet sich.</p>
+        </div>
+
+        <div class="help-step">
+          <strong>Schritt 3: Webinar-Titel eingeben</strong>
+          <p>Geben Sie einen aussagekräftigen Titel für Ihr Webinar ein (z.B. "Einführung in die Webentwicklung").</p>
+        </div>
+
+        <div class="help-step">
+          <strong>Schritt 4: Präsentationsdatei auswählen (optional)</strong>
+          <p>Falls Sie bereits eine PPTX- oder PDF-Datei hochgeladen haben, können Sie diese hier auswählen. Die Folien werden automatisch aus der Präsentation extrahiert.</p>
+          <div class="note">
+            <strong>💡 Hinweis:</strong> Sie können Webinare auch ohne Präsentationsdatei erstellen und die Folien manuell hinzufügen.
+          </div>
+        </div>
+
+        <div class="help-step">
+          <strong>Schritt 5: Folien hinzufügen</strong>
+          <p>Klicken Sie auf <code>Folie hinzufügen</code> und füllen Sie folgende Felder aus:</p>
+          <ul>
+            <li><strong>Titel:</strong> Der Titel der Folie (wird oben angezeigt)</li>
+            <li><strong>Inhalt:</strong> Der Hauptinhalt der Folie (unterstützt HTML-Formatierung)</li>
+            <li><strong>Sprechernotiz:</strong> Text für die automatische Sprachausgabe (wird nicht auf der Folie angezeigt)</li>
+          </ul>
+          <div class="tip">
+            <strong>💡 Tipp:</strong> Verwenden Sie den Rich-Text-Editor für formatierte Inhalte mit Überschriften, Listen, Bildern und Tabellen.
+          </div>
+        </div>
+
+        <div class="help-step">
+          <strong>Schritt 6: Lernkontrolle-Fragen hinzufügen</strong>
+          <p>Fügen Sie Quiz-Fragen hinzu, um das Wissen der Teilnehmer zu testen:</p>
+          <ol>
+            <li>Klicken Sie auf <code>Frage hinzufügen</code></li>
+            <li>Geben Sie die Frage ein</li>
+            <li>Geben Sie 4 Antwortmöglichkeiten ein</li>
+            <li>Markieren Sie die richtige Antwort mit dem Radio-Button</li>
+          </ol>
+        </div>
+
+        <div class="help-step">
+          <strong>Schritt 7: Speichern</strong>
+          <p>Klicken Sie auf <code>Speichern</code>, um das Webinar zu erstellen. Es wird automatisch in der Liste angezeigt.</p>
+        </div>
+      </div>
+
+      <div class="help-section">
+        <h3>📤 PPTX/PDF importieren</h3>
+        
+        <div class="help-step">
+          <strong>Schritt 1: Import-Dialog öffnen</strong>
+          <p>Klicken Sie in der Navigationsleiste auf den grünen Button <code>📤 Import (PPTX/PDF)</code>.</p>
+        </div>
+
+        <div class="help-step">
+          <strong>Schritt 2: Dateien auswählen</strong>
+          <p>Klicken Sie auf <code>Dateien auswählen</code> und wählen Sie eine oder mehrere PPTX- oder PDF-Dateien von Ihrem Computer aus.</p>
+          <div class="note">
+            <strong>✅ Unterstützte Formate:</strong>
+            <ul>
+              <li>PowerPoint-Präsentationen (.pptx, .ppt)</li>
+              <li>PDF-Dokumente (.pdf)</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="help-step">
+          <strong>Schritt 3: Importieren</strong>
+          <p>Klicken Sie auf <code>Importieren</code>. Die Dateien werden hochgeladen und verarbeitet.</p>
+          <div class="warning">
+            <strong>⚠️ Wichtig:</strong> Je nach Dateigröße kann der Upload einige Sekunden dauern. Bitte warten Sie, bis die Erfolgsmeldung erscheint.
+          </div>
+        </div>
+
+        <div class="help-step">
+          <strong>Schritt 4: Verwendung der importierten Präsentation</strong>
+          <p>Die hochgeladene Präsentation erscheint in der Liste. Sie können sie jetzt bei der Webinar-Erstellung auswählen:</p>
+          <ul>
+            <li><strong>PDF:</strong> Seiten werden als Bilder extrahiert und automatisch den Folien zugeordnet</li>
+            <li><strong>PPTX:</strong> Bilder und Grafiken werden extrahiert und den Folien zugeordnet</li>
+          </ul>
+        </div>
+
+        <div class="help-step">
+          <strong>Präsentationen verwalten</strong>
+          <p>Im Import-Dialog sehen Sie alle hochgeladenen Präsentationen. Sie können diese auch löschen, wenn sie nicht mehr benötigt werden.</p>
+        </div>
+      </div>
+
+      <div class="help-section">
+        <h3>✏️ Webinare bearbeiten und verwalten</h3>
+        
+        <h4>Webinar bearbeiten</h4>
+        <p>Um ein bestehendes Webinar zu bearbeiten:</p>
+        <ol>
+          <li>Gehen Sie zum Bereich <code>Webinare</code></li>
+          <li>Klicken Sie bei dem gewünschten Webinar auf <code>Bearbeiten</code></li>
+          <li>Nehmen Sie Ihre Änderungen vor</li>
+          <li>Klicken Sie auf <code>Speichern</code></li>
+        </ol>
+
+        <h4>Webinar löschen</h4>
+        <p>Um ein Webinar zu löschen:</p>
+        <ol>
+          <li>Gehen Sie zum Bereich <code>Webinare</code></li>
+          <li>Klicken Sie bei dem gewünschten Webinar auf <code>Löschen</code></li>
+          <li>Bestätigen Sie die Löschung</li>
+        </ol>
+        <div class="warning">
+          <strong>⚠️ Achtung:</strong> Gelöschte Webinare können nicht wiederhergestellt werden!
+        </div>
+
+        <h4>Webinar anzeigen</h4>
+        <p>Um ein Webinar in der Teilnehmer-Ansicht zu öffnen:</p>
+        <ol>
+          <li>Klicken Sie bei dem gewünschten Webinar auf <code>Anzeigen</code></li>
+          <li>Das Webinar öffnet sich in einem neuen Tab</li>
+        </ol>
+      </div>
+
+      <div class="help-section">
+        <h3>📊 Ergebnisse verwalten</h3>
+        
+        <p>Im Bereich <code>Ergebnisse</code> finden Sie alle eingereichten Quiz-Ergebnisse:</p>
+        <ul>
+          <li><strong>Name:</strong> Name des Teilnehmers</li>
+          <li><strong>E-Mail:</strong> E-Mail-Adresse des Teilnehmers</li>
+          <li><strong>Webinar:</strong> Name des absolvierten Webinars</li>
+          <li><strong>Punktzahl:</strong> Erreichte Punktzahl</li>
+          <li><strong>Bestanden:</strong> Status (Bestanden/Nicht bestanden)</li>
+          <li><strong>Datum:</strong> Zeitpunkt der Teilnahme</li>
+        </ul>
+
+        <h4>CSV-Export</h4>
+        <p>Klicken Sie auf <code>Als CSV exportieren</code>, um alle Ergebnisse in einer Excel-kompatiblen Datei zu speichern.</p>
+      </div>
+
+      <div class="help-section">
+        <h3>⚙️ Einstellungen</h3>
+        
+        <h4>Header-Konfiguration</h4>
+        <p>Passen Sie das Erscheinungsbild der Webinar-Plattform an:</p>
+        <ul>
+          <li><strong>Header-Titel:</strong> Ändern Sie den Titel, der auf allen Seiten angezeigt wird</li>
+          <li><strong>Logo:</strong> Laden Sie Ihr eigenes Logo hoch (PNG, JPG, SVG)</li>
+        </ul>
+
+        <h4>E-Mail-Konfiguration (SMTP)</h4>
+        <p>Richten Sie den E-Mail-Versand ein, um automatisch Ergebnisse zu versenden:</p>
+        <ol>
+          <li>Gehen Sie zum Bereich <code>E-Mail (SMTP)</code></li>
+          <li>Geben Sie Ihre SMTP-Server-Details ein</li>
+          <li>Testen Sie die Konfiguration mit einer Test-E-Mail</li>
+          <li>Speichern Sie die Einstellungen</li>
+        </ol>
+        <div class="tip">
+          <strong>💡 Tipp:</strong> Für Gmail verwenden Sie <code>smtp.gmail.com</code> auf Port <code>587</code> und ein App-spezifisches Passwort.
+        </div>
+      </div>
+
+      <div class="help-section">
+        <h3>🗣️ Sprachausgabe</h3>
+        
+        <p>Die Webinar-Plattform bietet automatische Sprachausgabe für Sprechernotizen:</p>
+        <ul>
+          <li>Geben Sie bei jeder Folie eine <strong>Sprechernotiz</strong> ein</li>
+          <li>Diese wird automatisch vorgelesen, wenn die Folie angezeigt wird</li>
+          <li>Teilnehmer können die Stimme und Geschwindigkeit anpassen</li>
+          <li>Verwenden Sie vollständige Sätze mit korrekter Interpunktion für beste Ergebnisse</li>
+        </ul>
+      </div>
+
+      <div class="help-section">
+        <h3>💡 Tipps & Best Practices</h3>
+        
+        <ul>
+          <li><strong>Kurze Folien:</strong> Halten Sie Folien übersichtlich mit 3-5 Hauptpunkten</li>
+          <li><strong>Klare Struktur:</strong> Verwenden Sie Überschriften und Aufzählungen</li>
+          <li><strong>Bilder verwenden:</strong> Nutzen Sie den Rich-Text-Editor, um Bilder einzufügen</li>
+          <li><strong>Quiz-Fragen:</strong> Fügen Sie 3-5 Fragen pro Webinar hinzu</li>
+          <li><strong>Sprechernotizen:</strong> Schreiben Sie 2-4 Sätze pro Folie für die Sprachausgabe</li>
+          <li><strong>Regelmäßig speichern:</strong> Speichern Sie Ihre Änderungen regelmäßig</li>
+          <li><strong>Vorschau nutzen:</strong> Testen Sie Ihr Webinar mit "Anzeigen" vor der Veröffentlichung</li>
+        </ul>
+      </div>
+
+      <div class="help-section">
+        <h3>❓ Häufige Fragen</h3>
+        
+        <h4>Kann ich vorhandene PowerPoint-Präsentationen verwenden?</h4>
+        <p>Ja! Laden Sie Ihre PPTX- oder PDF-Datei über <code>📤 Import (PPTX/PDF)</code> hoch. Die Folien werden automatisch extrahiert und können als Basis für Ihr Webinar verwendet werden.</p>
+
+        <h4>Wie viele Folien kann ein Webinar haben?</h4>
+        <p>Es gibt keine technische Begrenzung. Für beste Lernergebnisse empfehlen wir 10-20 Folien pro Webinar.</p>
+
+        <h4>Kann ich HTML in den Folien verwenden?</h4>
+        <p>Ja! Der Rich-Text-Editor unterstützt HTML-Formatierung. Sie können auch direkt HTML-Code einfügen.</p>
+
+        <h4>Werden die Ergebnisse automatisch per E-Mail versendet?</h4>
+        <p>Ja, wenn Sie SMTP konfiguriert haben, werden die Ergebnisse automatisch an die konfigurierte Empfänger-Adresse gesendet.</p>
+
+        <h4>Kann ich ein Webinar nachträglich bearbeiten?</h4>
+        <p>Ja, jederzeit! Klicken Sie einfach auf <code>Bearbeiten</code> beim entsprechenden Webinar.</p>
+      </div>
+
+      <div class="help-section">
+        <h3>🆘 Support</h3>
+        <p>Bei weiteren Fragen oder Problemen:</p>
+        <ul>
+          <li>GitHub Issues: <a href="https://github.com/TimUx/fw-webminar/issues" target="_blank">https://github.com/TimUx/fw-webminar/issues</a></li>
+          <li>Dokumentation: README.md im Projektverzeichnis</li>
+        </ul>
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" onclick="closeHelpModal()" class="btn btn-primary">Schließen</button>
+      </div>
+    </div>
+  </div>
+
   <div id="notification" class="notification hidden"></div>
   
   <!-- Load Quill.js (self-hosted) before admin.js -->

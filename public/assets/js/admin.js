@@ -893,3 +893,13 @@ async function deleteImportedFile(filename, displayName) {
 
 // Initialize
 showSection('settings');
+
+// ============ HELP MODAL ============
+
+function showHelpModal() {
+  document.getElementById('helpModal').classList.remove('hidden');
+}
+
+function closeHelpModal() {
+  document.getElementById('helpModal').classList.add('hidden');
+}
