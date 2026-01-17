@@ -288,10 +288,41 @@ tar -czf backup-$(date +%Y%m%d).tar.gz data/ uploads/ slides/ assets/
 
 ## Fehlerbehebung
 
+### Häufige Docker-Warnungen
+
+**"version attribute is obsolete"**:
+- Falls diese Warnung erscheint, verwenden Sie eine veraltete Version der docker-compose.yml
+- Die aktuelle Version enthält kein `version`-Attribut mehr (wurde in Docker Compose v2 entfernt)
+- Aktualisieren Sie Ihre Dateien mit `git pull`
+
+**Caddy-Formatierungswarnungen**:
+- Caddy erwartet Tab-Einrückung im Caddyfile (nicht Leerzeichen)
+- Die aktuelle Version ist bereits korrekt formatiert
+- Bei Änderungen am Caddyfile: Verwenden Sie Tabs für Einrückungen
+
+**Caddy-Berechtigungsfehler** ("/config/caddy/autosave.json: permission denied"):
+- Tritt auf, wenn Caddy mit falschen Benutzerrechten läuft
+- Die aktuelle Konfiguration läuft mit Standard-Caddy-Benutzer (hat die richtigen Berechtigungen)
+- Ändern Sie nicht das `user`-Attribut im Caddy-Service
+
 ### Container starten nicht
 ```bash
 docker-compose logs -f
 ```
+
+### LibreOffice-Warnungen (optional)
+
+Wenn der LibreOffice-Container aktiviert ist, können folgende Warnungen auftreten:
+
+**XKEYBOARD-Warnungen** (z.B. "Could not resolve keysym XF86OK"):
+- Diese Warnungen sind **harmlos** und beeinträchtigen die Funktionalität nicht
+- Sie treten auf, weil der X11-Server im Container einige spezielle Tastenzuordnungen nicht kennt
+- Die PPTX-Konvertierung funktioniert trotz dieser Meldungen einwandfrei
+- Diese Warnungen können ignoriert werden
+
+**xsettingsd-Verbindungsfehler**:
+- Ebenfalls harmlos; der Container startet trotzdem korrekt
+- Tritt während der Initialisierungsphase auf
 
 ### Admin-Passwort zurücksetzen
 ```bash
