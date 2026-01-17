@@ -217,6 +217,7 @@ async function loadPPTX() {
     list.innerHTML = pptxFiles.map(file => {
       const displayName = file.displayName || file.filename;
       const fileType = displayName.toLowerCase().endsWith('.pdf') ? 'PDF' : 'PPTX';
+      const onclickValue = `deletePPTX('${escapeJs(file.filename)}')`;
       return `
       <div class="pptx-item">
         <div class="pptx-info">
@@ -224,7 +225,7 @@ async function loadPPTX() {
           <small>Größe: ${(file.size / 1024 / 1024).toFixed(2)} MB | Hochgeladen: ${new Date(file.uploadedAt).toLocaleDateString('de-DE')}</small>
         </div>
         <div class="pptx-actions">
-          <button class="btn-danger" onclick="deletePPTX('${escapeJs(file.filename)}')">Löschen</button>
+          <button class="btn-danger" onclick="${escapeHtml(onclickValue)}">Löschen</button>
         </div>
       </div>
     `;
@@ -650,6 +651,7 @@ async function loadImportedFiles() {
     listDiv.innerHTML = files.map(file => {
       const displayName = file.displayName || file.filename;
       const fileType = displayName.toLowerCase().endsWith('.pdf') ? 'PDF' : 'PPTX';
+      const onclickValue = `deleteImportedFile('${escapeJs(file.filename)}', '${escapeJs(displayName)}')`;
       return `
         <div class="pptx-item">
           <div class="pptx-info">
@@ -657,7 +659,7 @@ async function loadImportedFiles() {
             <small>Größe: ${(file.size / 1024 / 1024).toFixed(2)} MB | Hochgeladen: ${new Date(file.uploadedAt).toLocaleDateString('de-DE')}</small>
           </div>
           <div class="pptx-actions">
-            <button class="btn-danger" onclick="deleteImportedFile('${escapeJs(file.filename)}', '${escapeJs(displayName)}')">Löschen</button>
+            <button class="btn-danger" onclick="${escapeHtml(onclickValue)}">Löschen</button>
           </div>
         </div>
       `;

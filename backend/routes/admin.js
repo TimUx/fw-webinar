@@ -189,6 +189,9 @@ router.post('/smtp/test', async (req, res) => {
 
 // ============ PPTX MANAGEMENT ============
 
+// Minimum number of digits expected in a timestamp prefix (10 digits ~ year 2001)
+const MIN_TIMESTAMP_DIGITS = 10;
+
 /**
  * Helper function to extract original filename from stored filename
  * Stored format: {timestamp}-{originalname}
@@ -197,8 +200,8 @@ function getOriginalFilename(storedFilename) {
   // Match numeric timestamp (typically 13 digits, but flexible for future timestamps)
   // followed by dash and filename
   const match = storedFilename.match(/^(\d+)-(.+)$/);
-  // Additional validation: check if the numeric part looks like a timestamp (at least 10 digits)
-  if (match && match[1].length >= 10) {
+  // Additional validation: check if the numeric part looks like a timestamp
+  if (match && match[1].length >= MIN_TIMESTAMP_DIGITS) {
     return match[2];
   }
   return storedFilename;
