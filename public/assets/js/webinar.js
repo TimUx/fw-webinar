@@ -9,11 +9,12 @@ let speechSynthesis = window.speechSynthesis;
 let currentUtterance = null;
 let availableVoices = [];
 let selectedVoice = null;
-let speechRate = 0.85;
+let speechRate = 1.0;
 let speechPitch = 1.0;
 let speechErrorCount = 0;
 let narrationComplete = false;
 let slideMinimumTimePassed = false;
+let isMuted = false;
 
 // Load settings and webinars on page load
 document.addEventListener('DOMContentLoaded', async () => {
@@ -103,13 +104,25 @@ function loadPresentation() {
   currentSlideIndex = 0;
   updateSlideCounter();
   
+  // Restore aspect ratio preference
+  const savedRatio = localStorage.getItem('preferredAspectRatio');
+  if (savedRatio) {
+    const aspectRatioSelect = document.getElementById('aspectRatioSelect');
+    const container = document.getElementById('aspectRatioContainer');
+    aspectRatioSelect.value = savedRatio;
+    container.classList.remove('ratio-16-9', 'ratio-4-3');
+    container.classList.add('ratio-' + savedRatio);
+  }
+  
   // Wait for iframe to load
   iframe.onload = () => {
     updateSlideCounter();
     
-    // Start narration for first slide
+    // Start narration for first slide if not muted
     setTimeout(() => {
-      speakSlideNote(0);
+      if (!isMuted) {
+        speakSlideNote(0);
+      }
     }, 1000);
   };
   
@@ -137,7 +150,18 @@ function nextSlide() {
     }
     
     updateSlideCounter();
-    speakSlideNote(currentSlideIndex);
+    if (!isMuted) {
+      speakSlideNote(currentSlideIndex);
+    } else {
+      // Still need to set narration complete for navigation
+      narrationComplete = true;
+      slideMinimumTimePassed = false;
+      updateSlideCounter();
+      setTimeout(() => {
+        slideMinimumTimePassed = true;
+        updateSlideCounter();
+      }, MINIMUM_SLIDE_DURATION);
+    }
   } else {
     // Last slide reached, show confirmation section
     stopSpeaking();
@@ -158,7 +182,18 @@ function previousSlide() {
     }
     
     updateSlideCounter();
-    speakSlideNote(currentSlideIndex);
+    if (!isMuted) {
+      speakSlideNote(currentSlideIndex);
+    } else {
+      // Still need to set narration complete for navigation
+      narrationComplete = true;
+      slideMinimumTimePassed = false;
+      updateSlideCounter();
+      setTimeout(() => {
+        slideMinimumTimePassed = true;
+        updateSlideCounter();
+      }, MINIMUM_SLIDE_DURATION);
+    }
   }
 }
 
@@ -299,6 +334,41 @@ function changeSpeechRate() {
   }
 }
 
+// Toggle mute
+function toggleMute() {
+  isMuted = !isMuted;
+  const muteBtn = document.getElementById('muteBtn');
+  
+  if (isMuted) {
+    stopSpeaking();
+    muteBtn.textContent = '🔇 Stumm';
+    muteBtn.classList.add('muted');
+  } else {
+    muteBtn.textContent = '🔊 Ton';
+    muteBtn.classList.remove('muted');
+    // Restart narration if we're in a presentation
+    if (currentWebinar && currentWebinar.slides && currentSlideIndex >= 0) {
+      speakSlideNote(currentSlideIndex);
+    }
+  }
+}
+
+// Change aspect ratio
+function changeAspectRatio() {
+  const aspectRatioSelect = document.getElementById('aspectRatioSelect');
+  const container = document.getElementById('aspectRatioContainer');
+  const selectedRatio = aspectRatioSelect.value;
+  
+  // Remove existing ratio classes
+  container.classList.remove('ratio-16-9', 'ratio-4-3');
+  
+  // Add new ratio class
+  container.classList.add('ratio-' + selectedRatio);
+  
+  // Save preference to localStorage
+  localStorage.setItem('preferredAspectRatio', selectedRatio);
+}
+
 // Improved text chunking for better pronunciation
 function chunkText(text) {
   // Split by sentences and respect natural pauses
@@ -332,6 +402,13 @@ function speakSlideNote(slideIndex) {
     slideMinimumTimePassed = true;
     updateSlideCounter();
   }, MINIMUM_SLIDE_DURATION);
+  
+  // If muted, just mark as complete immediately
+  if (isMuted) {
+    narrationComplete = true;
+    updateSlideCounter();
+    return;
+  }
   
   const slide = currentWebinar.slides[slideIndex];
   if (!slide || !slide.speakerNote) {

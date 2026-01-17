@@ -101,7 +101,7 @@ async function createImageSlides(webinarId, imageFiles) {
   
   const slides = imageFiles.map((imgFile, index) => `
     <section>
-      <img src="${imgFile}" alt="Slide ${index + 1}" style="max-width: 100%; max-height: 80vh; object-fit: contain;">
+      <img src="${imgFile}" alt="Slide ${index + 1}" style="max-width: 100%; max-height: 90vh; object-fit: contain;">
     </section>
   `).join('\n');
   
@@ -117,14 +117,36 @@ async function createImageSlides(webinarId, imageFiles) {
   <style>
     .reveal {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      font-size: 28px;
     }
-    .reveal h1, .reveal h2, .reveal h3 {
+    .reveal h1 {
       color: #2c3e50;
+      font-size: 2em;
+      margin-bottom: 0.5em;
+    }
+    .reveal h2 {
+      color: #2c3e50;
+      font-size: 1.5em;
+      margin-bottom: 0.5em;
+    }
+    .reveal h3 {
+      color: #2c3e50;
+      font-size: 1.2em;
+      margin-bottom: 0.5em;
+    }
+    .reveal p {
+      font-size: 0.9em;
+      line-height: 1.4;
+      margin-bottom: 0.5em;
     }
     .reveal section img {
       border: none;
       box-shadow: none;
       background: none;
+    }
+    /* Hide Reveal.js controls */
+    .reveal .controls {
+      display: none !important;
     }
   </style>
 </head>
@@ -138,7 +160,7 @@ async function createImageSlides(webinarId, imageFiles) {
   <script src="https://cdn.jsdelivr.net/npm/reveal.js@4.5.0/dist/reveal.js"></script>
   <script>
     Reveal.initialize({
-      controls: true,
+      controls: false,
       progress: true,
       center: true,
       hash: false,
@@ -219,15 +241,38 @@ async function createRevealPresentation(htmlFilename, webinarId, speakerNotes = 
   <style>
     .reveal {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      font-size: 28px;
     }
-    .reveal h1, .reveal h2, .reveal h3 {
+    .reveal h1 {
       color: #2c3e50;
+      font-size: 2em;
+      margin-bottom: 0.5em;
+    }
+    .reveal h2 {
+      color: #2c3e50;
+      font-size: 1.5em;
+      margin-bottom: 0.5em;
+    }
+    .reveal h3 {
+      color: #2c3e50;
+      font-size: 1.2em;
+      margin-bottom: 0.5em;
+    }
+    .reveal p {
+      font-size: 0.9em;
+      line-height: 1.4;
+      margin-bottom: 0.5em;
     }
     .slide-content {
       padding: 20px;
+      text-align: left;
     }
     .speaker-note {
       display: none;
+    }
+    /* Hide Reveal.js controls */
+    .reveal .controls {
+      display: none !important;
     }
   </style>
 </head>
@@ -245,7 +290,7 @@ async function createRevealPresentation(htmlFilename, webinarId, speakerNotes = 
     
     // Initialize Reveal.js
     Reveal.initialize({
-      controls: true,
+      controls: false,
       progress: true,
       center: true,
       hash: false,
@@ -306,13 +351,37 @@ async function generateSimpleSlides(webinarId, slideData) {
   <style>
     .reveal {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      font-size: 28px;
     }
-    .reveal h1, .reveal h2, .reveal h3 {
+    .reveal h1 {
       color: #2c3e50;
+      font-size: 2em;
+      margin-bottom: 0.5em;
+    }
+    .reveal h2 {
+      color: #2c3e50;
+      font-size: 1.5em;
+      margin-bottom: 0.5em;
+    }
+    .reveal h3 {
+      color: #2c3e50;
+      font-size: 1.2em;
+      margin-bottom: 0.5em;
+    }
+    .reveal p, .reveal li {
+      font-size: 0.9em;
+      line-height: 1.4;
+      margin-bottom: 0.5em;
     }
     .slide-content {
-      padding: 40px;
+      padding: 30px;
       text-align: left;
+      max-width: 90%;
+      margin: 0 auto;
+    }
+    /* Hide Reveal.js controls */
+    .reveal .controls {
+      display: none !important;
     }
   </style>
 </head>
@@ -326,7 +395,7 @@ async function generateSimpleSlides(webinarId, slideData) {
   <script src="https://cdn.jsdelivr.net/npm/reveal.js@4.5.0/dist/reveal.js"></script>
   <script>
     Reveal.initialize({
-      controls: true,
+      controls: false,
       progress: true,
       center: true,
       hash: false,

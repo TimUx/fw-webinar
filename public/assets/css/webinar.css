@@ -139,7 +139,7 @@ button:disabled {
 /* Presentation Container */
 .presentation-container {
   width: 100%;
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
   padding: 20px;
 }
@@ -153,9 +153,29 @@ button:disabled {
   overflow: hidden;
 }
 
-.presentation-frame {
+/* Aspect ratio container for slides */
+.aspect-ratio-container {
+  position: relative;
   width: 100%;
-  height: 600px;
+  background: #000;
+}
+
+/* 16:9 aspect ratio (default) */
+.aspect-ratio-container.ratio-16-9 {
+  padding-bottom: 56.25%; /* 9/16 = 0.5625 */
+}
+
+/* 4:3 aspect ratio */
+.aspect-ratio-container.ratio-4-3 {
+  padding-bottom: 75%; /* 3/4 = 0.75 */
+}
+
+.presentation-frame {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
   border: none;
 }
 
@@ -472,7 +492,7 @@ button:disabled {
   border-radius: 8px;
   margin-bottom: 15px;
   display: flex;
-  gap: 20px;
+  gap: 15px;
   flex-wrap: wrap;
   align-items: center;
 }
@@ -482,12 +502,13 @@ button:disabled {
   align-items: center;
   gap: 10px;
   flex: 1;
-  min-width: 200px;
+  min-width: 180px;
 }
 
 .voice-control-group label {
   font-weight: 500;
   white-space: nowrap;
+  font-size: 14px;
 }
 
 .voice-control-group select {
@@ -509,6 +530,22 @@ button:disabled {
   font-weight: 500;
   min-width: 50px;
   text-align: right;
+  font-size: 14px;
+}
+
+.voice-control-group button {
+  padding: 8px 16px;
+  margin: 0;
+  font-size: 14px;
+  min-width: 80px;
+}
+
+.voice-control-group button.muted {
+  background: #e74c3c;
+}
+
+.voice-control-group button.muted:hover {
+  background: #c0392b;
 }
 
 /* Responsive */
@@ -523,8 +560,8 @@ button:disabled {
     padding: 20px;
   }
   
-  .presentation-frame {
-    height: 400px;
+  .aspect-ratio-container {
+    border-radius: 4px;
   }
   
   .presentation-controls {
@@ -551,5 +588,9 @@ button:disabled {
   
   .result-score {
     font-size: 36px;
+  }
+  
+  .voice-control-group {
+    min-width: 100%;
   }
 }
