@@ -428,28 +428,27 @@ function speakSlideNote(slideIndex) {
   speakChunks(chunks, 0);
 }
 
+// Helper function to complete narration and update UI
+function completeNarration() {
+  const indicator = document.getElementById('narrationIndicator');
+  indicator.classList.add('hidden');
+  indicator.classList.remove('speaking');
+  
+  narrationComplete = true;
+  updateSlideCounter();
+}
+
 // Speak text chunks sequentially for better flow
 function speakChunks(chunks, index) {
   // Check if muted before speaking next chunk
   if (isMuted) {
-    // Stop narration if muted
-    const indicator = document.getElementById('narrationIndicator');
-    indicator.classList.add('hidden');
-    indicator.classList.remove('speaking');
-    
-    narrationComplete = true;
-    updateSlideCounter();
+    completeNarration();
     return;
   }
   
   if (index >= chunks.length) {
     // All chunks spoken - narration complete
-    const indicator = document.getElementById('narrationIndicator');
-    indicator.classList.add('hidden');
-    indicator.classList.remove('speaking');
-    
-    narrationComplete = true;
-    updateSlideCounter();
+    completeNarration();
     return;
   }
   
@@ -477,12 +476,7 @@ function speakChunks(chunks, index) {
   currentUtterance.onend = () => {
     // Check mute state before continuing to next chunk
     if (isMuted) {
-      const indicator = document.getElementById('narrationIndicator');
-      indicator.classList.add('hidden');
-      indicator.classList.remove('speaking');
-      
-      narrationComplete = true;
-      updateSlideCounter();
+      completeNarration();
       return;
     }
     
@@ -499,13 +493,7 @@ function speakChunks(chunks, index) {
     // Stop trying after 3 consecutive errors to prevent infinite recursion
     if (speechErrorCount >= 3) {
       console.error('Too many speech synthesis errors, stopping narration');
-      const indicator = document.getElementById('narrationIndicator');
-      indicator.classList.add('hidden');
-      indicator.classList.remove('speaking');
-      
-      // Mark narration as complete even on error
-      narrationComplete = true;
-      updateSlideCounter();
+      completeNarration();
       return;
     }
     
