@@ -1,4 +1,5 @@
 const API_BASE = '/api';
+const MINIMUM_SLIDE_DURATION = 10000; // 10 seconds in milliseconds
 
 let currentWebinar = null;
 let currentSlideIndex = 0;
@@ -12,7 +13,6 @@ let speechRate = 0.85;
 let speechPitch = 1.0;
 let speechErrorCount = 0;
 let narrationComplete = false;
-let slideStartTime = null;
 let slideMinimumTimePassed = false;
 
 // Load settings and webinars on page load
@@ -324,14 +324,13 @@ function speakSlideNote(slideIndex) {
   // Reset narration state for new slide
   narrationComplete = false;
   slideMinimumTimePassed = false;
-  slideStartTime = Date.now();
   updateSlideCounter();
   
-  // Start minimum time timer (10 seconds)
+  // Start minimum time timer
   setTimeout(() => {
     slideMinimumTimePassed = true;
     updateSlideCounter();
-  }, 10000);
+  }, MINIMUM_SLIDE_DURATION);
   
   const slide = currentWebinar.slides[slideIndex];
   if (!slide || !slide.speakerNote) {
