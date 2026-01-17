@@ -4,6 +4,11 @@
   box-sizing: border-box;
 }
 
+:root {
+  --viewport-offset: 400px; /* Space for header, controls, and padding */
+  --slide-image-max-height: 60vh; /* Maximum height for images in slides */
+}
+
 body {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   background: #f5f5f5;
@@ -158,6 +163,7 @@ button:disabled {
   position: relative;
   width: 100%;
   background: #000;
+  max-height: calc(100vh - var(--viewport-offset));
 }
 
 /* 16:9 aspect ratio (default) */
