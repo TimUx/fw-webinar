@@ -194,11 +194,14 @@ router.post('/smtp/test', async (req, res) => {
  * Stored format: {timestamp}-{originalname}
  */
 function getOriginalFilename(storedFilename) {
-  // Match 13-digit timestamp (from Date.now()) followed by dash and filename
-  // Note: JavaScript timestamps will exceed 13 digits around year 2286
-  // Files uploaded before/after that transition will still be handled gracefully
-  const match = storedFilename.match(/^(\d{13})-(.+)$/);
-  return match ? match[2] : storedFilename;
+  // Match numeric timestamp (typically 13 digits, but flexible for future timestamps)
+  // followed by dash and filename
+  const match = storedFilename.match(/^(\d+)-(.+)$/);
+  // Additional validation: check if the numeric part looks like a timestamp (at least 10 digits)
+  if (match && match[1].length >= 10) {
+    return match[2];
+  }
+  return storedFilename;
 }
 
 /**

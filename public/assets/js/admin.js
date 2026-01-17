@@ -64,6 +64,17 @@ function escapeHtml(text) {
   return div.innerHTML;
 }
 
+// Helper to escape strings for use in JavaScript string literals
+function escapeJs(text) {
+  return text
+    .replace(/\\/g, '\\\\')
+    .replace(/'/g, "\\'")
+    .replace(/"/g, '\\"')
+    .replace(/\n/g, '\\n')
+    .replace(/\r/g, '\\r')
+    .replace(/\t/g, '\\t');
+}
+
 // Logout
 function logout() {
   localStorage.removeItem('adminToken');
@@ -213,7 +224,7 @@ async function loadPPTX() {
           <small>Größe: ${(file.size / 1024 / 1024).toFixed(2)} MB | Hochgeladen: ${new Date(file.uploadedAt).toLocaleDateString('de-DE')}</small>
         </div>
         <div class="pptx-actions">
-          <button class="btn-danger" onclick="deletePPTX('${file.filename.replace(/'/g, "\\'")}')">Löschen</button>
+          <button class="btn-danger" onclick="deletePPTX('${escapeJs(file.filename)}')">Löschen</button>
         </div>
       </div>
     `;
@@ -275,7 +286,7 @@ function updatePPTXDropdown() {
     pptxFiles.map(f => {
       const displayName = f.displayName || f.filename;
       const fileType = displayName.toLowerCase().endsWith('.pdf') ? 'PDF' : 'PPTX';
-      return `<option value="${f.filename.replace(/"/g, '&quot;')}">${escapeHtml(displayName)} (${fileType})</option>`;
+      return `<option value="${escapeHtml(f.filename)}">${escapeHtml(displayName)} (${fileType})</option>`;
     }).join('');
 }
 
@@ -646,7 +657,7 @@ async function loadImportedFiles() {
             <small>Größe: ${(file.size / 1024 / 1024).toFixed(2)} MB | Hochgeladen: ${new Date(file.uploadedAt).toLocaleDateString('de-DE')}</small>
           </div>
           <div class="pptx-actions">
-            <button class="btn-danger" onclick="deleteImportedFile('${file.filename.replace(/'/g, "\\'")}', '${displayName.replace(/'/g, "\\'")}')">Löschen</button>
+            <button class="btn-danger" onclick="deleteImportedFile('${escapeJs(file.filename)}', '${escapeJs(displayName)}')">Löschen</button>
           </div>
         </div>
       `;
