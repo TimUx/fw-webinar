@@ -474,7 +474,7 @@ router.put('/webinars/:id', async (req, res) => {
       
       data.webinars[index] = {
         ...data.webinars[index],
-        title: title || data.webinars[index].title,
+        title: title || data.webinars[index].title, // Use || to prevent empty titles
         pptxFile: pptxFile !== undefined ? pptxFile : data.webinars[index].pptxFile,
         questions: questions !== undefined ? questions : data.webinars[index].questions,
         slides: slides !== undefined ? slides : data.webinars[index].slides,
