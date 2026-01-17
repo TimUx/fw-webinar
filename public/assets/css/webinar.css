@@ -4,6 +4,10 @@
   box-sizing: border-box;
 }
 
+:root {
+  --viewport-offset: 400px; /* Space for header, controls, and padding */
+}
+
 body {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   background: #f5f5f5;
@@ -158,19 +162,19 @@ button:disabled {
   position: relative;
   width: 100%;
   background: #000;
-  max-height: calc(100vh - 400px); /* Subtract header, controls, and padding */
+  max-height: calc(100vh - var(--viewport-offset));
 }
 
 /* 16:9 aspect ratio (default) */
 .aspect-ratio-container.ratio-16-9 {
   padding-bottom: 56.25%; /* 9/16 = 0.5625 */
-  max-height: calc(100vh - 400px);
+  max-height: calc(100vh - var(--viewport-offset));
 }
 
 /* 4:3 aspect ratio */
 .aspect-ratio-container.ratio-4-3 {
   padding-bottom: 75%; /* 3/4 = 0.75 */
-  max-height: calc(100vh - 400px);
+  max-height: calc(100vh - var(--viewport-offset));
 }
 
 .presentation-frame {
