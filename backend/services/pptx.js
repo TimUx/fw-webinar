@@ -39,7 +39,7 @@ function getCommonPresentationStyles() {
       box-shadow: none;
       background: none;
       max-width: 100%;
-      max-height: 60vh;
+      max-height: 60vh; /* Matches --slide-image-max-height in webinar.css */
       object-fit: contain;
     }
     .reveal .slides {
