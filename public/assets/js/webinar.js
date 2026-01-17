@@ -17,8 +17,6 @@ let speechErrorCount = 0;
 let narrationComplete = false;
 let slideMinimumTimePassed = false;
 let isMuted = false;
-let slideTimer = null;
-let timerUpdateInterval = null;
 
 // Load settings and webinars on page load
 document.addEventListener('DOMContentLoaded', async () => {
@@ -231,8 +229,6 @@ function updateNextButtonStatus(isLastSlide, canAdvance) {
     statusElement.textContent = '🔊 Warten auf Abschluss der Sprachausgabe...';
   } else if (!slideMinimumTimePassed) {
     statusElement.textContent = '⏳ Bitte warten Sie noch einen Moment...';
-  } else {
-    statusElement.textContent = '⏳ Wird geladen...';
   }
 }
 
