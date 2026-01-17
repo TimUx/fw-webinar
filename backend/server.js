@@ -68,21 +68,28 @@ const server = app.listen(PORT, '0.0.0.0', () => {
 });
 
 // Graceful shutdown handling
+let isShuttingDown = false;
 const gracefulShutdown = (signal) => {
+  if (isShuttingDown) {
+    return;
+  }
+  isShuttingDown = true;
+  
   console.log(`\n${signal} empfangen. Beginne graceful shutdown...`);
   logAudit('SYSTEM', 'localhost', `Server shutdown initiiert (${signal})`);
   
+  // Force shutdown after 10 seconds
+  const forceShutdownTimer = setTimeout(() => {
+    console.error('⚠️  Graceful shutdown timeout - Erzwinge Beendigung');
+    process.exit(1);
+  }, 10000);
+
   server.close(() => {
+    clearTimeout(forceShutdownTimer);
     console.log('✅ Server erfolgreich heruntergefahren');
     logAudit('SYSTEM', 'localhost', 'Server erfolgreich heruntergefahren');
     process.exit(0);
   });
-
-  // Force shutdown after 10 seconds
-  setTimeout(() => {
-    console.error('⚠️  Graceful shutdown timeout - Erzwinge Beendigung');
-    process.exit(1);
-  }, 10000);
 };
 
 // Handle shutdown signals
