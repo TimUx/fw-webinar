@@ -12,34 +12,34 @@ function getCommonPresentationStyles() {
   return `
     .reveal {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      font-size: clamp(16px, 2vw, 28px);
+      font-size: clamp(12px, 1.2vw, 16px);
     }
     .reveal h1 {
       color: #2c3e50;
-      font-size: clamp(24px, 3vw, 48px);
-      margin-bottom: 0.5em;
+      font-size: clamp(18px, 1.8vw, 24px);
+      margin-bottom: 0.4em;
     }
     .reveal h2 {
       color: #2c3e50;
-      font-size: clamp(20px, 2.5vw, 36px);
-      margin-bottom: 0.5em;
+      font-size: clamp(16px, 1.5vw, 20px);
+      margin-bottom: 0.4em;
     }
     .reveal h3 {
       color: #2c3e50;
-      font-size: clamp(18px, 2vw, 28px);
-      margin-bottom: 0.5em;
+      font-size: clamp(14px, 1.3vw, 18px);
+      margin-bottom: 0.4em;
     }
     .reveal p, .reveal li {
-      font-size: clamp(14px, 1.8vw, 24px);
+      font-size: clamp(12px, 1.2vw, 16px);
       line-height: 1.4;
-      margin-bottom: 0.5em;
+      margin-bottom: 0.4em;
     }
     .reveal section img {
       border: none;
       box-shadow: none;
       background: none;
       max-width: 100%;
-      max-height: 60vh; /* Matches --slide-image-max-height in webinar.css */
+      max-height: 50vh;
       object-fit: contain;
     }
     .reveal .slides {
@@ -51,8 +51,9 @@ function getCommonPresentationStyles() {
       display: flex;
       flex-direction: column;
       justify-content: center;
-      padding: 20px;
+      padding: 15px;
       box-sizing: border-box;
+      overflow-y: auto;
     }
     /* Hide Reveal.js controls */
     .reveal .controls {
