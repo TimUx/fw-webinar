@@ -205,13 +205,11 @@ function createQuillEditor(container, initialContent = '') {
                   // Apply medium size class to the newly inserted image
                   // Use nextTick to ensure DOM is updated
                   const applyDefaultSize = () => {
-                    const images = this.quill.root.querySelectorAll('img');
-                    for (let i = images.length - 1; i >= 0; i--) {
+                    // Find images without any size class
+                    const images = this.quill.root.querySelectorAll('img:not(.img-small):not(.img-medium):not(.img-large):not(.img-full)');
+                    for (let i = 0; i < images.length; i++) {
                       const img = images[i];
-                      if (img.src === url && !img.classList.contains('img-small') && 
-                          !img.classList.contains('img-medium') && 
-                          !img.classList.contains('img-large') && 
-                          !img.classList.contains('img-full')) {
+                      if (img.src === url) {
                         img.classList.add('img-medium');
                         break;
                       }
@@ -283,14 +281,14 @@ function createQuillEditor(container, initialContent = '') {
   const imageAlignGroup = document.createElement('span');
   imageAlignGroup.className = 'ql-formats';
   imageAlignGroup.innerHTML = `
-    <button class="ql-image-float-left" type="button" title="Bild links mit Textumfluss">
-      <span style="font-size: 12px;">◀️</span>
+    <button class="ql-image-float-left" type="button" title="Bild links mit Textumfluss" aria-label="Bild links ausrichten">
+      <span style="font-size: 12px;" aria-hidden="true">◀️</span>
     </button>
-    <button class="ql-image-float-right" type="button" title="Bild rechts mit Textumfluss">
-      <span style="font-size: 12px;">▶️</span>
+    <button class="ql-image-float-right" type="button" title="Bild rechts mit Textumfluss" aria-label="Bild rechts ausrichten">
+      <span style="font-size: 12px;" aria-hidden="true">▶️</span>
     </button>
-    <button class="ql-image-float-none" type="button" title="Textumfluss entfernen">
-      <span style="font-size: 12px;">⬛</span>
+    <button class="ql-image-float-none" type="button" title="Textumfluss entfernen" aria-label="Textumfluss entfernen">
+      <span style="font-size: 12px;" aria-hidden="true">⬛</span>
     </button>
   `;
   toolbarContainer.appendChild(imageAlignGroup);
@@ -299,11 +297,11 @@ function createQuillEditor(container, initialContent = '') {
   const columnsGroup = document.createElement('span');
   columnsGroup.className = 'ql-formats';
   columnsGroup.innerHTML = `
-    <button class="ql-columns-2" type="button" title="2 Spalten einfügen">
-      <span style="font-size: 10px;">⬜⬜</span>
+    <button class="ql-columns-2" type="button" title="2 Spalten einfügen" aria-label="2 Spalten Layout einfügen">
+      <span style="font-size: 10px;" aria-hidden="true">⬜⬜</span>
     </button>
-    <button class="ql-columns-3" type="button" title="3 Spalten einfügen">
-      <span style="font-size: 10px;">⬜⬜⬜</span>
+    <button class="ql-columns-3" type="button" title="3 Spalten einfügen" aria-label="3 Spalten Layout einfügen">
+      <span style="font-size: 10px;" aria-hidden="true">⬜⬜⬜</span>
     </button>
   `;
   toolbarContainer.appendChild(columnsGroup);
@@ -338,7 +336,7 @@ function createQuillEditor(container, initialContent = '') {
   const insertColumns = (numColumns, displayName) => {
     const range = quill.getSelection(true);
     if (range) {
-      // Create container div
+      // Create container div programmatically (not from user input)
       const columnsDiv = document.createElement('div');
       columnsDiv.className = `columns-${numColumns}`;
       
@@ -347,12 +345,14 @@ function createQuillEditor(container, initialContent = '') {
         const columnDiv = document.createElement('div');
         columnDiv.className = 'column';
         const p = document.createElement('p');
-        p.textContent = `Spalte ${i + 1}`;
+        p.textContent = `Spalte ${i + 1}`;  // Safe: uses textContent, not innerHTML
         columnDiv.appendChild(p);
         columnsDiv.appendChild(columnDiv);
       }
       
-      // Insert using Quill's clipboard for safer HTML insertion
+      // Note: dangerouslyPasteHTML is used here with programmatically created,
+      // sanitized content (not user input). This is Quill's standard pattern
+      // for inserting complex HTML structures. The content is XSS-safe.
       quill.clipboard.dangerouslyPasteHTML(range.index, columnsDiv.outerHTML + '<p><br></p>');
       quill.setSelection(range.index + 1);
       showNotification(displayName);
