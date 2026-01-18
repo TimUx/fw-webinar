@@ -10,7 +10,6 @@ html {
 }
 
 :root {
-  --viewport-offset: 280px; /* Space for header, controls, and padding */
   --slide-image-max-height: 50vh; /* Maximum height for images in slides */
 }
 
