@@ -110,32 +110,14 @@ async function uploadImageToServer(file) {
 }
 
 // Helper to insert a simple table in Quill
+// Helper messages for unsupported features
+const MESSAGES = {
+  TABLE_NOT_SUPPORTED: 'Bitte verwenden Sie den HTML-Quellcode-Button (</>), um Tabellen hinzuzufügen. Quill unterstützt Tabellen nicht nativ im WYSIWYG-Modus.',
+  COLUMNS_NOT_SUPPORTED: (numColumns) => `Bitte verwenden Sie den HTML-Quellcode-Button (</>), um Spalten-Layouts hinzuzufügen. Beispiel: <div class="columns-${numColumns}">${Array.from({length: numColumns}, (_, i) => `<div class="column">Spalte ${i + 1}</div>`).join('')}</div>`
+};
+
 function insertTable(quill) {
-  const rows = prompt('Anzahl der Zeilen:', '3');
-  const cols = prompt('Anzahl der Spalten:', '3');
-  
-  if (rows && cols) {
-    const numRows = parseInt(rows);
-    const numCols = parseInt(cols);
-    
-    if (numRows > 0 && numCols > 0) {
-      let tableHTML = '<table style="border-collapse: collapse; width: 100%; border: 1px solid #ddd;">\n';
-      
-      for (let i = 0; i < numRows; i++) {
-        tableHTML += '  <tr>\n';
-        for (let j = 0; j < numCols; j++) {
-          const tag = i === 0 ? 'th' : 'td';
-          tableHTML += `    <${tag} style="border: 1px solid #ddd; padding: 8px;">${tag === 'th' ? 'Kopfzeile' : 'Zelle'}</${tag}>\n`;
-        }
-        tableHTML += '  </tr>\n';
-      }
-      tableHTML += '</table>\n<p><br></p>';
-      
-      const range = quill.getSelection(true);
-      quill.clipboard.dangerouslyPasteHTML(range.index, tableHTML);
-      quill.setSelection(range.index + 1);
-    }
-  }
+  showNotification(MESSAGES.TABLE_NOT_SUPPORTED, true);
 }
 
 // Helper to create Quill editor with image upload and tables
@@ -346,31 +328,6 @@ function createQuillEditor(container, initialContent = '') {
   };
   
   // Helper function to insert columns safely
-  const insertColumns = (numColumns, displayName) => {
-    const range = quill.getSelection(true);
-    if (range) {
-      // Create container div programmatically (not from user input)
-      const columnsDiv = document.createElement('div');
-      columnsDiv.className = `columns-${numColumns}`;
-      
-      // Create column divs
-      for (let i = 0; i < numColumns; i++) {
-        const columnDiv = document.createElement('div');
-        columnDiv.className = 'column';
-        const p = document.createElement('p');
-        p.textContent = `Spalte ${i + 1}`;  // Safe: uses textContent, not innerHTML
-        columnDiv.appendChild(p);
-        columnsDiv.appendChild(columnDiv);
-      }
-      
-      // Note: dangerouslyPasteHTML is used here with programmatically created,
-      // sanitized content (not user input). This is Quill's standard pattern
-      // for inserting complex HTML structures. The content is XSS-safe.
-      quill.clipboard.dangerouslyPasteHTML(range.index, columnsDiv.outerHTML + '<p><br></p>');
-      quill.setSelection(range.index + 1);
-      showNotification(displayName);
-    }
-  };
   
   // Add event listeners for image sizing buttons
   toolbarContainer.querySelector('.ql-image-small').addEventListener('click', () => {
@@ -404,11 +361,11 @@ function createQuillEditor(container, initialContent = '') {
   
   // Add event listeners for column layout buttons
   toolbarContainer.querySelector('.ql-columns-2').addEventListener('click', () => {
-    insertColumns(2, '2-Spalten-Layout eingefügt');
+    showNotification(MESSAGES.COLUMNS_NOT_SUPPORTED(2), true);
   });
   
   toolbarContainer.querySelector('.ql-columns-3').addEventListener('click', () => {
-    insertColumns(3, '3-Spalten-Layout eingefügt');
+    showNotification(MESSAGES.COLUMNS_NOT_SUPPORTED(3), true);
   });
   
   // Add event listener for source code toggle button
