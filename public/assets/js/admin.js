@@ -3,6 +3,10 @@ let currentWebinar = null;
 let pptxFiles = [];
 let quillEditors = []; // Store Quill editor instances
 
+// TipTap editor initialization constants
+const TIPTAP_LOAD_MAX_ATTEMPTS = 50;
+const TIPTAP_LOAD_RETRY_DELAY_MS = 100;
+
 // Check authentication
 const token = localStorage.getItem('adminToken');
 if (!token) {
@@ -194,8 +198,8 @@ async function createTipTapEditor(container, initialContent = '') {
   // Wait for window.createTipTapEditor to be available
   // It's loaded as an ES module, so it might not be immediately available
   let attempts = 0;
-  while (!window.createTipTapEditor && attempts < 50) {
-    await new Promise(resolve => setTimeout(resolve, 100));
+  while (!window.createTipTapEditor && attempts < TIPTAP_LOAD_MAX_ATTEMPTS) {
+    await new Promise(resolve => setTimeout(resolve, TIPTAP_LOAD_RETRY_DELAY_MS));
     attempts++;
   }
   
