@@ -59,6 +59,91 @@ function getCommonPresentationStyles() {
     .reveal .controls {
       display: none !important;
     }
+    
+    /* Image Sizing Classes */
+    .reveal img.img-small {
+      max-width: 25%;
+      height: auto;
+      display: inline-block;
+    }
+    .reveal img.img-medium {
+      max-width: 50%;
+      height: auto;
+      display: inline-block;
+    }
+    .reveal img.img-large {
+      max-width: 75%;
+      height: auto;
+      display: inline-block;
+    }
+    .reveal img.img-full {
+      max-width: 100%;
+      height: auto;
+      display: block;
+    }
+    
+    /* Image Float/Text Wrap Classes */
+    .reveal img.img-float-left {
+      float: left;
+      margin: 0 15px 15px 0;
+    }
+    .reveal img.img-float-right {
+      float: right;
+      margin: 0 0 15px 15px;
+    }
+    
+    /* Column Layout Support */
+    .reveal .columns-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin: 20px 0;
+      width: 100%;
+    }
+    .reveal .columns-3 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 20px;
+      margin: 20px 0;
+      width: 100%;
+    }
+    .reveal .column {
+      padding: 10px;
+      border: 1px solid #ddd;
+      min-height: 50px;
+      background: #f9f9f9;
+    }
+    
+    /* Table Styling */
+    .reveal table {
+      border-collapse: collapse;
+      width: 100%;
+      margin: 15px 0;
+    }
+    .reveal table td,
+    .reveal table th {
+      border: 1px solid #ddd;
+      padding: 8px;
+      text-align: left;
+    }
+    .reveal table th {
+      background-color: #f2f2f2;
+      font-weight: bold;
+    }
+    
+    /* Responsive adjustments for columns */
+    @media (max-width: 768px) {
+      .reveal .columns-2,
+      .reveal .columns-3 {
+        grid-template-columns: 1fr;
+      }
+      .reveal img.img-float-left,
+      .reveal img.img-float-right {
+        float: none;
+        margin: 10px auto;
+        display: block;
+      }
+    }
   `;
 }
 
