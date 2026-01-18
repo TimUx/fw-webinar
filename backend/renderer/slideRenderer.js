@@ -147,23 +147,24 @@ const extensions = [
 ];
 
 /**
- * Convert TipTap JSON to HTML
- * @param {Object} json - TipTap JSON content
+ * Convert TipTap JSON or HTML to HTML string
+ * Handles both new TipTap JSON format and legacy HTML strings
+ * @param {Object|string} content - TipTap JSON content or HTML string
  * @returns {string} HTML string
  */
-function tiptapJsonToHtml(json) {
+function tiptapJsonToHtml(content) {
   try {
     // If input is already a string (HTML), return it
-    if (typeof json === 'string') {
-      return json;
+    if (typeof content === 'string') {
+      return content;
     }
     
     // Generate HTML from TipTap JSON
-    return generateHTML(json, extensions);
+    return generateHTML(content, extensions);
   } catch (error) {
-    console.error('Error converting TipTap JSON to HTML:', error);
-    // Fallback: return empty string or error message
-    return '<p>Fehler beim Rendern des Inhalts</p>';
+    console.error('Error converting content to HTML:', error);
+    // Return more helpful error message with details
+    return `<p class="error">Fehler beim Rendern des Inhalts: ${error.message}</p>`;
   }
 }
 

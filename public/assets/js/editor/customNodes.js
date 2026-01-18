@@ -146,6 +146,7 @@ export function createColumn() {
   return {
     name: 'column',
     content: 'block+',
+    group: 'block',
     
     parseHTML() {
       return [

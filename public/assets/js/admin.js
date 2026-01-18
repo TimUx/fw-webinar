@@ -213,10 +213,8 @@ async function createTipTapEditor(container, initialContent = '') {
   // Now syncs JSON instead of HTML for proper TipTap JSON storage
   const onUpdateCallback = (jsonContent) => {
     if (textarea) {
-      // Store JSON as string in the textarea
+      // Store JSON as string in the textarea (single source of truth)
       textarea.value = JSON.stringify(jsonContent);
-      // Also store as data attribute for easy access
-      textarea.dataset.tiptapJson = JSON.stringify(jsonContent);
     }
   };
   
@@ -598,7 +596,7 @@ async function addSlide(slide = null) {
     </div>
     <div class="form-group">
       <label>Inhalt (WYSIWYG Editor mit Bildupload und Tabellen)</label>
-      <textarea class="slide-content" style="display:none;" data-tiptap-json="${escapeHtml(initialContent)}">${escapeHtml(initialContent)}</textarea>
+      <textarea class="slide-content" style="display:none;">${escapeHtml(initialContent)}</textarea>
     </div>
     <div class="form-group">
       <label>Sprechernotiz (für Sprachausgabe)</label>
