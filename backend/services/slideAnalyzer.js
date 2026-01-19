@@ -206,8 +206,8 @@ function removeRepetitiveImages(images, repetitiveImages) {
  * 3. Regenerates the slide content without repetitive elements
  * 
  * Note: The speakerNote field contains the raw extracted text and is the source
- * for both detection and filtering. After filtering, formatSlideContent() is called
- * to regenerate the HTML content based on the filtered text and images.
+ * for both detection and filtering. After filtering, formatSlideContentAsJSON() is called
+ * to regenerate the TipTap JSON content based on the filtered text and images.
  */
 function filterRepetitiveContent(slides) {
   if (slides.length < 2) {
@@ -237,7 +237,7 @@ function filterRepetitiveContent(slides) {
 
     // Regenerate content based on filtered data
     const text = filteredSlide.speakerNote || '';
-    filteredSlide.content = formatSlideContent(text, filteredSlide.images);
+    filteredSlide.content = formatSlideContentAsJSON(text, filteredSlide.images);
 
     return filteredSlide;
   });
@@ -386,7 +386,7 @@ async function analyzePPTX(filename, webinarId, onProgress) {
     
     slides.push({
       title: `Folie ${slideIndex}`,
-      content: formatSlideContent(text, slideImages),
+      content: formatSlideContentAsJSON(text, slideImages),
       speakerNote: text,
       images: slideImages
     });
@@ -407,21 +407,33 @@ async function analyzePPTX(filename, webinarId, onProgress) {
 /**
  * Format slide content with text and images
  */
-function formatSlideContent(text, images) {
-  let content = '';
+/**
+ * Format slide content as TipTap JSON instead of HTML
+ * This ensures imported PPTX/PDF content uses the same storage format as manually created slides
+ */
+function formatSlideContentAsJSON(text, images) {
+  const content = [];
   
-  // Add text content with basic formatting
+  // Add text content as TipTap nodes
   if (text) {
     const paragraphs = text.split(/\n+/).filter(p => p.trim());
     if (paragraphs.length > 0) {
       // First paragraph as heading if it's short
       if (paragraphs[0].length < 100) {
-        content += `<h3>${escapeHtml(paragraphs[0])}</h3>\n`;
+        content.push({
+          type: 'heading',
+          attrs: { level: 3 },
+          content: [{ type: 'text', text: paragraphs[0] }]
+        });
         paragraphs.shift();
       }
+      
       // Rest as paragraphs
       paragraphs.forEach(p => {
-        content += `<p>${escapeHtml(p)}</p>\n`;
+        content.push({
+          type: 'paragraph',
+          content: [{ type: 'text', text: p }]
+        });
       });
     }
   }
@@ -429,11 +441,22 @@ function formatSlideContent(text, images) {
   // Add images
   if (images && images.length > 0) {
     images.forEach(img => {
-      content += `<img src="${img.publicPath}" alt="Slide Image" style="max-width: 100%; height: auto; margin: 20px 0;">\n`;
+      content.push({
+        type: 'image',
+        attrs: {
+          src: img.publicPath,
+          alt: 'Slide Image',
+          class: 'img-medium'
+        }
+      });
     });
   }
   
-  return content;
+  // Return as TipTap JSON document
+  return {
+    type: 'doc',
+    content: content
+  };
 }
 
 /**
@@ -504,15 +527,46 @@ async function analyzePDF(filename, webinarId, onProgress) {
     const pageText = textPages[i] || '';
     const pageImage = pdfImages.find(img => img.pageNumber === i + 1);
     
-    // Build content with image if available
-    let content = '';
+    // Build content as TipTap JSON with image if available
+    let content;
     if (pageImage) {
-      content = `<img src="${pageImage.publicPath}" alt="Seite ${i + 1}" style="max-width: 100%; height: auto;">`;
+      // Create TipTap JSON with image
+      content = {
+        type: 'doc',
+        content: [
+          {
+            type: 'image',
+            attrs: {
+              src: pageImage.publicPath,
+              alt: `Seite ${i + 1}`,
+              class: 'img-medium'
+            }
+          }
+        ]
+      };
     } else {
       // Fallback to text preview if image extraction failed
-      content = `<p>${escapeHtml(pageText.trim().substring(0, PDF_TEXT_PREVIEW_LENGTH))}</p>`;
+      const textPreview = pageText.trim().substring(0, PDF_TEXT_PREVIEW_LENGTH);
+      content = {
+        type: 'doc',
+        content: [
+          {
+            type: 'paragraph',
+            content: [{ type: 'text', text: textPreview }]
+          }
+        ]
+      };
+      
       if (pdfImages.length === 0) {
-        content += `<p><em>Hinweis: PDF-Bilder konnten nicht extrahiert werden. Bitte stellen Sie sicher, dass pdftoppm (poppler-utils) installiert ist.</em></p>`;
+        // Add note about missing images
+        content.content.push({
+          type: 'paragraph',
+          content: [{
+            type: 'text',
+            marks: [{ type: 'italic' }],
+            text: 'Hinweis: PDF-Bilder konnten nicht extrahiert werden. Bitte stellen Sie sicher, dass pdftoppm (poppler-utils) installiert ist.'
+          }]
+        });
       }
     }
     
