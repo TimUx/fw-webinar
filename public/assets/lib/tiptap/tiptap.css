@@ -317,7 +317,9 @@
 }
 
 /* Hide empty column blocks in rendered content */
-.tiptap-content .column:empty {
+.tiptap-content .column:empty,
+.tiptap-content .two-column-block:empty,
+.tiptap-content .three-column-block:empty {
   display: none;
 }
 
