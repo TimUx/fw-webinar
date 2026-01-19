@@ -373,10 +373,10 @@ function showBrowserRecommendation() {
     return;
   }
   
-  // Detect current browser
+  // Detect current browser (check Edge first as it contains 'chrome' in UA)
   const userAgent = navigator.userAgent.toLowerCase();
-  const isChrome = userAgent.includes('chrome') && !userAgent.includes('edge') && !userAgent.includes('edg');
-  const isEdge = userAgent.includes('edge') || userAgent.includes('edg');
+  const isEdge = userAgent.includes('edg'); // Modern Edge uses 'edg'
+  const isChrome = userAgent.includes('chrome') && !isEdge;
   
   // Don't show notice if already using Chrome or Edge
   if (isChrome || isEdge) {
@@ -401,10 +401,19 @@ function showBrowserRecommendation() {
       </div>
     `;
     
-    // Insert after voice controls
+    // Insert after voice controls, or at the beginning of presentation section as fallback
     const voiceControls = document.querySelector('.voice-controls');
-    if (voiceControls) {
+    if (voiceControls && voiceControls.parentNode) {
       voiceControls.parentNode.insertBefore(notice, voiceControls.nextSibling);
+    } else {
+      // Fallback: insert at beginning of presentation section
+      const presentationSection = document.getElementById('presentation-section');
+      if (presentationSection) {
+        presentationSection.insertBefore(notice, presentationSection.firstChild);
+      } else {
+        // Last resort: append to body
+        document.body.appendChild(notice);
+      }
     }
     
     // Add event listener for close button (better than inline onclick)
