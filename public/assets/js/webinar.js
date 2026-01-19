@@ -128,6 +128,7 @@ async function loadPresentation() {
       // Listen to slide change events from Reveal.js
       revealInstance.on('slidechanged', (event) => {
         // Update our tracking when Reveal.js changes slides
+        // Note: We only use horizontal slides (indexh), no vertical slides
         currentSlideIndex = event.indexh;
         updateSlideCounter();
       });
