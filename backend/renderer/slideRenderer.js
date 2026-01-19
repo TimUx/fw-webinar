@@ -368,9 +368,10 @@ function generatePresentationHtml(slides, title = 'Webinar') {
     .reveal .tiptap-table th,
     .reveal .tiptap-table td {
       border: 1px solid #ddd;
-      padding: 4px 8px;
+      padding: 1px 6px;
       text-align: left;
-      vertical-align: top;
+      vertical-align: middle;
+      line-height: 1.1;
     }
     
     .reveal .tiptap-table th {
