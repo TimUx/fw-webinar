@@ -201,10 +201,11 @@
 .tiptap-content table td,
 .tiptap-content table th {
   border: 1px solid #ddd;
-  padding: 2px 8px;
+  padding: 1px 6px;
   text-align: left;
   min-width: 40px;
-  vertical-align: top;
+  vertical-align: middle;
+  line-height: 1.1;
 }
 
 .tiptap-content table th {
