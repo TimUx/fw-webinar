@@ -100,9 +100,10 @@ const isLowQuality = LOW_QUALITY_VOICE_INDICATORS.some(indicator =>
   voiceNameLower.includes(indicator)
 );
 
-// Detect current browser
-const isChrome = userAgent.includes('chrome') && !userAgent.includes('edge');
-const isEdge = userAgent.includes('edge') || userAgent.includes('edg');
+// Detect current browser (check Edge first as it contains 'chrome' in UA)
+const userAgent = navigator.userAgent.toLowerCase();
+const isEdge = userAgent.includes('edg'); // Modern Edge uses 'edg'
+const isChrome = userAgent.includes('chrome') && !isEdge;
 
 // Show notice only if:
 // - Voice is low quality OR local service

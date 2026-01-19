@@ -325,7 +325,7 @@ function selectBestGermanVoice() {
     const preferredNameLower = preferredName.toLowerCase();
     const voice = germanVoices.find(v => {
       const voiceNameLower = v.name.toLowerCase();
-      return v.name.includes(preferredName) || voiceNameLower.includes(preferredNameLower);
+      return voiceNameLower.includes(preferredNameLower);
     });
     if (voice) {
       selectedVoice = voice;
