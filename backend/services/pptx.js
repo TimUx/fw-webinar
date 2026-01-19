@@ -180,8 +180,10 @@ function getCommonPresentationStyles() {
     .reveal table td,
     .reveal table th {
       border: 1px solid #ddd;
-      padding: 8px;
+      padding: 1px 6px;
       text-align: left;
+      vertical-align: middle;
+      line-height: 1.1;
     }
     .reveal table th {
       background-color: #f2f2f2;
