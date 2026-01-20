@@ -249,7 +249,7 @@ router.put('/smtp', async (req, res) => {
       secure: secure !== undefined ? secure : data.secure,
       from: from || data.from,
       recipient: recipient !== undefined ? recipient : data.recipient,
-      rejectUnauthorized: rejectUnauthorized !== undefined ? rejectUnauthorized : data.rejectUnauthorized,
+      rejectUnauthorized: rejectUnauthorized !== undefined ? rejectUnauthorized : (data.rejectUnauthorized ?? true),
       updatedAt: new Date().toISOString()
     }));
     

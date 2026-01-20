@@ -359,7 +359,7 @@ async function loadSMTP() {
     document.getElementById('smtpFrom').value = smtp.from || '';
     document.getElementById('smtpRecipient').value = smtp.recipient || '';
     document.getElementById('smtpSecure').checked = smtp.secure || false;
-    document.getElementById('smtpRejectUnauthorized').checked = smtp.rejectUnauthorized !== false;
+    document.getElementById('smtpRejectUnauthorized').checked = smtp.rejectUnauthorized ?? true;
   } catch (error) {
     showNotification('Fehler beim Laden der SMTP-Konfiguration: ' + error.message, true);
   }
