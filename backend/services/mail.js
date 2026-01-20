@@ -29,19 +29,19 @@ async function createTransporter() {
       // Set config.rejectUnauthorized to false only if using self-signed certificates
       rejectUnauthorized: config.rejectUnauthorized ?? true,
       minVersion: 'TLSv1.2',
-      // Add ciphers to support more SMTP servers
-      ciphers: 'HIGH:!aNULL:!MD5'
-    },
-    // Enable STARTTLS opportunistically for non-secure connections
-    // This allows the connection to upgrade to TLS if available
-    ignoreTLS: false
+      // Use strong ciphers only - excludes weak algorithms like MD5, DSS, and anonymous ciphers
+      ciphers: 'ECDHE+AESGCM:ECDHE+CHACHA20:DHE+AESGCM:DHE+CHACHA20:!aNULL:!MD5:!DSS'
+    }
   };
   
-  // For non-secure connections (port 587), try STARTTLS
+  // For non-secure connections (port 587), use STARTTLS
   // For secure connections (port 465), use implicit TLS
-  // Don't force requireTLS as it can cause connection issues with some SMTP servers
   if (!secure) {
-    // Allow STARTTLS but don't require it, as some servers may have misconfigurations
+    // Don't use requireTLS to avoid "wrong version number" errors that occur
+    // when the SSL/TLS negotiation fails due to version mismatches
+    // Note: ignoreTLS is NOT set, defaulting to false, which means STARTTLS
+    // will be attempted if available. This is a balance between compatibility
+    // and security - it won't force TLS but will use it when offered.
     transportConfig.requireTLS = false;
   }
   
