@@ -359,6 +359,7 @@ async function loadSMTP() {
     document.getElementById('smtpFrom').value = smtp.from || '';
     document.getElementById('smtpRecipient').value = smtp.recipient || '';
     document.getElementById('smtpSecure').checked = smtp.secure || false;
+    document.getElementById('smtpRejectUnauthorized').checked = smtp.rejectUnauthorized !== false;
   } catch (error) {
     showNotification('Fehler beim Laden der SMTP-Konfiguration: ' + error.message, true);
   }
@@ -375,7 +376,8 @@ document.getElementById('smtpForm').addEventListener('submit', async (e) => {
       password: document.getElementById('smtpPassword').value,
       from: document.getElementById('smtpFrom').value,
       recipient: document.getElementById('smtpRecipient').value,
-      secure: document.getElementById('smtpSecure').checked
+      secure: document.getElementById('smtpSecure').checked,
+      rejectUnauthorized: document.getElementById('smtpRejectUnauthorized').checked
     };
     
     await apiCall('/admin/smtp', {

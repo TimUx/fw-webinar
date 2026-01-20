@@ -26,8 +26,9 @@ async function createTransporter() {
       pass: config.password
     },
     tls: {
-      // Allow self-signed certificates and provide better compatibility
-      rejectUnauthorized: false,
+      // Allow configurable certificate validation (default: validate certificates)
+      // Set config.rejectUnauthorized to false only if using self-signed certificates
+      rejectUnauthorized: config.rejectUnauthorized !== false,
       minVersion: 'TLSv1.2'
     }
   });

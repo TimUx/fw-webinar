@@ -239,7 +239,7 @@ router.get('/smtp', async (req, res) => {
  */
 router.put('/smtp', async (req, res) => {
   try {
-    const { host, port, username, password, secure, from, recipient } = req.body;
+    const { host, port, username, password, secure, from, recipient, rejectUnauthorized } = req.body;
     
     const smtp = await smtpStorage.update(data => ({
       host: host || data.host,
@@ -249,6 +249,7 @@ router.put('/smtp', async (req, res) => {
       secure: secure !== undefined ? secure : data.secure,
       from: from || data.from,
       recipient: recipient !== undefined ? recipient : data.recipient,
+      rejectUnauthorized: rejectUnauthorized !== undefined ? rejectUnauthorized : data.rejectUnauthorized,
       updatedAt: new Date().toISOString()
     }));
     
