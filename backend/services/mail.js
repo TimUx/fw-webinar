@@ -30,7 +30,8 @@ async function createTransporter() {
       rejectUnauthorized: config.rejectUnauthorized ?? true,
       minVersion: 'TLSv1.2',
       // Use strong ciphers only - excludes weak algorithms like MD5, DSS, and anonymous ciphers
-      ciphers: 'ECDHE+AESGCM:ECDHE+CHACHA20:DHE+AESGCM:DHE+CHACHA20:!aNULL:!MD5:!DSS'
+      // Using Node.js TLS cipher suite format
+      ciphers: 'ECDHE-RSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-RSA-CHACHA20-POLY1305:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384:!aNULL:!MD5:!DSS'
     }
   };
   
@@ -39,9 +40,10 @@ async function createTransporter() {
   if (!secure) {
     // Don't use requireTLS to avoid "wrong version number" errors that occur
     // when the SSL/TLS negotiation fails due to version mismatches
-    // Note: ignoreTLS is NOT set, defaulting to false, which means STARTTLS
-    // will be attempted if available. This is a balance between compatibility
-    // and security - it won't force TLS but will use it when offered.
+    // Setting to false allows the connection to proceed, with STARTTLS attempted
+    // when available (nodemailer default behavior).
+    // WARNING: If STARTTLS is not available, emails may be sent unencrypted.
+    // Administrators should ensure their SMTP server supports STARTTLS on port 587.
     transportConfig.requireTLS = false;
   }
   
