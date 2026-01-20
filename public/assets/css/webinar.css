@@ -581,6 +581,83 @@ button:disabled {
   background: #c0392b;
 }
 
+/* Browser recommendation notice */
+.browser-recommendation-notice {
+  background: #e8f4f8;
+  border: 2px solid #3498db;
+  border-radius: 6px;
+  padding: 15px;
+  margin: 15px 0;
+  display: none; /* Hidden by default, shown by JS */
+  animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.notice-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 15px;
+}
+
+.notice-icon {
+  font-size: 24px;
+  flex-shrink: 0;
+}
+
+.notice-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.notice-text strong {
+  color: #2c3e50;
+  font-size: 16px;
+  display: block;
+  margin-bottom: 8px;
+}
+
+.notice-text p {
+  margin: 0;
+  font-size: 14px;
+  color: #555;
+  line-height: 1.5;
+}
+
+.notice-close {
+  background: none;
+  border: none;
+  color: #3498db;
+  font-size: 28px;
+  cursor: pointer;
+  padding: 0;
+  margin: 0;
+  width: 30px;
+  height: 30px;
+  line-height: 28px;
+  text-align: center;
+  flex-shrink: 0;
+  transition: color 0.2s, transform 0.2s;
+}
+
+.notice-close:hover {
+  color: #2980b9;
+  transform: scale(1.1);
+}
+
+.notice-close:active {
+  transform: scale(0.95);
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   header {

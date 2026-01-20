@@ -199,9 +199,10 @@ Die Webinar-Plattform bietet eine verbesserte Text-to-Speech-Funktion für eine 
 
 - **Automatische Stimmauswahl**: Das System wählt automatisch die beste verfügbare deutsche Stimme aus
 - **Manuelle Stimmauswahl**: Benutzer können aus allen verfügbaren deutschen Stimmen ihres Systems wählen
-- **Geschwindigkeitsregelung**: Passen Sie die Sprechgeschwindigkeit zwischen 0.5x (langsam) und 1.2x (schnell) an
+- **Geschwindigkeitsregelung**: Passen Sie die Sprechgeschwindigkeit zwischen 0.5x (langsam) und 1.5x (schnell) an
 - **Intelligente Pausierung**: Automatische Pausen zwischen Sätzen für bessere Verständlichkeit
 - **Natürlicher Klang**: Optimierte Sprachparameter für menschlichere Aussprache
+- **Browser-Empfehlung**: Automatische Erkennung und Hinweis für optimale Browser-Wahl
 
 ### Verwendung
 
@@ -211,12 +212,29 @@ Die Webinar-Plattform bietet eine verbesserte Text-to-Speech-Funktion für eine 
 4. Regeln Sie die **Geschwindigkeit** mit dem Schieberegler
 5. Änderungen werden sofort auf die aktuelle Sprachausgabe angewendet
 
+### Beste Sprachqualität erzielen
+
+**Wichtig:** Die Qualität der Sprachausgabe hängt vom verwendeten Browser ab:
+
+#### Empfohlene Browser (beste Qualität):
+- ✅ **Google Chrome** - Verwendet hochwertige Google Cloud-Stimmen
+- ✅ **Microsoft Edge** - Verwendet hochwertige Microsoft Neural-Stimmen
+
+Diese Browser bieten die natürlichsten und harmonischsten deutschen Stimmen.
+
+#### Andere Browser:
+- ⚠️ **Firefox** - Verwendet lokale Stimmen (eSpeak), die oft roboterhaft klingen
+- ⚠️ **Safari** - Verwendet Apple-Stimmen (Qualität variiert)
+
+**Empfehlung:** Für die beste Benutzererfahrung empfehlen wir Chrome oder Edge.
+
 ### Tipps für beste Qualität
 
+- **Browser**: Verwenden Sie Chrome oder Edge für optimale Sprachqualität
 - **Sprechernotizen**: Schreiben Sie klare, vollständige Sätze
 - **Interpunktion**: Verwenden Sie Punkte, Kommas und Semikolons für natürliche Pausen
 - **Länge**: Halten Sie Notizen übersichtlich (empfohlen: 2-4 Sätze pro Folie)
-- **Geschwindigkeit**: Beginnen Sie mit 0.85x für optimales Verständnis
+- **Geschwindigkeit**: Beginnen Sie mit 1.0x für optimales Verständnis
 - **Stimme**: Testen Sie verschiedene Stimmen, um die angenehmste zu finden
 
 ### Technische Details
@@ -225,6 +243,15 @@ Die Webinar-Plattform bietet eine verbesserte Text-to-Speech-Funktion für eine 
 - Keine externen Dienste erforderlich (vollständig selbst gehostet)
 - Funktioniert mit allen Browsern, die SpeechSynthesis unterstützen
 - Automatische Fehlerbehandlung bei Sprachproblemen
+- **Hinweis:** Jeder Browser stellt seine eigenen Stimmen bereit - diese können nicht browserübergreifend erzwungen werden
+
+### Erweiterte Optionen
+
+Für professionelle Anwendungen, die konsistente hochwertige Sprachausgabe über alle Browser benötigen, siehe [SPRACHAUSGABE_OPTIONEN.md](SPRACHAUSGABE_OPTIONEN.md) für Informationen über:
+- Integration externer TTS-Dienste (Google Cloud TTS, Azure, AWS Polly)
+- Lokale TTS-Lösungen (Piper, Coqui)
+- Kosten-Nutzen-Analysen verschiedener Ansätze
+
 
 ## Dateistruktur
 

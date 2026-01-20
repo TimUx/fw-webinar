@@ -1,6 +1,9 @@
 const API_BASE = '/api';
 const MINIMUM_SLIDE_DURATION = 10000; // 10 seconds in milliseconds
 
+// Low-quality voice detection (constant to avoid recreation)
+const LOW_QUALITY_VOICE_INDICATORS = ['espeak', 'espeakng', 'espeak ng'];
+
 let currentWebinar = null;
 let currentSlideIndex = 0;
 let currentQuestionIndex = 0;
@@ -280,38 +283,159 @@ function selectBestGermanVoice() {
   
   if (germanVoices.length === 0) {
     console.warn('No German voices available, using default');
+    showBrowserRecommendation();
     return;
   }
   
-  // Priority list for high-quality voices
+  // Extended priority list for high-quality voices
+  // Ordered by quality: Premium cloud voices first, then good local voices
   const preferredVoiceNames = [
+    // Google voices (Chrome/Edge) - highest quality
     'Google Deutsch',
+    'Google de-DE',
+    'Chrome Deutsch',
+    
+    // Microsoft voices (Edge) - high quality
     'Microsoft Hedda',
     'Microsoft Katja',
+    'Microsoft Stefan',
+    'Microsoft Karsten',
+    
+    // Apple voices (Safari) - good quality
     'Anna',
     'Helena',
-    'Vicki',
+    'Markus',
     'Petra',
-    'Markus'
+    'Yannick',
+    
+    // Other high-quality voices
+    'Vicki', // Amazon Polly on some systems
+    'Hans',
+    'Marlene',
+    
+    // Good fallback voices
+    'German Female',
+    'German Male',
+    'Deutsch Female',
+    'Deutsch Male'
   ];
   
   // Try to find a preferred voice
   for (const preferredName of preferredVoiceNames) {
-    const voice = germanVoices.find(v => 
-      v.name.includes(preferredName) || v.name.toLowerCase().includes(preferredName.toLowerCase())
-    );
+    const preferredNameLower = preferredName.toLowerCase();
+    const voice = germanVoices.find(v => {
+      const voiceNameLower = v.name.toLowerCase();
+      return voiceNameLower.includes(preferredNameLower);
+    });
     if (voice) {
       selectedVoice = voice;
-      console.log('Selected voice:', voice.name);
+      console.log('Selected voice:', voice.name, '(', voice.lang, ')');
       populateVoiceList(germanVoices);
+      checkVoiceQuality(voice);
       return;
     }
   }
   
-  // If no preferred voice found, use the first German voice
+  // If no preferred voice found, prefer online/remote voices over local ones
+  const remoteVoice = germanVoices.find(v => !v.localService);
+  if (remoteVoice) {
+    selectedVoice = remoteVoice;
+    console.log('Selected remote voice:', remoteVoice.name);
+    populateVoiceList(germanVoices);
+    checkVoiceQuality(remoteVoice);
+    return;
+  }
+  
+  // Last resort: use first available German voice
   selectedVoice = germanVoices[0];
   console.log('Selected voice:', selectedVoice.name);
   populateVoiceList(germanVoices);
+  checkVoiceQuality(selectedVoice);
+}
+
+// Check voice quality and show browser recommendation if needed
+function checkVoiceQuality(voice) {
+  // Check if we're using a low-quality voice (like eSpeak in Firefox)
+  const voiceNameLower = voice.name.toLowerCase();
+  const isLowQuality = LOW_QUALITY_VOICE_INDICATORS.some(indicator => 
+    voiceNameLower.includes(indicator)
+  );
+  
+  if (isLowQuality || voice.localService) {
+    showBrowserRecommendation();
+  }
+}
+
+// Show browser recommendation notice
+function showBrowserRecommendation() {
+  // Check if already shown in this session
+  if (sessionStorage.getItem('browserRecommendationShown') === 'true') {
+    return;
+  }
+  
+  // Detect current browser (check Edge first as it contains 'chrome' in UA)
+  const userAgent = navigator.userAgent.toLowerCase();
+  const isEdge = userAgent.includes('edg'); // Modern Edge uses 'edg'
+  const isChrome = userAgent.includes('chrome') && !isEdge;
+  
+  // Don't show notice if already using Chrome or Edge
+  if (isChrome || isEdge) {
+    return;
+  }
+  
+  // Create notice element if it doesn't exist
+  let notice = document.getElementById('browserRecommendationNotice');
+  if (!notice) {
+    notice = document.createElement('div');
+    notice.id = 'browserRecommendationNotice';
+    notice.className = 'browser-recommendation-notice';
+    notice.innerHTML = `
+      <div class="notice-content">
+        <span class="notice-icon">ℹ️</span>
+        <div class="notice-text">
+          <strong>Tipp für bessere Sprachqualität:</strong>
+          <p>Für die beste Sprachausgabe empfehlen wir die Verwendung von <strong>Google Chrome</strong> oder <strong>Microsoft Edge</strong>. 
+          Diese Browser bieten hochwertigere deutsche Stimmen als andere Browser.</p>
+        </div>
+        <button class="notice-close">×</button>
+      </div>
+    `;
+    
+    // Insert after voice controls, or at the beginning of presentation section as fallback
+    const voiceControls = document.querySelector('.voice-controls');
+    if (voiceControls && voiceControls.parentNode) {
+      voiceControls.parentNode.insertBefore(notice, voiceControls.nextSibling);
+    } else {
+      // Fallback: insert at beginning of presentation section
+      const presentationSection = document.getElementById('presentation-section');
+      if (presentationSection) {
+        presentationSection.insertBefore(notice, presentationSection.firstChild);
+      } else {
+        // Last resort: append to body
+        document.body.appendChild(notice);
+      }
+    }
+    
+    // Add event listener for close button (better than inline onclick)
+    const closeButton = notice.querySelector('.notice-close');
+    if (closeButton) {
+      closeButton.addEventListener('click', closeBrowserRecommendation);
+    }
+  }
+  
+  // Show the notice
+  notice.style.display = 'block';
+  
+  // Save that we showed it (don't show again in this session)
+  sessionStorage.setItem('browserRecommendationShown', 'true');
+}
+
+// Close browser recommendation notice
+function closeBrowserRecommendation() {
+  const notice = document.getElementById('browserRecommendationNotice');
+  if (notice) {
+    notice.style.display = 'none';
+  }
 }
 
 // Populate the voice selection dropdown
