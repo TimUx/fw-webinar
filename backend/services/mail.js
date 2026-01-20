@@ -28,14 +28,21 @@ async function createTransporter() {
       // Allow configurable certificate validation (default: validate certificates)
       // Set config.rejectUnauthorized to false only if using self-signed certificates
       rejectUnauthorized: config.rejectUnauthorized ?? true,
-      minVersion: 'TLSv1.2'
-    }
+      minVersion: 'TLSv1.2',
+      // Add ciphers to support more SMTP servers
+      ciphers: 'HIGH:!aNULL:!MD5'
+    },
+    // Enable STARTTLS opportunistically for non-secure connections
+    // This allows the connection to upgrade to TLS if available
+    ignoreTLS: false
   };
   
-  // Only set requireTLS for non-secure connections (STARTTLS)
-  // Secure connections (port 465) use implicit TLS and don't need STARTTLS
+  // For non-secure connections (port 587), try STARTTLS
+  // For secure connections (port 465), use implicit TLS
+  // Don't force requireTLS as it can cause connection issues with some SMTP servers
   if (!secure) {
-    transportConfig.requireTLS = true; // Enable STARTTLS for non-secure ports (e.g., 587)
+    // Allow STARTTLS but don't require it, as some servers may have misconfigurations
+    transportConfig.requireTLS = false;
   }
   
   return nodemailer.createTransport(transportConfig);
