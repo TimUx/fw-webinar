@@ -113,6 +113,15 @@
             <input type="checkbox" id="smtpSecure" name="secure">
             TLS/SSL verwenden
           </label>
+          <small>Aktivieren Sie dies für Port 465 (direkte SSL/TLS-Verbindung)</small>
+        </div>
+        
+        <div class="form-group">
+          <label>
+            <input type="checkbox" id="smtpRejectUnauthorized" name="rejectUnauthorized" checked>
+            SSL-Zertifikat validieren
+          </label>
+          <small>Deaktivieren Sie dies nur bei selbstsignierten Zertifikaten</small>
         </div>
         
         <button type="submit" class="btn btn-primary">SMTP Konfiguration speichern</button>
