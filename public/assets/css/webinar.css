@@ -43,6 +43,34 @@ header {
   gap: 15px;
 }
 
+/* Header Mute Button */
+.header-mute-btn {
+  padding: 8px 16px;
+  margin: 0;
+  font-size: 14px;
+  background: #3498db;
+  border: 0;
+  border-radius: 4px;
+  color: white;
+  cursor: pointer;
+  transition: background 0.3s, transform 0.1s;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.header-mute-btn:hover {
+  background: #2980b9;
+  transform: translateY(-1px);
+}
+
+.header-mute-btn.muted {
+  background: #e74c3c;
+}
+
+.header-mute-btn.muted:hover {
+  background: #c0392b;
+}
+
 .logo {
   height: 50px;
 }
