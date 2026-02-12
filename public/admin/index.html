@@ -113,7 +113,7 @@
             <input type="checkbox" id="smtpSecure" name="secure">
             TLS/SSL verwenden
           </label>
-          <small>Aktivieren Sie dies für Port 465 (direkte SSL/TLS-Verbindung)</small>
+          <small>Aktivieren Sie dies für Port 465 (direkte SSL/TLS-Verbindung). Deaktivieren für Port 587 (STARTTLS).</small>
         </div>
         
         <div class="form-group">
@@ -121,7 +121,7 @@
             <input type="checkbox" id="smtpRejectUnauthorized" name="rejectUnauthorized" checked>
             SSL-Zertifikat validieren
           </label>
-          <small>Deaktivieren Sie dies nur bei selbstsignierten Zertifikaten</small>
+          <small>⚠️ Deaktivieren Sie dies nur bei selbstsignierten Zertifikaten in vertrauenswürdigen Umgebungen. Das Deaktivieren macht die Verbindung anfällig für Man-in-the-Middle-Angriffe.</small>
         </div>
         
         <button type="submit" class="btn btn-primary">SMTP Konfiguration speichern</button>
