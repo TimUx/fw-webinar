@@ -39,7 +39,10 @@ def init_tts():
         return False
 
 def get_cache_filename(text, rate=1.0):
-    """Generate cache filename based on text and parameters"""
+    """
+    Generate cache filename based on text and parameters
+    Note: MD5 is used for non-cryptographic purposes (cache key generation only)
+    """
     # Create hash of text and parameters for caching
     cache_key = f"{text}_{rate}_{TTS_MODEL}"
     hash_obj = hashlib.md5(cache_key.encode('utf-8'))
@@ -92,8 +95,9 @@ def synthesize():
         print(f"Generating audio for text: {text[:50]}...")
         
         # Generate speech
-        # Note: Coqui TTS doesn't have built-in rate control like browser TTS
-        # We apply rate by adjusting the speed parameter if model supports it
+        # Note: Coqui TTS Tacotron2-DDC model doesn't support runtime rate adjustment
+        # The rate parameter is kept for API consistency but currently not applied
+        # Future enhancement: implement post-processing speed adjustment using librosa
         tts.tts_to_file(
             text=text,
             file_path=cache_file
