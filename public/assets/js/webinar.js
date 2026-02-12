@@ -274,13 +274,10 @@ async function checkTTSService() {
   }
 }
 
-// Hide or show TTS controls
+// Hide or show TTS controls (deprecated - controls removed)
 function hideTTSControls(hide) {
-  // Hide voice selection as Coqui TTS uses a fixed German model
-  const voiceSelect = document.getElementById('voiceSelect');
-  if (voiceSelect && voiceSelect.parentElement) {
-    voiceSelect.parentElement.style.display = hide ? 'none' : 'block';
-  }
+  // Voice controls have been removed from UI
+  // Function kept for compatibility
 }
 
 // Show TTS service warning
@@ -322,27 +319,18 @@ function closeTTSWarning() {
   }
 }
 
-// Dummy function for compatibility with voice select (now hidden)
+// Dummy function for compatibility (voice controls removed)
 function changeVoice() {
   // Voice selection not applicable with Coqui TTS (uses fixed German model)
-  console.log('Voice selection not available with Coqui TTS');
+  // Voice controls have been removed from UI
+  console.log('Voice selection not available');
 }
 
-// Change speech rate
+// Change speech rate (deprecated - control removed from UI)
 function changeSpeechRate() {
-  const speedControl = document.getElementById('speedControl');
-  const speedValue = document.getElementById('speedValue');
-  
-  speechRate = parseFloat(speedControl.value);
-  speedValue.textContent = speechRate.toFixed(2) + 'x';
-  
-  // Restart current narration with new rate if speaking
-  if (ttsService && ttsService.isPlaying && currentWebinar && currentWebinar.slides) {
-    stopSpeaking();
-    setTimeout(() => {
-      speakSlideNote(currentSlideIndex);
-    }, 100);
-  }
+  // Speed control has been removed from UI
+  // Function kept for compatibility
+  console.log('Speech rate control not available in UI');
 }
 
 // Helper to check if narration should be restarted when unmuting
