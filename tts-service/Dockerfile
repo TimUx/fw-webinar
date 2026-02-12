@@ -6,6 +6,7 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y \
     libsndfile1 \
     curl \
+    espeak-ng \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements and install Python dependencies

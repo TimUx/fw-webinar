@@ -135,7 +135,10 @@ async function loadPresentation() {
       await revealInstance.sync();
     }
     
+    // Force layout and go to first slide
     currentSlideIndex = 0;
+    revealInstance.slide(0, 0);
+    revealInstance.layout();
     updateSlideCounter();
     
     // Start narration for first slide if not muted
