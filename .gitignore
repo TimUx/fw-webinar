@@ -13,3 +13,5 @@ assets/*
 !data/.gitkeep
 !assets/.gitkeep
 *.backup
+__pycache__/
+*.pyc
