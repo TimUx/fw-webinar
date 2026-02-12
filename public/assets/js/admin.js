@@ -914,7 +914,7 @@ async function deleteResult(id, participantName) {
   }
   
   try {
-    await apiCall(`/admin/results/${id}`, 'DELETE');
+    await apiCall(`/admin/results/${id}`, { method: 'DELETE' });
     showNotification('Ergebnis erfolgreich gelöscht');
     await loadResults();
   } catch (error) {
