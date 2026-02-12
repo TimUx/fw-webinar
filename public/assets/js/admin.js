@@ -864,26 +864,52 @@ async function loadResults() {
             <th>Prozent</th>
             <th>Status</th>
             <th>Datum</th>
+            <th>Aktionen</th>
           </tr>
         </thead>
         <tbody>
           ${results.map(result => `
             <tr>
-              <td>${result.webinarTitle}</td>
-              <td>${result.participantName}</td>
-              <td>${result.participantEmail}</td>
+              <td>${escapeHtml(result.webinarTitle)}</td>
+              <td>${escapeHtml(result.participantName)}</td>
+              <td>${escapeHtml(result.participantEmail)}</td>
               <td>${result.score}/${result.totalQuestions}</td>
               <td>${result.percentage}%</td>
               <td><span class="badge ${result.passed ? 'badge-success' : 'badge-danger'}">${result.passed ? 'Bestanden' : 'Nicht bestanden'}</span></td>
               <td>${new Date(result.completedAt).toLocaleString('de-DE')}</td>
+              <td>
+                <button class="btn btn-danger btn-sm delete-result-btn" data-result-id="${escapeHtml(result.id)}" data-participant-name="${escapeHtml(result.participantName)}">Löschen</button>
+              </td>
             </tr>
           `).join('')}
         </tbody>
       </table>
     `;
+    
+    // Add event listeners to delete buttons
+    container.querySelectorAll('.delete-result-btn').forEach(btn => {
+      btn.addEventListener('click', function() {
+        const resultId = this.getAttribute('data-result-id');
+        const participantName = this.getAttribute('data-participant-name');
+        // Values from data attributes are automatically unescaped by the browser
+        deleteResult(resultId, participantName);
+      });
+    });
   } catch (error) {
     showNotification('Fehler beim Laden der Ergebnisse: ' + error.message, true);
   }
+}
+
+// Helper function to escape HTML to prevent XSS
+function escapeHtml(text) {
+  const map = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#039;'
+  };
+  return text.toString().replace(/[&<>"']/g, m => map[m]);
 }
 
 async function exportResults() {
@@ -901,6 +927,20 @@ async function exportResults() {
     showNotification('Ergebnisse erfolgreich exportiert');
   } catch (error) {
     showNotification('Fehler beim Export: ' + error.message, true);
+  }
+}
+
+async function deleteResult(id, participantName) {
+  if (!confirm(`Möchten Sie das Ergebnis von "${participantName}" wirklich löschen?`)) {
+    return;
+  }
+  
+  try {
+    await apiCall(`/admin/results/${id}`, { method: 'DELETE' });
+    showNotification('Ergebnis erfolgreich gelöscht');
+    await loadResults();
+  } catch (error) {
+    showNotification('Fehler beim Löschen: ' + error.message, true);
   }
 }
 
