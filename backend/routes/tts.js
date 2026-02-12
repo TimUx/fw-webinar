@@ -3,7 +3,7 @@ const router = express.Router();
 const https = require('https');
 const http = require('http');
 
-const TTS_SERVICE_URL = process.env.TTS_SERVICE_URL || 'http://localhost:5000';
+const TTS_SERVICE_URL = process.env.TTS_SERVICE_URL || 'http://tts:5000';
 
 /**
  * Synthesize speech from text using Coqui TTS
