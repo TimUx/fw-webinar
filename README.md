@@ -10,7 +10,7 @@ Eine vollständig selbst gehostete, automatisierte Webinar- und E-Learning-Platt
 📊 **Admin-Panel** - Vollständige Verwaltung von Webinaren, PPTX/PDF, Quiz und Ergebnissen  
 🎯 **Quiz-System** - Multiple-Choice-Tests mit automatischer Bewertung  
 📧 **E-Mail-Benachrichtigungen** - Automatischer Versand von Ergebnissen  
-🗣️ **Sprachausgabe** - Hochwertige Text-to-Speech mit Coqui AI TTS (Open Source)  
+🗣️ **Sprachausgabe** - Hochwertige Text-to-Speech mit Piper TTS (Deutsche Thorsten Stimme)  
 🎨 **Modernes Design** - Basierend auf fw-fragenkatalog Design  
 📱 **Responsive** - Funktioniert auf Desktop, Tablet und Mobile  
 🌐 **Deutsch** - Vollständig auf Deutsch lokalisiert  
@@ -22,7 +22,7 @@ Eine vollständig selbst gehostete, automatisierte Webinar- und E-Learning-Platt
 - **Frontend**: HTML, CSS, JavaScript (Vanilla)
 - **Präsentation**: Reveal.js
 - **WYSIWYG Editor**: TipTap (ProseMirror-based)
-- **Text-to-Speech**: Coqui AI TTS (Python Flask Service)
+- **Text-to-Speech**: Piper TTS (Python Flask Service mit deutscher Thorsten Stimme)
 - **Authentifizierung**: JWT + bcrypt
 - **E-Mail**: Nodemailer (SMTP)
 - **Reverse Proxy**: Caddy
