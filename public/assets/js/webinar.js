@@ -160,9 +160,9 @@ async function loadPresentation() {
 
 // Navigation functions
 function nextSlide() {
-  // Check if narration is complete and minimum time has passed
-  if (!narrationComplete || !slideMinimumTimePassed) {
-    return; // Don't advance if conditions not met
+  // Check if minimum time has passed (10 seconds)
+  if (!slideMinimumTimePassed) {
+    return; // Don't advance if minimum time not met
   }
   
   const totalSlides = currentWebinar.slides.length;
@@ -220,7 +220,7 @@ function updateSlideCounter() {
   
   // Next button logic
   const isLastSlide = currentSlideIndex >= totalSlides - 1;
-  const canAdvance = narrationComplete && slideMinimumTimePassed;
+  const canAdvance = slideMinimumTimePassed;
   
   // On last slide: show different text and enable when conditions are met
   const nextBtn = document.getElementById('nextSlideBtn');
@@ -247,9 +247,7 @@ function updateNextButtonStatus(canAdvance) {
   }
   
   // Show why button is disabled
-  if (!narrationComplete && !isMuted) {
-    statusElement.textContent = '🔊 Warten auf Abschluss der Sprachausgabe...';
-  } else if (!slideMinimumTimePassed) {
+  if (!slideMinimumTimePassed) {
     statusElement.textContent = '⏳ Bitte warten Sie noch einen Moment...';
   }
 }
