@@ -61,10 +61,10 @@ def health():
     return jsonify({
         'status': 'ok' if piper_installed else 'degraded',
         'engine': 'piper',
-        'quality': TTS_QUALITY,
-        'piper_installed': piper_installed,
+        'qualitaet': TTS_QUALITY,
+        'piper_installiert': piper_installed,
         'sprache': 'de',
-        'voice': 'thorsten'
+        'stimme': 'thorsten'
     })
 
 @app.route('/synthesize', methods=['POST'])
@@ -112,6 +112,9 @@ def synthesize():
         
         # Run Piper TTS to generate speech
         # Use subprocess to call piper binary
+        # Note: text is passed via stdin (input parameter), not through shell,
+        # so it's safe from command injection. The text parameter with text=True
+        # ensures proper encoding handling.
         result = subprocess.run(
             [PIPER_BINARY, '--model', model_path, '--output_file', cache_file],
             input=text,

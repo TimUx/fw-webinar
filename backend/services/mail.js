@@ -20,7 +20,7 @@ async function createTransporter() {
   // Port 465 should use secure: true (SSL/TLS)
   // Port 587 should use secure: false (STARTTLS)
   // Port 25 should use secure: false (STARTTLS)
-  const actualSecure = port === 465 ? true : false;
+  const actualSecure = port === 465;
   
   const transportConfig = {
     host: config.host,
