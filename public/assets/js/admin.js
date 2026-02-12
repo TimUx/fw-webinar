@@ -870,24 +870,45 @@ async function loadResults() {
         <tbody>
           ${results.map(result => `
             <tr>
-              <td>${result.webinarTitle}</td>
-              <td>${result.participantName}</td>
-              <td>${result.participantEmail}</td>
+              <td>${escapeHtml(result.webinarTitle)}</td>
+              <td>${escapeHtml(result.participantName)}</td>
+              <td>${escapeHtml(result.participantEmail)}</td>
               <td>${result.score}/${result.totalQuestions}</td>
               <td>${result.percentage}%</td>
               <td><span class="badge ${result.passed ? 'badge-success' : 'badge-danger'}">${result.passed ? 'Bestanden' : 'Nicht bestanden'}</span></td>
               <td>${new Date(result.completedAt).toLocaleString('de-DE')}</td>
               <td>
-                <button onclick="deleteResult('${result.id}', '${result.participantName}')" class="btn btn-danger btn-sm">Löschen</button>
+                <button class="btn btn-danger btn-sm delete-result-btn" data-result-id="${escapeHtml(result.id)}" data-participant-name="${escapeHtml(result.participantName)}">Löschen</button>
               </td>
             </tr>
           `).join('')}
         </tbody>
       </table>
     `;
+    
+    // Add event listeners to delete buttons
+    container.querySelectorAll('.delete-result-btn').forEach(btn => {
+      btn.addEventListener('click', function() {
+        const resultId = this.getAttribute('data-result-id');
+        const participantName = this.getAttribute('data-participant-name');
+        deleteResult(resultId, participantName);
+      });
+    });
   } catch (error) {
     showNotification('Fehler beim Laden der Ergebnisse: ' + error.message, true);
   }
+}
+
+// Helper function to escape HTML to prevent XSS
+function escapeHtml(text) {
+  const map = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#039;'
+  };
+  return text.toString().replace(/[&<>"']/g, m => map[m]);
 }
 
 async function exportResults() {
