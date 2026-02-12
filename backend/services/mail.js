@@ -30,10 +30,10 @@ async function createTransporter() {
       // and makes the connection vulnerable to man-in-the-middle attacks.
       // Only use this setting in trusted development/testing environments or with self-signed certificates.
       rejectUnauthorized: config.rejectUnauthorized ?? true
-      // Note: We intentionally do not set minVersion to allow compatibility with various SMTP servers.
-      // Node.js and nodemailer defaults will still avoid the most vulnerable protocols (SSL 2.0/3.0).
-      // Setting minVersion: 'TLSv1.2' can cause "wrong version number" errors with some SMTP servers
-      // that don't support TLS 1.2 or have TLS negotiation issues.
+      /* Note: We intentionally do not set minVersion to allow compatibility with various SMTP servers.
+         Node.js and nodemailer defaults will still avoid the most vulnerable protocols (SSL 2.0/3.0).
+         Setting minVersion: 'TLSv1.2' can cause "wrong version number" errors with some SMTP servers
+         that don't support TLS 1.2 or have TLS negotiation issues. */
     }
   };
   
