@@ -276,7 +276,9 @@ window.createTipTapEditor = async function(element, initialContent = '', onUpdat
       StarterKit.configure({
         heading: {
           levels: [2, 3, 4, 5]
-        }
+        },
+        link: false,  // Disable built-in link to use custom configuration
+        underline: false  // Disable built-in underline to use custom configuration
       }),
       CustomImage.configure({
         inline: true,
