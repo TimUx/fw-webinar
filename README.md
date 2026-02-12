@@ -243,6 +243,12 @@ Der TTS-Service läuft unabhängig und wird vom Backend über eine interne REST-
 - **Caching**: Bereits generierte Audiodateien werden wiederverwendet und spielen sofort ab
 - **GPU-Unterstützung**: Falls verfügbar, wird automatisch CUDA für schnellere Generierung verwendet
 
+### Sicherheit
+
+Der TTS-Service verwendet aktuelle, sichere Versionen aller Abhängigkeiten:
+- **PyTorch**: Version ≥2.6.0 (behebt bekannte Sicherheitslücken in älteren Versionen)
+- Regelmäßige Sicherheitsupdates werden empfohlen
+
 ### Erweiterte Konfiguration
 
 Die TTS-Konfiguration kann in der `docker-compose.yml` angepasst werden:

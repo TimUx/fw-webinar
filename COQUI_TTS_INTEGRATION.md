@@ -88,6 +88,15 @@ The solution consists of three main components:
 - **Quality**: High (trained on Thorsten dataset)
 - **Device**: CPU (with CUDA support if available)
 
+### Security
+- **PyTorch Version**: ≥2.6.0 (addresses known vulnerabilities)
+  - Fixed: Heap buffer overflow (CVE in <2.2.0)
+  - Fixed: Use-after-free vulnerability (CVE in <2.2.0)
+  - Fixed: RCE via torch.load with weights_only=True (CVE in <2.6.0)
+- **Dependencies**: All dependencies use latest secure versions
+- **Model Loading**: Only loads official Coqui TTS models from trusted sources
+- **No User Input to Model**: Text is processed, not deserialized
+
 ### API Endpoints
 
 #### TTS Service (Internal)

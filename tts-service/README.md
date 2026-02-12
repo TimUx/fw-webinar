@@ -86,6 +86,16 @@ The default model is **Thorsten-DDC**, a high-quality German TTS model trained o
 - GPU support is automatic if CUDA is available
 - CPU-only mode works but is slower
 
+## Security
+
+This service uses secure, up-to-date dependencies:
+- **PyTorch**: Version ≥2.6.0 to address known security vulnerabilities
+  - CVE fixes: heap buffer overflow, use-after-free, RCE via torch.load
+- **Flask**: Latest stable version
+- Regular security updates are recommended
+
+**Important**: Never load untrusted model files or pickle data. The TTS service only uses official Coqui TTS models.
+
 ## License
 
 This service uses Coqui TTS which is licensed under MPL 2.0.
