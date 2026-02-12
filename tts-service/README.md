@@ -4,10 +4,11 @@ This service provides high-quality text-to-speech synthesis using [Coqui AI TTS]
 
 ## Features
 
-- German language support using the Thorsten-DDC model
+- **German language support** using the Thorsten-DDC model (primary language)
 - Audio caching to avoid regenerating the same text
 - REST API for easy integration
 - Docker containerized for easy deployment
+- German API responses and error messages
 
 ## API Endpoints
 
@@ -22,8 +23,9 @@ Returns the health status of the TTS service.
 ```json
 {
   "status": "ok",
-  "model": "tts_models/de/thorsten/tacotron2-DDC",
-  "tts_loaded": true
+  "modell": "tts_models/de/thorsten/tacotron2-DDC",
+  "tts_geladen": true,
+  "sprache": "de"
 }
 ```
 
@@ -49,6 +51,28 @@ Converts text to speech and returns a WAV audio file.
 - Content-Type: `audio/wav`
 - Body: WAV audio file
 
+**Error Responses:**
+```json
+{
+  "error": "TTS-Modell nicht geladen"
+}
+```
+```json
+{
+  "error": "Erforderliches Feld fehlt: text"
+}
+```
+```json
+{
+  "error": "Text darf nicht leer sein"
+}
+```
+```json
+{
+  "error": "Sprachsynthese fehlgeschlagen: {details}"
+}
+```
+
 ### List Models
 ```
 GET /list-models
@@ -66,11 +90,11 @@ Returns information about the TTS cache.
 **Response:**
 ```json
 {
-  "cache_dir": "/app/cache",
-  "total_files": 42,
-  "total_size_bytes": 12582912,
-  "total_size_mb": 12.0,
-  "cache_enabled": true
+  "cache_verzeichnis": "/app/cache",
+  "anzahl_dateien": 42,
+  "groesse_bytes": 12582912,
+  "groesse_mb": 12.0,
+  "cache_aktiviert": true
 }
 ```
 
@@ -84,9 +108,9 @@ Clears all cached audio files.
 **Response:**
 ```json
 {
-  "status": "success",
-  "deleted_files": 42,
-  "message": "Cleared 42 cached audio files"
+  "status": "erfolg",
+  "geloeschte_dateien": 42,
+  "nachricht": "42 gecachte Audiodateien gelöscht"
 }
 ```
 
@@ -95,6 +119,23 @@ Clears all cached audio files.
 - `PORT`: Port to run the service on (default: 5000)
 - `TTS_CACHE_DIR`: Directory to store cached audio files (default: /app/cache)
 - `TTS_MODEL`: TTS model to use (default: tts_models/de/thorsten/tacotron2-DDC)
+
+## Language Configuration
+
+**Primary Language**: German (de)
+
+The TTS service is configured for German language by default:
+- **Model**: Thorsten-DDC (German TTS model)
+- **Language Code**: `de`
+- **Locale**: `de-DE`
+- **API Responses**: German field names and error messages
+- **Voice Quality**: Optimized for German pronunciation
+
+### Supported German Text Features:
+- Standard German characters (ä, ö, ü, ß)
+- German punctuation and sentence structure
+- Numbers spoken in German
+- Common German abbreviations
 
 ## Docker Usage
 

@@ -53,8 +53,9 @@ def health():
     """Health check endpoint"""
     return jsonify({
         'status': 'ok',
-        'model': TTS_MODEL,
-        'tts_loaded': tts is not None
+        'modell': TTS_MODEL,
+        'tts_geladen': tts is not None,
+        'sprache': 'de'
     })
 
 @app.route('/synthesize', methods=['POST'])
@@ -71,18 +72,18 @@ def synthesize():
     Returns: WAV audio file
     """
     if tts is None:
-        return jsonify({'error': 'TTS model not loaded'}), 500
+        return jsonify({'error': 'TTS-Modell nicht geladen'}), 500
     
     data = request.get_json()
     
     if not data or 'text' not in data:
-        return jsonify({'error': 'Missing required field: text'}), 400
+        return jsonify({'error': 'Erforderliches Feld fehlt: text'}), 400
     
     text = data['text'].strip()
     rate = float(data.get('rate', 1.0))
     
     if not text:
-        return jsonify({'error': 'Text cannot be empty'}), 400
+        return jsonify({'error': 'Text darf nicht leer sein'}), 400
     
     # Check if we have cached version
     cache_file = get_cache_filename(text, rate)
@@ -108,7 +109,7 @@ def synthesize():
         
     except Exception as e:
         print(f"Error generating speech: {e}")
-        return jsonify({'error': f'Speech synthesis failed: {str(e)}'}), 500
+        return jsonify({'error': f'Sprachsynthese fehlgeschlagen: {str(e)}'}), 500
 
 @app.route('/list-models', methods=['GET'])
 def list_models():
@@ -128,11 +129,11 @@ def cache_stats():
         total_size = sum(os.path.getsize(os.path.join(CACHE_DIR, f)) for f in cache_files)
         
         return jsonify({
-            'cache_dir': CACHE_DIR,
-            'total_files': len(cache_files),
-            'total_size_bytes': total_size,
-            'total_size_mb': round(total_size / (1024 * 1024), 2),
-            'cache_enabled': True
+            'cache_verzeichnis': CACHE_DIR,
+            'anzahl_dateien': len(cache_files),
+            'groesse_bytes': total_size,
+            'groesse_mb': round(total_size / (1024 * 1024), 2),
+            'cache_aktiviert': True
         })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -152,9 +153,9 @@ def clear_cache():
                 print(f"Error deleting {filename}: {e}")
         
         return jsonify({
-            'status': 'success',
-            'deleted_files': deleted_count,
-            'message': f'Cleared {deleted_count} cached audio files'
+            'status': 'erfolg',
+            'geloeschte_dateien': deleted_count,
+            'nachricht': f'{deleted_count} gecachte Audiodateien gelöscht'
         })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
