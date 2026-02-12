@@ -878,7 +878,7 @@ async function loadResults() {
               <td><span class="badge ${result.passed ? 'badge-success' : 'badge-danger'}">${result.passed ? 'Bestanden' : 'Nicht bestanden'}</span></td>
               <td>${new Date(result.completedAt).toLocaleString('de-DE')}</td>
               <td>
-                <button class="btn btn-danger btn-sm delete-result-btn" data-result-id="${result.id}" data-participant-name="${escapeHtml(result.participantName)}">Löschen</button>
+                <button class="btn btn-danger btn-sm delete-result-btn" data-result-id="${escapeHtml(result.id)}" data-participant-name="${escapeHtml(result.participantName)}">Löschen</button>
               </td>
             </tr>
           `).join('')}
@@ -891,6 +891,7 @@ async function loadResults() {
       btn.addEventListener('click', function() {
         const resultId = this.getAttribute('data-result-id');
         const participantName = this.getAttribute('data-participant-name');
+        // Values from data attributes are automatically unescaped by the browser
         deleteResult(resultId, participantName);
       });
     });
