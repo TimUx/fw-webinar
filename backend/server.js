@@ -8,6 +8,7 @@ require('dotenv').config();
 const authRoutes = require('./routes/auth');
 const adminRoutes = require('./routes/admin');
 const webinarRoutes = require('./routes/webinar');
+const ttsRoutes = require('./routes/tts');
 const { logAudit } = require('./utils/logger');
 
 const app = express();
@@ -48,6 +49,7 @@ app.use(express.static(path.join(__dirname, '../public')));
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/webinar', webinarRoutes);
+app.use('/api/tts', ttsRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

@@ -10,7 +10,7 @@ Eine vollständig selbst gehostete, automatisierte Webinar- und E-Learning-Platt
 📊 **Admin-Panel** - Vollständige Verwaltung von Webinaren, PPTX/PDF, Quiz und Ergebnissen  
 🎯 **Quiz-System** - Multiple-Choice-Tests mit automatischer Bewertung  
 📧 **E-Mail-Benachrichtigungen** - Automatischer Versand von Ergebnissen  
-🗣️ **Sprachausgabe** - Verbesserte Text-to-Speech mit Stimmauswahl und Geschwindigkeitsregelung  
+🗣️ **Sprachausgabe** - Hochwertige Text-to-Speech mit Coqui AI TTS (Open Source)  
 🎨 **Modernes Design** - Basierend auf fw-fragenkatalog Design  
 📱 **Responsive** - Funktioniert auf Desktop, Tablet und Mobile  
 🌐 **Deutsch** - Vollständig auf Deutsch lokalisiert  
@@ -22,6 +22,7 @@ Eine vollständig selbst gehostete, automatisierte Webinar- und E-Learning-Platt
 - **Frontend**: HTML, CSS, JavaScript (Vanilla)
 - **Präsentation**: Reveal.js
 - **WYSIWYG Editor**: TipTap (ProseMirror-based)
+- **Text-to-Speech**: Coqui AI TTS (Python Flask Service)
 - **Authentifizierung**: JWT + bcrypt
 - **E-Mail**: Nodemailer (SMTP)
 - **Reverse Proxy**: Caddy
@@ -191,59 +192,75 @@ Die Filterung erfolgt intelligent:
 - Für bekannte Muster (Seitenzahlen, Datum) gilt eine niedrigere Schwelle von 30%
 - Themenspezifische Inhalte (Titel, Texte, Listen, Tabellen, Grafiken) bleiben erhalten
 
-## Sprachausgabe-Einstellungen
+## Sprachausgabe mit Coqui AI TTS
 
-Die Webinar-Plattform bietet eine verbesserte Text-to-Speech-Funktion für eine natürlichere und angenehmere Sprachausgabe.
+Die Webinar-Plattform verwendet **Coqui AI TTS** (Open Source) für hochwertige, natürlich klingende deutsche Sprachausgabe.
 
 ### Funktionen
 
-- **Automatische Stimmauswahl**: Das System wählt automatisch die beste verfügbare deutsche Stimme aus
-- **Manuelle Stimmauswahl**: Benutzer können aus allen verfügbaren deutschen Stimmen ihres Systems wählen
+- **Hochwertige deutsche Stimme**: Verwendet das Thorsten-DDC-Modell für natürlichen Klang
+- **Konsistente Qualität**: Gleiche Sprachqualität in allen Browsern
+- **Audio-Caching**: Einmal generierte Audiodateien werden zwischengespeichert
 - **Geschwindigkeitsregelung**: Passen Sie die Sprechgeschwindigkeit zwischen 0.5x (langsam) und 1.5x (schnell) an
-- **Intelligente Pausierung**: Automatische Pausen zwischen Sätzen für bessere Verständlichkeit
-- **Natürlicher Klang**: Optimierte Sprachparameter für menschlichere Aussprache
-- **Browser-Empfehlung**: Automatische Erkennung und Hinweis für optimale Browser-Wahl
+- **Selbst gehostet**: Keine externen Cloud-Dienste erforderlich
+- **Datenschutzfreundlich**: Alle Audiodaten verbleiben auf Ihrem Server
+
+### Technische Details
+
+- **TTS-Engine**: Coqui TTS mit Tacotron2-DDC-Modell
+- **Sprache**: Deutsch (Thorsten-Dataset)
+- **Service**: Python Flask-Anwendung in separatem Container
+- **Caching**: MD5-basiertes Caching für optimale Performance
+- **API**: REST-API für einfache Integration
 
 ### Verwendung
 
 1. Starten Sie ein Webinar mit Sprechernotizen
 2. Die Sprachausgabe beginnt automatisch bei jeder Folie
-3. Passen Sie die **Stimme** über das Dropdown-Menü an
-4. Regeln Sie die **Geschwindigkeit** mit dem Schieberegler
-5. Änderungen werden sofort auf die aktuelle Sprachausgabe angewendet
+3. Regeln Sie die **Geschwindigkeit** mit dem Schieberegler
+4. Nutzen Sie den Stummschaltungs-Button, um die Sprachausgabe anzuhalten
 
-### Beste Sprachqualität erzielen
+### Container-Architektur
 
-**Wichtig:** Die Qualität der Sprachausgabe hängt vom verwendeten Browser ab:
+Die Plattform besteht aus drei Hauptcontainern:
+- **backend**: Node.js-Anwendung (Express)
+- **tts**: Python-basierter Coqui TTS Service
+- **caddy**: Reverse Proxy für HTTPS
 
-#### Empfohlene Browser (beste Qualität):
-- ✅ **Google Chrome** - Verwendet hochwertige Google Cloud-Stimmen
-- ✅ **Microsoft Edge** - Verwendet hochwertige Microsoft Neural-Stimmen
-
-Diese Browser bieten die natürlichsten und harmonischsten deutschen Stimmen.
-
-#### Andere Browser:
-- ⚠️ **Firefox** - Verwendet lokale Stimmen (eSpeak), die oft roboterhaft klingen
-- ⚠️ **Safari** - Verwendet Apple-Stimmen (Qualität variiert)
-
-**Empfehlung:** Für die beste Benutzererfahrung empfehlen wir Chrome oder Edge.
+Der TTS-Service läuft unabhängig und wird vom Backend über eine interne REST-API angesprochen.
 
 ### Tipps für beste Qualität
 
-- **Browser**: Verwenden Sie Chrome oder Edge für optimale Sprachqualität
-- **Sprechernotizen**: Schreiben Sie klare, vollständige Sätze
+- **Sprechernotizen**: Schreiben Sie klare, vollständige deutsche Sätze
 - **Interpunktion**: Verwenden Sie Punkte, Kommas und Semikolons für natürliche Pausen
 - **Länge**: Halten Sie Notizen übersichtlich (empfohlen: 2-4 Sätze pro Folie)
 - **Geschwindigkeit**: Beginnen Sie mit 1.0x für optimales Verständnis
-- **Stimme**: Testen Sie verschiedene Stimmen, um die angenehmste zu finden
 
-### Technische Details
+### Performance-Hinweise
 
-- Verwendet die Web Speech API des Browsers
-- Keine externen Dienste erforderlich (vollständig selbst gehostet)
-- Funktioniert mit allen Browsern, die SpeechSynthesis unterstützen
-- Automatische Fehlerbehandlung bei Sprachproblemen
-- **Hinweis:** Jeder Browser stellt seine eigenen Stimmen bereit - diese können nicht browserübergreifend erzwungen werden
+- **Erster Start**: Der TTS-Service benötigt beim ersten Start etwas Zeit zum Laden des Modells
+- **Erste Audio-Generierung**: Die erste Generierung eines Textes kann 5-10 Sekunden dauern
+- **Caching**: Bereits generierte Audiodateien werden wiederverwendet und spielen sofort ab
+- **GPU-Unterstützung**: Falls verfügbar, wird automatisch CUDA für schnellere Generierung verwendet
+
+### Sicherheit
+
+Der TTS-Service verwendet aktuelle, sichere Versionen aller Abhängigkeiten:
+- **PyTorch**: Version ≥2.6.0 (behebt bekannte Sicherheitslücken in älteren Versionen)
+- Regelmäßige Sicherheitsupdates werden empfohlen
+
+### Erweiterte Konfiguration
+
+Die TTS-Konfiguration kann in der `docker-compose.yml` angepasst werden:
+
+```yaml
+tts:
+  environment:
+    - TTS_MODEL=tts_models/de/thorsten/tacotron2-DDC  # TTS-Modell
+    - TTS_CACHE_DIR=/app/cache                        # Cache-Verzeichnis
+```
+
+Weitere Informationen finden Sie in `tts-service/README.md`.
 
 ### Erweiterte Optionen
 
