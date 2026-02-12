@@ -627,6 +627,39 @@ router.get('/results/export', async (req, res) => {
   }
 });
 
+/**
+ * DELETE /api/admin/results/:id
+ * Delete a result
+ */
+router.delete('/results/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    await resultsStorage.update(data => {
+      if (!data.results) data.results = [];
+      const index = data.results.findIndex(r => r.id === id);
+      
+      if (index === -1) {
+        throw new Error('Ergebnis nicht gefunden');
+      }
+      
+      const result = data.results[index];
+      data.results.splice(index, 1);
+      
+      logAudit('RESULT_DELETE', req.user.username, `Ergebnis gelöscht: ${result.participantName} - ${result.webinarTitle}`);
+      
+      return data;
+    });
+    
+    res.json({ message: 'Ergebnis erfolgreich gelöscht' });
+  } catch (error) {
+    if (error.message === 'Ergebnis nicht gefunden') {
+      return res.status(404).json({ error: error.message });
+    }
+    res.status(500).json({ error: 'Fehler beim Löschen des Ergebnisses' });
+  }
+});
+
 // ============ SLIDE IMAGE UPLOAD ============
 
 /**

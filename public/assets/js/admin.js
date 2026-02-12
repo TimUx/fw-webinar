@@ -864,6 +864,7 @@ async function loadResults() {
             <th>Prozent</th>
             <th>Status</th>
             <th>Datum</th>
+            <th>Aktionen</th>
           </tr>
         </thead>
         <tbody>
@@ -876,6 +877,9 @@ async function loadResults() {
               <td>${result.percentage}%</td>
               <td><span class="badge ${result.passed ? 'badge-success' : 'badge-danger'}">${result.passed ? 'Bestanden' : 'Nicht bestanden'}</span></td>
               <td>${new Date(result.completedAt).toLocaleString('de-DE')}</td>
+              <td>
+                <button onclick="deleteResult('${result.id}', '${result.participantName}')" class="btn btn-danger btn-sm">Löschen</button>
+              </td>
             </tr>
           `).join('')}
         </tbody>
@@ -901,6 +905,20 @@ async function exportResults() {
     showNotification('Ergebnisse erfolgreich exportiert');
   } catch (error) {
     showNotification('Fehler beim Export: ' + error.message, true);
+  }
+}
+
+async function deleteResult(id, participantName) {
+  if (!confirm(`Möchten Sie das Ergebnis von "${participantName}" wirklich löschen?`)) {
+    return;
+  }
+  
+  try {
+    await apiCall(`/admin/results/${id}`, 'DELETE');
+    showNotification('Ergebnis erfolgreich gelöscht');
+    await loadResults();
+  } catch (error) {
+    showNotification('Fehler beim Löschen: ' + error.message, true);
   }
 }
 
