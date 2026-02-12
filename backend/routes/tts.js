@@ -132,4 +132,104 @@ router.get('/health', async (req, res) => {
   }
 });
 
+/**
+ * Get cache statistics
+ * GET /api/tts/cache/stats
+ */
+router.get('/cache/stats', async (req, res) => {
+  try {
+    const url = new URL(`${TTS_SERVICE_URL}/cache/stats`);
+    const protocol = url.protocol === 'https:' ? https : http;
+
+    const options = {
+      hostname: url.hostname,
+      port: url.port,
+      path: '/cache/stats',
+      method: 'GET'
+    };
+
+    const ttsRequest = protocol.request(options, (ttsResponse) => {
+      let data = '';
+      ttsResponse.on('data', (chunk) => {
+        data += chunk;
+      });
+      ttsResponse.on('end', () => {
+        try {
+          const stats = JSON.parse(data);
+          res.json(stats);
+        } catch {
+          res.status(500).json({ error: 'Invalid response from TTS service' });
+        }
+      });
+    });
+
+    ttsRequest.on('error', (error) => {
+      res.status(503).json({ 
+        error: 'TTS service unavailable',
+        message: error.message
+      });
+    });
+
+    ttsRequest.end();
+
+  } catch (error) {
+    res.status(500).json({ 
+      error: 'Internal server error',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * Clear TTS cache
+ * POST /api/tts/cache/clear
+ */
+router.post('/cache/clear', async (req, res) => {
+  try {
+    const url = new URL(`${TTS_SERVICE_URL}/cache/clear`);
+    const protocol = url.protocol === 'https:' ? https : http;
+
+    const options = {
+      hostname: url.hostname,
+      port: url.port,
+      path: '/cache/clear',
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Content-Length': 0
+      }
+    };
+
+    const ttsRequest = protocol.request(options, (ttsResponse) => {
+      let data = '';
+      ttsResponse.on('data', (chunk) => {
+        data += chunk;
+      });
+      ttsResponse.on('end', () => {
+        try {
+          const result = JSON.parse(data);
+          res.json(result);
+        } catch {
+          res.status(500).json({ error: 'Invalid response from TTS service' });
+        }
+      });
+    });
+
+    ttsRequest.on('error', (error) => {
+      res.status(503).json({ 
+        error: 'TTS service unavailable',
+        message: error.message
+      });
+    });
+
+    ttsRequest.end();
+
+  } catch (error) {
+    res.status(500).json({ 
+      error: 'Internal server error',
+      message: error.message
+    });
+  }
+});
+
 module.exports = router;

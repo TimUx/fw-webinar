@@ -56,6 +56,40 @@ GET /list-models
 
 Lists all available TTS models (for informational purposes).
 
+### Cache Statistics
+```
+GET /cache/stats
+```
+
+Returns information about the TTS cache.
+
+**Response:**
+```json
+{
+  "cache_dir": "/app/cache",
+  "total_files": 42,
+  "total_size_bytes": 12582912,
+  "total_size_mb": 12.0,
+  "cache_enabled": true
+}
+```
+
+### Clear Cache
+```
+POST /cache/clear
+```
+
+Clears all cached audio files.
+
+**Response:**
+```json
+{
+  "status": "success",
+  "deleted_files": 42,
+  "message": "Cleared 42 cached audio files"
+}
+```
+
 ## Environment Variables
 
 - `PORT`: Port to run the service on (default: 5000)

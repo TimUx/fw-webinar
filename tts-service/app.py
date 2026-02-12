@@ -120,6 +120,45 @@ def list_models():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/cache/stats', methods=['GET'])
+def cache_stats():
+    """Get cache statistics"""
+    try:
+        cache_files = [f for f in os.listdir(CACHE_DIR) if f.endswith('.wav')]
+        total_size = sum(os.path.getsize(os.path.join(CACHE_DIR, f)) for f in cache_files)
+        
+        return jsonify({
+            'cache_dir': CACHE_DIR,
+            'total_files': len(cache_files),
+            'total_size_bytes': total_size,
+            'total_size_mb': round(total_size / (1024 * 1024), 2),
+            'cache_enabled': True
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/cache/clear', methods=['POST'])
+def clear_cache():
+    """Clear all cached audio files"""
+    try:
+        cache_files = [f for f in os.listdir(CACHE_DIR) if f.endswith('.wav')]
+        deleted_count = 0
+        
+        for filename in cache_files:
+            try:
+                os.remove(os.path.join(CACHE_DIR, filename))
+                deleted_count += 1
+            except Exception as e:
+                print(f"Error deleting {filename}: {e}")
+        
+        return jsonify({
+            'status': 'success',
+            'deleted_files': deleted_count,
+            'message': f'Cleared {deleted_count} cached audio files'
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 if __name__ == '__main__':
     # Initialize TTS on startup
     if not init_tts():
