@@ -1,9 +1,9 @@
 /**
- * Coqui TTS Module for Webinar Platform
- * Handles text-to-speech synthesis using Coqui AI TTS backend
+ * Piper TTS Module for Webinar Platform
+ * Handles text-to-speech synthesis using Piper TTS backend
  */
 
-class CoquiTTSService {
+class PiperTTSService {
   constructor(apiBase) {
     this.apiBase = apiBase;
     this.audioQueue = [];
@@ -20,7 +20,7 @@ class CoquiTTSService {
     try {
       const response = await fetch(`${this.apiBase}/tts/health`);
       const health = await response.json();
-      return health.status === 'ok';
+      return health.status === 'ok' || health.status === 'degraded';
     } catch (error) {
       console.error('TTS service health check failed:', error);
       return false;
@@ -30,17 +30,17 @@ class CoquiTTSService {
   /**
    * Synthesize speech from text
    * @param {string} text - Text to synthesize
-   * @param {number} rate - Speech rate (default: 1.0)
+   * @param {string} quality - Quality level ('medium' or 'high', default: 'medium')
    * @returns {Promise<Blob>} Audio blob
    */
-  async synthesize(text, rate = 1.0) {
+  async synthesize(text, quality = 'medium') {
     try {
       const response = await fetch(`${this.apiBase}/tts/synthesize`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ text, rate })
+        body: JSON.stringify({ text, quality })
       });
 
       if (!response.ok) {
@@ -82,11 +82,11 @@ class CoquiTTSService {
   /**
    * Speak text chunks sequentially
    * @param {string[]} chunks - Array of text chunks to speak
-   * @param {number} rate - Speech rate
+   * @param {string} quality - Quality level ('medium' or 'high')
    * @param {Function} onComplete - Callback when all chunks are spoken
    * @param {Function} onError - Callback on error
    */
-  async speakChunks(chunks, rate = 1.0, onComplete = null, onError = null) {
+  async speakChunks(chunks, quality = 'medium', onComplete = null, onError = null) {
     this.audioQueue = chunks;
     this.isPlaying = true;
     this.onComplete = onComplete;
@@ -99,7 +99,7 @@ class CoquiTTSService {
           break;
         }
 
-        const audioBlob = await this.synthesize(chunk, rate);
+        const audioBlob = await this.synthesize(chunk, quality);
         await this.playAudio(audioBlob);
 
         // Small pause between chunks
@@ -142,4 +142,4 @@ class CoquiTTSService {
 }
 
 // Export for use in webinar.js
-window.CoquiTTSService = CoquiTTSService;
+window.PiperTTSService = PiperTTSService;
