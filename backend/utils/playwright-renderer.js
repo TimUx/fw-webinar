@@ -160,6 +160,9 @@ function createPPTXViewerHTML(pptxBase64, filename) {
       display: block;
     }
     .slide-image {
+      position: absolute;
+      top: 0;
+      left: 0;
       width: 100%;
       height: 100%;
       object-fit: contain;
@@ -315,17 +318,21 @@ function createPPTXViewerHTML(pptxBase64, filename) {
           slideDiv.id = 'slide-' + index;
           slideDiv.style.backgroundColor = slide.backgroundColor;
           
-          // Add images if present - use first image as main slide image
+          // Add all images if present
           if (slide.images && slide.images.length > 0) {
-            const img = document.createElement('img');
-            img.className = 'slide-image';
-            img.src = slide.images[0];
-            slideDiv.appendChild(img);
-          } else if (slide.text) {
-            // Only show text if no images (fallback)
+            slide.images.forEach((imageDataUrl) => {
+              const img = document.createElement('img');
+              img.className = 'slide-image';
+              img.src = imageDataUrl;
+              slideDiv.appendChild(img);
+            });
+          }
+          
+          // Add text overlay if present (always show text to capture complete slide)
+          if (slide.text) {
             const textDiv = document.createElement('div');
             textDiv.className = 'slide-text';
-            textDiv.textContent = slide.text || 'Slide ' + (index + 1);
+            textDiv.textContent = slide.text;
             slideDiv.appendChild(textDiv);
           }
           
