@@ -57,7 +57,6 @@ check_container() {
 }
 
 # Check each container
-check_container "webinar-caddy" "Caddy"
 check_container "webinar-backend" "Backend"
 check_container "webinar-libreoffice" "LibreOffice"
 

@@ -62,7 +62,7 @@ Diese Dateien funktionieren weiterhin, zeigen aber den generierten Namen an.
 ### Backend-Änderungen
 1. **Trust Proxy aktiviert** (`backend/server.js`)
    - Behebt den `X-Forwarded-For` Fehler bei express-rate-limit
-   - Ermöglicht korrekte Client-IP-Erkennung hinter Caddy
+   - Ermöglicht korrekte Client-IP-Erkennung hinter einem Reverse Proxy
 
 2. **Original-Dateinamen beibehalten** (`backend/routes/admin.js`)
    - Neue Uploads behalten ihren Original-Dateinamen

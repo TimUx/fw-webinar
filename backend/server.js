@@ -14,8 +14,8 @@ const { logAudit } = require('./utils/logger');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Trust proxy when behind reverse proxy (Caddy)
-// Set to 1 to trust only the first proxy (Caddy)
+// Trust proxy when behind reverse proxy (e.g., Caddy, Nginx, Traefik)
+// Set to 1 to trust only the first proxy
 app.set('trust proxy', 1);
 
 // Security middleware
