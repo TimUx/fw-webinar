@@ -450,25 +450,19 @@ router.post('/webinars', async (req, res) => {
     
     // If pptxFile is provided but no slides, automatically analyze and generate slides
     if (pptxFile && (!slides || slides.length === 0)) {
-      try {
-        const sessionId = `${webinar.id}-${Date.now()}`;
-        
-        const modeText = mode === 'screenshot' ? 'Screenshot-Modus' : 'Inhalts-Modus';
-        logAudit('FILE_ANALYZE', req.user.username, `Auto-analysiere: ${pptxFile} für Webinar: ${title} (${modeText})`);
-        
-        // Analyze presentation to get slide metadata for the webinar object
-        // This now handles both PPTX and PDF files, extracting images and text
-        // The importMode parameter controls whether to extract content or use screenshots
-        const analyzedSlides = await analyzePresentation(pptxFile, webinar.id, sessionId, mode);
-        webinar.slides = analyzedSlides;
-        
-        // Generate slides presentation from analyzed data for both PPTX and PDF
-        await generateSimpleSlides(webinar.id, analyzedSlides);
-      } catch (analyzeError) {
-        console.error('Auto-analysis failed:', analyzeError);
-        // Continue creating webinar even if analysis fails
-        logAudit('FILE_ANALYZE_ERROR', req.user.username, `Auto-Analyse fehlgeschlagen: ${analyzeError.message}`);
-      }
+      const sessionId = `${webinar.id}-${Date.now()}`;
+      
+      const modeText = mode === 'screenshot' ? 'Screenshot-Modus' : 'Inhalts-Modus';
+      logAudit('FILE_ANALYZE', req.user.username, `Auto-analysiere: ${pptxFile} für Webinar: ${title} (${modeText})`);
+      
+      // Analyze presentation to get slide metadata for the webinar object
+      // This now handles both PPTX and PDF files, extracting images and text
+      // The importMode parameter controls whether to extract content or use screenshots
+      const analyzedSlides = await analyzePresentation(pptxFile, webinar.id, sessionId, mode);
+      webinar.slides = analyzedSlides;
+      
+      // Generate slides presentation from analyzed data for both PPTX and PDF
+      await generateSimpleSlides(webinar.id, analyzedSlides);
     } else if (slides && slides.length > 0) {
       // Generate slides if provided manually
       await generateSimpleSlides(webinar.id, slides);
