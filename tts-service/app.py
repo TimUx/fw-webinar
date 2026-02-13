@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Piper TTS Service for Webinar Platform
-Provides text-to-speech synthesis using Piper TTS (https://github.com/OHF-Voice/piper1-gpl)
+Provides text-to-speech synthesis using Piper TTS (https://github.com/rhasspy/piper)
 """
 import os
 import hashlib
@@ -307,7 +307,12 @@ if __name__ == '__main__':
     # Check if piper-tts is installed
     try:
         import piper
-        print(f"✓ Piper TTS package is installed (version: {piper.__version__ if hasattr(piper, '__version__') else 'unknown'})")
+        try:
+            from importlib.metadata import version
+            piper_version = version('piper-tts')
+            print(f"✓ Piper TTS package is installed (version: {piper_version})")
+        except Exception:
+            print("✓ Piper TTS package is installed")
     except ImportError:
         print("⚠ ERROR: piper-tts package is not installed!")
         print("  Please install with: pip install piper-tts")
