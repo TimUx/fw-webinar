@@ -554,8 +554,23 @@ async function extractPDFImages(filename, webinarId) {
     }));
   } catch (error) {
     console.error('PDF image extraction error:', error);
-    // Return empty array if extraction fails
+    // For content mode, return empty array if extraction fails
+    // For screenshot mode, this will be caught by the caller
     return [];
+  }
+}
+
+/**
+ * Check if a command is available in the system
+ * @param {string} command - Command to check
+ * @returns {Promise<boolean>} - True if command is available
+ */
+async function isCommandAvailable(command) {
+  try {
+    await spawnAsync('which', [command], { timeout: 5000 });
+    return true;
+  } catch (error) {
+    return false;
   }
 }
 
@@ -563,6 +578,18 @@ async function extractPDFImages(filename, webinarId) {
  * Extract PPTX slides as images using LibreOffice
  */
 async function extractPPTXSlideImages(filename, webinarId) {
+  // Check if required dependencies are available
+  const hasLibreOffice = await isCommandAvailable('libreoffice');
+  const hasPdftoppm = await isCommandAvailable('pdftoppm');
+  
+  if (!hasLibreOffice) {
+    throw new Error('LibreOffice ist nicht installiert. Bitte installieren Sie LibreOffice, um den Screenshot-Modus für PPTX-Dateien zu verwenden.');
+  }
+  
+  if (!hasPdftoppm) {
+    throw new Error('pdftoppm ist nicht installiert. Bitte installieren Sie poppler-utils, um den Screenshot-Modus zu verwenden.');
+  }
+  
   const pptxPath = path.join(UPLOADS_DIR, filename);
   const imageDir = path.join(UPLOADS_DIR, webinarId);
   const tempDir = path.join(imageDir, 'temp_conversion');
@@ -639,6 +666,14 @@ async function extractPPTXSlideImages(filename, webinarId) {
  * @param {string} importMode - 'content' (default) or 'screenshot'
  */
 async function analyzePDF(filename, webinarId, onProgress, importMode = 'content') {
+  // Check dependencies for screenshot mode
+  if (importMode === 'screenshot') {
+    const hasPdftoppm = await isCommandAvailable('pdftoppm');
+    if (!hasPdftoppm) {
+      throw new Error('pdftoppm ist nicht installiert. Bitte installieren Sie poppler-utils, um den Screenshot-Modus für PDF-Dateien zu verwenden.');
+    }
+  }
+  
   const filePath = path.join(UPLOADS_DIR, filename);
   const dataBuffer = await fs.readFile(filePath);
   
@@ -656,6 +691,11 @@ async function analyzePDF(filename, webinarId, onProgress, importMode = 'content
   
   // Extract PDF pages as images
   const pdfImages = await extractPDFImages(filename, webinarId);
+  
+  // In screenshot mode, images are required
+  if (importMode === 'screenshot' && pdfImages.length === 0) {
+    throw new Error('Keine Bilder konnten aus der PDF extrahiert werden. Stellen Sie sicher, dass pdftoppm (poppler-utils) korrekt installiert ist.');
+  }
   
   onProgress(60, `${pdfImages.length} Seiten als Bilder extrahiert...`);
   
