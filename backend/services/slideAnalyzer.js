@@ -567,7 +567,9 @@ async function extractPDFImages(filename, webinarId) {
  */
 async function isCommandAvailable(command) {
   try {
-    await spawnAsync('which', [command], { timeout: 5000 });
+    // Use 'which' on Unix-like systems, 'where' on Windows
+    const checkCommand = process.platform === 'win32' ? 'where' : 'which';
+    await spawnAsync(checkCommand, [command], { timeout: 5000 });
     return true;
   } catch (error) {
     return false;
