@@ -7,15 +7,37 @@ const jwt = require('jsonwebtoken');
 
 const ONLYOFFICE_URL = process.env.ONLYOFFICE_URL || 'http://onlyoffice';
 const BACKEND_URL = process.env.BACKEND_URL || 'http://webinar-backend:3000';
-const ONLYOFFICE_JWT_SECRET = process.env.ONLYOFFICE_JWT_SECRET || '';
 
-// Warn about missing JWT secret at startup
-if (!ONLYOFFICE_JWT_SECRET) {
-  console.warn('⚠️  ONLYOFFICE_JWT_SECRET is not configured!');
-  console.warn('   OnlyOffice DocumentServer has JWT enabled by default.');
-  console.warn('   PPTX/PDF conversion will likely fail without proper JWT configuration.');
-  console.warn('   To fix: Run "./get-onlyoffice-jwt-secret.sh"');
-  console.warn('   Then add the secret to your .env file: ONLYOFFICE_JWT_SECRET=<secret>');
+// OnlyOffice JWT Secret configuration
+// Priority order:
+// 1. ONLYOFFICE_JWT_SECRET from environment (custom secret)
+// 2. Fall back to OnlyOffice default secret for compatibility
+const ONLYOFFICE_DEFAULT_SECRET = 'verysecretstring'; // OnlyOffice's default JWT secret
+const ONLYOFFICE_JWT_SECRET = process.env.ONLYOFFICE_JWT_SECRET || ONLYOFFICE_DEFAULT_SECRET;
+
+// Warn about JWT configuration at startup
+if (!process.env.ONLYOFFICE_JWT_SECRET) {
+  console.warn('⚠️  ONLYOFFICE_JWT_SECRET is not configured - using OnlyOffice default secret');
+  console.warn('   ⚠️  SECURITY WARNING: The default secret "verysecretstring" is publicly known!');
+  console.warn('   For production use, generate a secure JWT secret:');
+  console.warn('   ');
+  console.warn('   Option 1 - Generate new secret (RECOMMENDED):');
+  console.warn('     1. Generate: openssl rand -hex 32');
+  console.warn('     2. Add to .env: ONLYOFFICE_JWT_SECRET=<generated-secret>');
+  console.warn('     3. Add to .env: ONLYOFFICE_JWT_SECRET=<same-secret> (for OnlyOffice container)');
+  console.warn('     4. Restart: docker-compose restart');
+  console.warn('   ');
+  console.warn('   Option 2 - Use existing OnlyOffice secret:');
+  console.warn('     1. Run: ./get-onlyoffice-jwt-secret.sh');
+  console.warn('     2. Add to .env: ONLYOFFICE_JWT_SECRET=<retrieved-secret>');
+  console.warn('     3. Restart: docker-compose restart backend');
+  console.warn('');
+} else if (process.env.ONLYOFFICE_JWT_SECRET === ONLYOFFICE_DEFAULT_SECRET) {
+  console.warn('⚠️  SECURITY WARNING: Using OnlyOffice default JWT secret "verysecretstring"');
+  console.warn('   This secret is publicly known and should not be used in production!');
+  console.warn('   Generate a secure secret: openssl rand -hex 32');
+  console.warn('   Then add to .env: ONLYOFFICE_JWT_SECRET=<generated-secret>');
+  console.warn('');
 }
 
 /**
@@ -145,20 +167,21 @@ async function convertDocument(inputPath, outputPath, outputFormat = 'pdf') {
       url: fileUrl
     };
     
-    // Generate JWT token if secret is configured
+    // Generate JWT token for OnlyOffice request
     // OnlyOffice requires JWT even when JWT_ENABLED=false is set
     const token = generateOnlyOfficeJWT(requestBody);
     if (token) {
       // Add token to request body as per OnlyOffice API spec
       requestBody.token = token;
-      console.log('✓ JWT token generated for OnlyOffice request');
+      if (process.env.ONLYOFFICE_JWT_SECRET) {
+        console.log('✓ JWT token generated for OnlyOffice request (using configured secret)');
+      } else {
+        console.log('✓ JWT token generated for OnlyOffice request (using default secret)');
+      }
     } else {
-      console.error('⚠️  WARNING: No OnlyOffice JWT secret configured!');
+      // This should not happen since we have a fallback, but keep for safety
+      console.error('⚠️  CRITICAL: Failed to generate OnlyOffice JWT token!');
       console.error('   OnlyOffice conversion will likely fail with error -4');
-      console.error('   To fix:');
-      console.error('     1. Run: ./get-onlyoffice-jwt-secret.sh');
-      console.error('     2. Add secret to .env: ONLYOFFICE_JWT_SECRET=<the-secret>');
-      console.error('     3. Restart: docker-compose restart backend');
     }
     
     // Prepare headers
@@ -193,18 +216,21 @@ async function convertDocument(inputPath, outputPath, outputFormat = 'pdf') {
       // Provide specific guidance based on error code
       if (errorCode === -4) {
         errorMessage = 'OnlyOffice cannot download the source file (error -4)';
+        const usingDefaultSecret = !process.env.ONLYOFFICE_JWT_SECRET || process.env.ONLYOFFICE_JWT_SECRET === ONLYOFFICE_DEFAULT_SECRET;
         troubleshooting = [
           `The file URL provided to OnlyOffice: ${fileUrl}`,
+          `Current JWT configuration: ${usingDefaultSecret ? 'Using default secret (may be mismatched)' : 'Using configured secret'}`,
+          ``,
           `Possible causes:`,
           `  1. OnlyOffice v9+ blocks private IPs: DocumentServer v9.x blocks requests to private IP addresses by default`,
-          `     Solution: Ensure DS_ALLOW_PRIVATE_IP_ADDRESS=true is set in docker-compose.yml (should be set by default)`,
+          `     Solution: Ensure DS_ALLOW_PRIVATE_IP_ADDRESS=true is set in docker-compose.yml`,
           `     This allows OnlyOffice to access Docker internal network (172.x.x.x, 10.x.x.x, etc.)`,
-          `  2. JWT Authentication: OnlyOffice has JWT enabled but requests are not signed`,
-          `     Solution: Get the JWT secret from OnlyOffice and set ONLYOFFICE_JWT_SECRET environment variable`,
-          `     Check JWT status: ./get-onlyoffice-jwt-secret.sh`,
+          `  2. JWT Secret mismatch: OnlyOffice and backend are using different JWT secrets`,
+          `     The backend is ${usingDefaultSecret ? 'using the default secret "verysecretstring"' : 'using a configured secret'}`,
+          `     OnlyOffice container may have generated its own random secret if not configured`,
           `  3. Network connectivity: OnlyOffice cannot reach the backend URL`,
           `     Current BACKEND_URL: ${BACKEND_URL}`,
-          `     Test: docker exec webinar-onlyoffice wget ${fileUrl}`,
+          `     Test: docker exec <onlyoffice-container> wget ${fileUrl}`,
           `  4. Container name mismatch: BACKEND_URL doesn't match actual container name`,
           `     Check: docker-compose ps to see actual container names`,
           ``,
@@ -212,11 +238,15 @@ async function convertDocument(inputPath, outputPath, outputFormat = 'pdf') {
           `  For private IP issue (v9+):`,
           `    1. Check docker-compose.yml has: DS_ALLOW_PRIVATE_IP_ADDRESS=true`,
           `    2. Restart OnlyOffice: docker-compose restart onlyoffice`,
-          `  For JWT issue:`,
-          `    1. Run: ./get-onlyoffice-jwt-secret.sh`,
-          `    2. Copy the JWT secret shown in the output`,
-          `    3. Add to .env file: ONLYOFFICE_JWT_SECRET=<the-secret>`,
-          `    4. Restart backend: docker-compose restart backend`
+          `  For JWT secret mismatch:`,
+          `    Option A - Use same secret for both (RECOMMENDED):`,
+          `      1. Generate secure secret: openssl rand -hex 32`,
+          `      2. Add to .env: ONLYOFFICE_JWT_SECRET=<generated-secret>`,
+          `      3. Restart all: docker-compose restart`,
+          `    Option B - Use OnlyOffice's existing secret:`,
+          `      1. Run: ./get-onlyoffice-jwt-secret.sh`,
+          `      2. Add secret to .env: ONLYOFFICE_JWT_SECRET=<retrieved-secret>`,
+          `      3. Restart backend: docker-compose restart backend`
         ];
       } else if (errorCode === -3) {
         errorMessage = 'OnlyOffice conversion error (error -3)';
