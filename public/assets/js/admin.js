@@ -1203,7 +1203,7 @@ function connectToProgressStream(sessionId, onComplete) {
   }
   
   // Create new EventSource connection
-  const token = localStorage.getItem('token');
+  const token = localStorage.getItem('adminToken');
   progressEventSource = new EventSource(`/api/admin/pptx/analyze/progress/${sessionId}?token=${token}`);
   
   progressEventSource.onmessage = function(event) {
