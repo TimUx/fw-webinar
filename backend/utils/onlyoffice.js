@@ -5,6 +5,7 @@ const FormData = require('form-data');
 const crypto = require('crypto');
 
 const ONLYOFFICE_URL = process.env.ONLYOFFICE_URL || 'http://onlyoffice';
+const BACKEND_URL = process.env.BACKEND_URL || 'http://webinar-backend:3000';
 
 /**
  * Check if OnlyOffice DocumentServer is available
@@ -33,58 +34,65 @@ async function convertDocument(inputPath, outputPath, outputFormat = 'pdf') {
   }
 
   try {
-    // Read input file
-    const fileBuffer = await fs.readFile(inputPath);
+    // Get the file URL that OnlyOffice can access
+    // Files in /app/uploads are served at http://webinar-backend:3000/uploads/
     const fileName = path.basename(inputPath);
+    const uploadsDir = process.env.UPLOADS_DIR || '/app/uploads';
     
-    // Prepare form data
-    const formData = new FormData();
-    formData.append('file', fileBuffer, {
-      filename: fileName,
-      contentType: getContentType(inputPath)
-    });
+    // Check if file is in uploads directory
+    if (!inputPath.startsWith(uploadsDir)) {
+      throw new Error(`File must be in uploads directory for OnlyOffice access: ${inputPath}`);
+    }
     
-    // Build conversion request
+    // Create the URL path relative to uploads
+    const relativePath = path.relative(uploadsDir, inputPath);
+    const fileUrl = `${BACKEND_URL}/uploads/${relativePath.replace(/\\/g, '/')}`;
+    
+    console.log(`OnlyOffice conversion: ${fileUrl} -> ${outputFormat}`);
+    
+    // Build conversion request according to OnlyOffice API spec
     const conversionUrl = `${ONLYOFFICE_URL}/ConvertService.ashx`;
-    const params = {
+    const requestBody = {
       async: false,
       filetype: getFileExtension(inputPath),
-      outputtype: outputFormat,
       key: await generateKey(inputPath),
-      title: fileName
+      outputtype: outputFormat,
+      title: fileName,
+      url: fileUrl
     };
     
-    // Add query parameters
-    const queryString = Object.entries(params)
-      .map(([key, value]) => `${key}=${encodeURIComponent(value)}`)
-      .join('&');
-    
-    // Make conversion request
+    // Make conversion request with JSON body
     const response = await axios.post(
-      `${conversionUrl}?${queryString}`,
-      formData,
+      conversionUrl,
+      requestBody,
       {
-        headers: formData.getHeaders(),
+        headers: {
+          'Content-Type': 'application/json'
+        },
         timeout: 120000, // 2 minutes timeout
         maxContentLength: Infinity,
         maxBodyLength: Infinity
       }
     );
     
+    console.log('OnlyOffice response:', JSON.stringify(response.data));
+    
     if (response.data.error) {
       throw new Error(`OnlyOffice conversion error: ${response.data.error}`);
     }
     
     // Download converted file
-    const fileUrl = response.data.fileUrl || response.data.uri;
-    if (!fileUrl) {
+    const convertedFileUrl = response.data.fileUrl || response.data.uri;
+    if (!convertedFileUrl) {
       throw new Error('OnlyOffice did not return a file URL');
     }
     
     // Handle relative URLs
-    const downloadUrl = fileUrl.startsWith('http') 
-      ? fileUrl 
-      : `${ONLYOFFICE_URL}${fileUrl}`;
+    const downloadUrl = convertedFileUrl.startsWith('http') 
+      ? convertedFileUrl 
+      : `${ONLYOFFICE_URL}${convertedFileUrl}`;
+    
+    console.log(`Downloading converted file from: ${downloadUrl}`);
     
     const fileResponse = await axios.get(downloadUrl, {
       responseType: 'arraybuffer',
