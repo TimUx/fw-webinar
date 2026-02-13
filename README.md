@@ -35,7 +35,7 @@ Eine vollständig selbst gehostete, automatisierte Webinar- und E-Learning-Platt
 - **Text-to-Speech**: Piper TTS (Python Flask Service mit deutscher Thorsten Stimme)
 - **Authentifizierung**: JWT + bcrypt
 - **E-Mail**: Nodemailer (SMTP)
-- **PPTX/PDF-Konvertierung**: LibreOffice (integriert), pdftoppm für PDF
+- **PPTX/PDF-Konvertierung**: OnlyOffice DocumentServer (Container), pdftoppm für PDF
 - **Speicher**: Dateibasiert (JSON)
 - **Container**: Docker & Docker Compose
 
@@ -53,6 +53,11 @@ Die Plattform besteht aus zwei Hauptcontainern:
    - Sprachsynthese
    - Audio-Caching
    - REST-API
+
+3. **onlyoffice**: OnlyOffice DocumentServer
+   - PPTX/PDF zu PDF Konvertierung
+   - Hochwertige Dokumentenverarbeitung
+   - REST-API für Konvertierung
 
 Der TTS-Service läuft unabhängig und wird vom Backend über eine interne REST-API angesprochen.
 
@@ -181,6 +186,12 @@ Pull Requests sind willkommen!
 Design basiert auf: https://github.com/TimUx/fw-fragenkatalog
 
 ## Changelog
+
+### Version 1.5.0 (2026)
+- Migration von LibreOffice zu OnlyOffice DocumentServer
+- Verbesserte Darstellung von PPTX-Folien
+- OnlyOffice läuft als separater Container-Service
+- Bessere Handhabung von komplexen Folien-Layouts
 
 ### Version 1.4.1 (2026)
 - LibreOffice direkt im Backend-Container integriert

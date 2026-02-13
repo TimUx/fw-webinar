@@ -577,15 +577,17 @@ async function isCommandAvailable(command) {
 }
 
 /**
- * Extract PPTX slides as images using LibreOffice
+ * Extract PPTX slides as images using OnlyOffice DocumentServer
  */
 async function extractPPTXSlideImages(filename, webinarId) {
+  const { isOnlyOfficeAvailable, convertDocument } = require('../utils/onlyoffice');
+  
   // Check if required dependencies are available
-  const hasLibreOffice = await isCommandAvailable('libreoffice');
+  const hasOnlyOffice = await isOnlyOfficeAvailable();
   const hasPdftoppm = await isCommandAvailable('pdftoppm');
   
-  if (!hasLibreOffice) {
-    throw new Error('LibreOffice ist nicht installiert. Bitte installieren Sie LibreOffice, um den Screenshot-Modus für PPTX-Dateien zu verwenden.');
+  if (!hasOnlyOffice) {
+    throw new Error('OnlyOffice DocumentServer ist nicht verfügbar. Bitte stellen Sie sicher, dass der OnlyOffice-Container läuft.');
   }
   
   if (!hasPdftoppm) {
@@ -601,28 +603,18 @@ async function extractPPTXSlideImages(filename, webinarId) {
   await fs.mkdir(tempDir, { recursive: true });
   
   try {
-    // First convert PPTX to PDF using LibreOffice
+    // First convert PPTX to PDF using OnlyOffice
+    const pdfFilename = path.basename(filename, path.extname(filename)) + '.pdf';
+    const pdfPath = path.join(tempDir, pdfFilename);
+    
     try {
-      await spawnAsync(
-        'libreoffice',
-        ['--headless', '--convert-to', 'pdf', '--outdir', tempDir, pptxPath],
-        { timeout: 120000 }
-      );
-    } catch (libreofficeError) {
-      console.error('LibreOffice conversion failed:', libreofficeError);
-      throw new Error('LibreOffice konnte PPTX nicht in PDF konvertieren. Bitte stellen Sie sicher, dass LibreOffice installiert ist.');
-    }
-    
-    // Find the generated PDF
-    const files = await fs.readdir(tempDir);
-    const pdfFile = files.find(f => f.endsWith('.pdf'));
-    
-    if (!pdfFile) {
-      throw new Error('PDF-Datei wurde von LibreOffice nicht generiert');
+      await convertDocument(pptxPath, pdfPath, 'pdf');
+    } catch (onlyofficeError) {
+      console.error('OnlyOffice conversion failed:', onlyofficeError);
+      throw new Error('OnlyOffice konnte PPTX nicht in PDF konvertieren. Bitte stellen Sie sicher, dass der OnlyOffice-Container läuft.');
     }
     
     // Now convert PDF to images using pdftoppm
-    const pdfPath = path.join(tempDir, pdfFile);
     const outputPrefix = path.join(imageDir, 'slide');
     
     try {

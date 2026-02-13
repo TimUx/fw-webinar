@@ -207,9 +207,10 @@ function getCommonPresentationStyles() {
 }
 
 /**
- * Convert PPTX or PDF to HTML using LibreOffice
+ * Convert PPTX or PDF to HTML using OnlyOffice
  */
 async function convertPPTXToHTML(pptxFilename, webinarId) {
+  const { isOnlyOfficeAvailable, convertDocument } = require('../utils/onlyoffice');
   const pptxPath = path.join(UPLOADS_DIR, pptxFilename);
   const outputDir = path.join(SLIDES_DIR, webinarId);
   
@@ -220,34 +221,31 @@ async function convertPPTXToHTML(pptxFilename, webinarId) {
   const isPDF = pptxFilename.toLowerCase().endsWith('.pdf');
   const fileType = isPDF ? 'PDF' : 'PPTX';
   
-  // Convert PPTX/PDF to HTML using LibreOffice
-  // This assumes LibreOffice is available (via Docker or locally)
+  // Check if OnlyOffice is available
+  const hasOnlyOffice = await isOnlyOfficeAvailable();
+  
+  if (!hasOnlyOffice) {
+    console.log('OnlyOffice nicht verfügbar. Erstelle Platzhalter-Slides...');
+    await createPlaceholderSlides(pptxFilename, outputDir);
+    return 'slides.html';
+  }
+  
+  // Convert PPTX/PDF to HTML using OnlyOffice
   try {
-    // LibreOffice headless conversion
-    // Using spawn with separate arguments to prevent command injection
-    const { stdout, stderr } = await spawnAsync(
-      'libreoffice',
-      ['--headless', '--convert-to', 'html', '--outdir', outputDir, pptxPath],
-      { timeout: 60000 }
-    );
+    const htmlFilename = path.basename(pptxFilename, path.extname(pptxFilename)) + '.html';
+    const htmlPath = path.join(outputDir, htmlFilename);
     
-    console.log(`LibreOffice conversion output (${fileType}):`, stdout);
-    if (stderr) console.error(`LibreOffice conversion stderr (${fileType}):`, stderr);
+    // Convert to HTML format using OnlyOffice
+    await convertDocument(pptxPath, htmlPath, 'html');
     
-    // Find the generated HTML file
-    const files = await fs.readdir(outputDir);
-    const htmlFile = files.find(f => f.endsWith('.html'));
+    console.log(`OnlyOffice conversion output (${fileType}): Success`);
     
-    if (!htmlFile) {
-      throw new Error('HTML-Datei wurde nicht generiert');
-    }
-    
-    return htmlFile;
+    return htmlFilename;
   } catch (error) {
     console.error(`${fileType} conversion error:`, error);
     
-    // Fallback: Create a simple placeholder if LibreOffice is not available
-    console.log('LibreOffice nicht verfügbar. Erstelle Platzhalter-Slides...');
+    // Fallback: Create a simple placeholder if OnlyOffice conversion fails
+    console.log('OnlyOffice Konvertierung fehlgeschlagen. Erstelle Platzhalter-Slides...');
     await createPlaceholderSlides(pptxFilename, outputDir);
     
     return 'slides.html';
@@ -359,7 +357,7 @@ async function createImageSlides(webinarId, imageFiles) {
 }
 
 /**
- * Create placeholder slides when LibreOffice is not available
+ * Create placeholder slides when OnlyOffice is not available
  */
 async function createPlaceholderSlides(filename, outputDir) {
   const fileType = filename.toLowerCase().endsWith('.pdf') ? 'PDF' : 'PPTX';
@@ -374,7 +372,7 @@ async function createPlaceholderSlides(filename, outputDir) {
   <div>
     <h1>Platzhalter-Präsentation</h1>
     <p>Die ${fileType}-Datei "${filename}" wurde hochgeladen, aber noch nicht konvertiert.</p>
-    <p>Bitte konfigurieren Sie LibreOffice für die automatische Konvertierung.</p>
+    <p>Bitte konfigurieren Sie OnlyOffice DocumentServer für die automatische Konvertierung.</p>
   </div>
 </body>
 </html>
