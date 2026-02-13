@@ -431,6 +431,21 @@ OnlyOffice läuft als separater Container-Service. Bei Problemen:
 5. Sicherstellen, dass alle Container im gleichen Netzwerk sind
 6. Bei Speicherproblemen: OnlyOffice-Volumes überprüfen
 
+**Spezifischer Fehler: OnlyOffice conversion error: -7**
+
+Dieser Fehler tritt auf, wenn OnlyOffice die Datei nicht vom Backend-Server herunterladen kann:
+
+1. Überprüfen Sie die BACKEND_URL Umgebungsvariable in `docker-compose.yml`:
+   - Sollte auf `http://webinar-backend:3000` gesetzt sein
+   - Der Container-Name muss mit dem tatsächlichen Backend-Container-Namen übereinstimmen
+2. Stellen Sie sicher, dass beide Container im gleichen Docker-Netzwerk sind
+3. Überprüfen Sie, dass der Backend-Server läuft: `docker-compose ps backend`
+4. Testen Sie die Erreichbarkeit vom OnlyOffice-Container aus:
+   ```bash
+   docker exec <onlyoffice-container-name> curl http://webinar-backend:3000/api/health
+   ```
+   (Container-Name mit `docker-compose ps` ermitteln, z.B. `fw-webinar-onlyoffice`)
+
 **Hinweise:**
 - OnlyOffice benötigt beim ersten Start bis zu 2 Minuten für die Initialisierung
 - Der Container benötigt mindestens 2GB RAM
@@ -438,6 +453,7 @@ OnlyOffice läuft als separater Container-Service. Bei Problemen:
 - Alternative: Bei Problemen Inhalts-Modus statt Screenshot-Modus nutzen
 - Das Zertifikatsverzeichnis (`/var/www/onlyoffice/Data/certs`) wird als tmpfs gemountet, da Zertifikate zur Laufzeit generiert werden
 - Bei jedem Container-Neustart werden die Zertifikate neu generiert (dies ist normales Verhalten)
+- OnlyOffice verwendet die DocumentServer Conversion API, die Dateien über HTTP-URLs herunterlädt (nicht als Datei-Upload)
 
 ### Legacy LibreOffice-Hinweis
 

@@ -19,6 +19,7 @@ services:
       - ASSETS_DIR=/app/assets
       - TTS_SERVICE_URL=http://tts:5000
       - ONLYOFFICE_URL=http://onlyoffice
+      - BACKEND_URL=http://webinar-backend:3000
     volumes:
       - ./data:/app/data
       - ./uploads:/app/uploads

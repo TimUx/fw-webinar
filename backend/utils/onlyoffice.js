@@ -5,6 +5,7 @@ const FormData = require('form-data');
 const crypto = require('crypto');
 
 const ONLYOFFICE_URL = process.env.ONLYOFFICE_URL || 'http://onlyoffice';
+const BACKEND_URL = process.env.BACKEND_URL || 'http://webinar-backend:3000';
 
 /**
  * Check if OnlyOffice DocumentServer is available
@@ -33,58 +34,79 @@ async function convertDocument(inputPath, outputPath, outputFormat = 'pdf') {
   }
 
   try {
-    // Read input file
-    const fileBuffer = await fs.readFile(inputPath);
+    // Get the file URL that OnlyOffice can access
+    // Files in /app/uploads are served at http://webinar-backend:3000/uploads/
     const fileName = path.basename(inputPath);
+    const uploadsDir = process.env.UPLOADS_DIR || '/app/uploads';
     
-    // Prepare form data
-    const formData = new FormData();
-    formData.append('file', fileBuffer, {
-      filename: fileName,
-      contentType: getContentType(inputPath)
-    });
+    // Normalize paths to prevent path traversal attacks
+    const normalizedInputPath = path.normalize(path.resolve(inputPath));
+    const normalizedUploadsDir = path.normalize(path.resolve(uploadsDir));
     
-    // Build conversion request
+    // Check if file is in uploads directory (after normalization and resolution)
+    if (!normalizedInputPath.startsWith(normalizedUploadsDir + path.sep)) {
+      throw new Error(`File must be in uploads directory for OnlyOffice access: ${inputPath}`);
+    }
+    
+    // Create the URL path relative to uploads
+    const relativePath = path.relative(normalizedUploadsDir, normalizedInputPath);
+    
+    // Security: Prevent path traversal - after normalization, relative path should never go up
+    if (relativePath.startsWith('..')) {
+      throw new Error(`Invalid file path: path traversal detected in ${relativePath}`);
+    }
+    
+    // Encode the path properly for URL
+    // Split by system separator, encode each part, join with URL separator
+    const pathParts = relativePath.split(path.sep).filter(part => part.length > 0);
+    const encodedPath = pathParts.map(encodeURIComponent).join('/');
+    const fileUrl = `${BACKEND_URL}/uploads/${encodedPath}`;
+    
+    console.log(`OnlyOffice conversion: ${fileUrl} -> ${outputFormat}`);
+    
+    // Build conversion request according to OnlyOffice API spec
     const conversionUrl = `${ONLYOFFICE_URL}/ConvertService.ashx`;
-    const params = {
+    const requestBody = {
       async: false,
       filetype: getFileExtension(inputPath),
-      outputtype: outputFormat,
       key: await generateKey(inputPath),
-      title: fileName
+      outputtype: outputFormat,
+      title: fileName,
+      url: fileUrl
     };
     
-    // Add query parameters
-    const queryString = Object.entries(params)
-      .map(([key, value]) => `${key}=${encodeURIComponent(value)}`)
-      .join('&');
-    
-    // Make conversion request
+    // Make conversion request with JSON body
     const response = await axios.post(
-      `${conversionUrl}?${queryString}`,
-      formData,
+      conversionUrl,
+      requestBody,
       {
-        headers: formData.getHeaders(),
+        headers: {
+          'Content-Type': 'application/json'
+        },
         timeout: 120000, // 2 minutes timeout
         maxContentLength: Infinity,
         maxBodyLength: Infinity
       }
     );
     
+    console.log('OnlyOffice response:', JSON.stringify(response.data));
+    
     if (response.data.error) {
       throw new Error(`OnlyOffice conversion error: ${response.data.error}`);
     }
     
     // Download converted file
-    const fileUrl = response.data.fileUrl || response.data.uri;
-    if (!fileUrl) {
+    const convertedFileUrl = response.data.fileUrl || response.data.uri;
+    if (!convertedFileUrl) {
       throw new Error('OnlyOffice did not return a file URL');
     }
     
     // Handle relative URLs
-    const downloadUrl = fileUrl.startsWith('http') 
-      ? fileUrl 
-      : `${ONLYOFFICE_URL}${fileUrl}`;
+    const downloadUrl = convertedFileUrl.startsWith('http') 
+      ? convertedFileUrl 
+      : `${ONLYOFFICE_URL}${convertedFileUrl}`;
+    
+    console.log(`Downloading converted file from: ${downloadUrl}`);
     
     const fileResponse = await axios.get(downloadUrl, {
       responseType: 'arraybuffer',
