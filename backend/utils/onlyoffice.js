@@ -196,20 +196,27 @@ async function convertDocument(inputPath, outputPath, outputFormat = 'pdf') {
         troubleshooting = [
           `The file URL provided to OnlyOffice: ${fileUrl}`,
           `Possible causes:`,
-          `  1. JWT Authentication: OnlyOffice has JWT enabled but requests are not signed`,
+          `  1. OnlyOffice v9+ blocks private IPs: DocumentServer v9.x blocks requests to private IP addresses by default`,
+          `     Solution: Ensure DS_ALLOW_PRIVATE_IP_ADDRESS=true is set in docker-compose.yml (should be set by default)`,
+          `     This allows OnlyOffice to access Docker internal network (172.x.x.x, 10.x.x.x, etc.)`,
+          `  2. JWT Authentication: OnlyOffice has JWT enabled but requests are not signed`,
           `     Solution: Get the JWT secret from OnlyOffice and set ONLYOFFICE_JWT_SECRET environment variable`,
           `     Check JWT status: ./get-onlyoffice-jwt-secret.sh`,
-          `  2. Network connectivity: OnlyOffice cannot reach the backend URL`,
+          `  3. Network connectivity: OnlyOffice cannot reach the backend URL`,
           `     Current BACKEND_URL: ${BACKEND_URL}`,
           `     Test: docker exec webinar-onlyoffice wget ${fileUrl}`,
-          `  3. Container name mismatch: BACKEND_URL doesn't match actual container name`,
+          `  4. Container name mismatch: BACKEND_URL doesn't match actual container name`,
           `     Check: docker-compose ps to see actual container names`,
           ``,
-          `Quick fix for JWT issue:`,
-          `  1. Run: ./get-onlyoffice-jwt-secret.sh`,
-          `  2. Copy the JWT secret shown in the output`,
-          `  3. Add to .env file: ONLYOFFICE_JWT_SECRET=<the-secret>`,
-          `  4. Restart backend: docker-compose restart backend`
+          `Quick fixes:`,
+          `  For private IP issue (v9+):`,
+          `    1. Check docker-compose.yml has: DS_ALLOW_PRIVATE_IP_ADDRESS=true`,
+          `    2. Restart OnlyOffice: docker-compose restart onlyoffice`,
+          `  For JWT issue:`,
+          `    1. Run: ./get-onlyoffice-jwt-secret.sh`,
+          `    2. Copy the JWT secret shown in the output`,
+          `    3. Add to .env file: ONLYOFFICE_JWT_SECRET=<the-secret>`,
+          `    4. Restart backend: docker-compose restart backend`
         ];
       } else if (errorCode === -3) {
         errorMessage = 'OnlyOffice conversion error (error -3)';
