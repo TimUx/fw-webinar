@@ -320,10 +320,10 @@ function createPPTXViewerHTML(pptxBase64, filename) {
           
           // Add all images if present
           if (slide.images && slide.images.length > 0) {
-            slide.images.forEach((imgSrc) => {
+            slide.images.forEach((imageDataUrl) => {
               const img = document.createElement('img');
               img.className = 'slide-image';
-              img.src = imgSrc;
+              img.src = imageDataUrl;
               slideDiv.appendChild(img);
             });
           }
