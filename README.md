@@ -14,7 +14,9 @@ Eine vollständig selbst gehostete, automatisierte Webinar- und E-Learning-Platt
 🎨 **Modernes Design** - Basierend auf fw-fragenkatalog Design  
 📱 **Responsive** - Funktioniert auf Desktop, Tablet und Mobile  
 🌐 **Deutsch** - Vollständig auf Deutsch lokalisiert  
-📄 **PDF & PPTX Support** - Import von PDF- und PowerPoint-Präsentationen
+📄 **PDF & PPTX Support** - Import von PDF- und PowerPoint-Präsentationen mit zwei Modi:
+  - Inhalts-Modus: Text und Bilder getrennt extrahieren
+  - Screenshot-Modus: Folien als Ganzes als Bild darstellen
 
 ## Dokumentation
 
@@ -179,6 +181,12 @@ Pull Requests sind willkommen!
 Design basiert auf: https://github.com/TimUx/fw-fragenkatalog
 
 ## Changelog
+
+### Version 1.4.0 (2026)
+- Neuer Screenshot-Import-Modus für Präsentationen
+- Wählbarer Import-Modus: Inhalts-Modus (Standard) oder Screenshot-Modus
+- Screenshot-Modus: Folien werden als Ganzes als Bild dargestellt
+- Extrahierter Text nur für TTS, behält exaktes Layout bei
 
 ### Version 1.3.0 (2026)
 - Migration zu TipTap WYSIWYG Editor

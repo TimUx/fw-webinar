@@ -508,6 +508,18 @@ function updatePPTXDropdown() {
     }).join('');
 }
 
+// Add event listener to show/hide import mode selection
+document.getElementById('webinarPptx').addEventListener('change', function() {
+  const importModeGroup = document.getElementById('importModeGroup');
+  if (this.value) {
+    // Show import mode selection when a file is selected
+    importModeGroup.style.display = 'block';
+  } else {
+    // Hide import mode selection when no file is selected
+    importModeGroup.style.display = 'none';
+  }
+});
+
 // ============ WEBINARS ============
 
 async function loadWebinars() {
@@ -801,6 +813,10 @@ document.getElementById('webinarForm').addEventListener('submit', async (e) => {
     const title = document.getElementById('webinarTitle').value;
     const pptxFile = document.getElementById('webinarPptx').value;
     
+    // Get import mode selection
+    const importModeRadio = document.querySelector('input[name="importMode"]:checked');
+    const importMode = importModeRadio ? importModeRadio.value : 'content';
+    
     // Collect slides - get content as TipTap JSON from editors
     const slideItems = Array.from(document.querySelectorAll('.slide-item'));
     const slides = slideItems.map((item, index) => {
@@ -839,13 +855,14 @@ document.getElementById('webinarForm').addEventListener('submit', async (e) => {
       };
     });
     
-    const data = { title, pptxFile, slides, questions };
+    const data = { title, pptxFile, slides, questions, importMode };
     
     // Show loading message if creating new webinar with PPTX but no slides
     const willAutoAnalyze = !id && pptxFile && slides.length === 0;
     if (willAutoAnalyze) {
       const fileType = getFileType(pptxFile);
-      showNotification(`Webinar wird erstellt und ${fileType} wird analysiert... Dies kann einige Sekunden dauern.`);
+      const modeText = importMode === 'screenshot' ? 'im Screenshot-Modus' : 'im Inhalts-Modus';
+      showNotification(`Webinar wird erstellt und ${fileType} wird ${modeText} analysiert... Dies kann einige Sekunden dauern.`);
     }
     
     if (id) {
@@ -862,7 +879,8 @@ document.getElementById('webinarForm').addEventListener('submit', async (e) => {
       
       // Show success message with slide count if auto-analyzed
       if (willAutoAnalyze && result.slides && result.slides.length > 0) {
-        showNotification(`Webinar erfolgreich erstellt! ${result.slides.length} Folien wurden automatisch generiert.`);
+        const modeText = importMode === 'screenshot' ? 'Screenshot-Modus' : 'Inhalts-Modus';
+        showNotification(`Webinar erfolgreich erstellt! ${result.slides.length} Folien wurden im ${modeText} generiert.`);
       } else {
         showNotification('Webinar erfolgreich erstellt');
       }

@@ -254,8 +254,27 @@ Alle administrativen Aktionen werden in `data/audit.log` protokolliert:
 
 1. Präsentationsdatei (PPTX oder PDF) im Bereich "Präsentationen" hochladen
 2. Bei Webinar-Erstellung Präsentationsdatei auswählen
-3. System konvertiert automatisch und erstellt Folien
-4. Bei fehlenden Tools (pdftoppm): Fallback auf Textextraktion
+3. **Import-Modus wählen:**
+   - **Inhalts-Modus** (Standard): Text und Bilder werden getrennt extrahiert und als formatierter Markdown-Inhalt in den Folien dargestellt
+   - **Screenshot-Modus**: Jede Folie wird als Ganzes als Bild/Screenshot in den Folien dargestellt, der extrahierte Text wird nur im TTS-Feld (Sprechernotiz) gespeichert
+4. System konvertiert automatisch und erstellt Folien
+5. Bei fehlenden Tools (pdftoppm, LibreOffice): Fallback auf Textextraktion
+
+#### Import-Modi im Detail
+
+**Inhalts-Modus** (Standard):
+- Extrahiert Text und Bilder getrennt
+- Text wird als formatierte Paragraphen dargestellt
+- Bilder werden als separate Elemente in die Folien eingefügt
+- Ermöglicht nachträgliche Bearbeitung einzelner Elemente
+- Ideal für textlastige Präsentationen
+
+**Screenshot-Modus**:
+- Konvertiert jede Folie in ein vollständiges Bild
+- Behält das exakte Aussehen der Original-Folie bei
+- Text wird nur für TTS (Text-to-Speech) extrahiert
+- Ideal für Design-intensive Präsentationen oder wenn Layout wichtig ist
+- Keine nachträgliche Textbearbeitung möglich
 
 ### Sprechernotizen für TTS
 

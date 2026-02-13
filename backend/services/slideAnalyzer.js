@@ -208,6 +208,7 @@ function removeRepetitiveImages(images, repetitiveImages) {
  * Note: The speakerNote field contains the raw extracted text and is the source
  * for both detection and filtering. After filtering, formatSlideContentAsJSON() is called
  * to regenerate the TipTap JSON content based on the filtered text and images.
+ * In screenshot mode, the content is not regenerated to preserve the screenshot.
  */
 function filterRepetitiveContent(slides) {
   if (slides.length < 2) {
@@ -236,8 +237,11 @@ function filterRepetitiveContent(slides) {
     }
 
     // Regenerate content based on filtered data
-    const text = filteredSlide.speakerNote || '';
-    filteredSlide.content = formatSlideContentAsJSON(text, filteredSlide.images);
+    // In screenshot mode, don't regenerate content (keep the screenshot)
+    if (slide.importMode !== 'screenshot') {
+      const text = filteredSlide.speakerNote || '';
+      filteredSlide.content = formatSlideContentAsJSON(text, filteredSlide.images);
+    }
 
     return filteredSlide;
   });
@@ -336,19 +340,19 @@ async function parseSlideRelationships(zip, slideIndex) {
 
 /**
  * Analyze PPTX file and extract slides with content and images
+ * @param {string} filename - The PPTX filename
+ * @param {string} webinarId - The webinar ID
+ * @param {function} onProgress - Progress callback
+ * @param {string} importMode - 'content' (default) or 'screenshot'
  */
-async function analyzePPTX(filename, webinarId, onProgress) {
+async function analyzePPTX(filename, webinarId, onProgress, importMode = 'content') {
   const filePath = path.join(UPLOADS_DIR, filename);
   const data = await fs.readFile(filePath);
   const zip = await JSZip.loadAsync(data);
   
   onProgress(10, 'PPTX-Datei geladen, analysiere Folien...');
   
-  // Extract all images first
-  const allImages = await extractImagesFromPPTX(zip, webinarId);
-  onProgress(30, `${allImages.length} Bilder extrahiert...`);
-  
-  // Find all slide files
+  // Find all slide files first to determine count
   const slideFiles = Object.keys(zip.files)
     .filter(filename => /^ppt\/slides\/slide\d+\.xml$/.test(filename))
     .sort((a, b) => {
@@ -357,7 +361,57 @@ async function analyzePPTX(filename, webinarId, onProgress) {
       return numA - numB;
     });
   
-  onProgress(40, `${slideFiles.length} Folien gefunden...`);
+  onProgress(20, `${slideFiles.length} Folien gefunden...`);
+  
+  // Screenshot mode: Convert entire slides to images
+  if (importMode === 'screenshot') {
+    onProgress(30, 'Erstelle Screenshots der Folien...');
+    
+    // Convert PPTX slides to images (throws specific errors if fails)
+    const slideImages = await extractPPTXSlideImages(filename, webinarId);
+    
+    onProgress(60, `${slideImages.length} Folien-Screenshots erstellt...`);
+    
+    // Extract text for TTS from each slide
+    const slides = [];
+    const progressPerSlide = 25 / slideFiles.length;
+    
+    for (let i = 0; i < slideFiles.length; i++) {
+      const slideFile = slideFiles[i];
+      const slideIndex = i + 1;
+      const slideXml = await zip.files[slideFile].async('string');
+      
+      // Extract text content for TTS
+      const text = extractTextFromSlideXML(slideXml);
+      
+      // Get corresponding screenshot
+      const slideImage = slideImages[i];
+      
+      if (slideImage) {
+        // Create slide with screenshot as content and text as speaker note
+        slides.push({
+          title: `Folie ${slideIndex}`,
+          content: formatSlideContentAsJSON('', [slideImage], true), // screenshot-only mode
+          speakerNote: text,
+          images: [slideImage],
+          importMode: 'screenshot'
+        });
+      }
+      
+      onProgress(60 + (progressPerSlide * (i + 1)), `Folie ${slideIndex}/${slideFiles.length} verarbeitet...`);
+    }
+    
+    onProgress(90, 'Entferne wiederkehrende Inhalte...');
+    const filteredSlides = filterRepetitiveContent(slides);
+    onProgress(95, 'Analyse abgeschlossen...');
+    
+    return filteredSlides;
+  }
+  
+  // Content mode (default): Extract text and images separately
+  // Extract all images first
+  const allImages = await extractImagesFromPPTX(zip, webinarId);
+  onProgress(40, `${allImages.length} Bilder extrahiert...`);
   
   const slides = [];
   const progressPerSlide = 50 / slideFiles.length;
@@ -388,7 +442,8 @@ async function analyzePPTX(filename, webinarId, onProgress) {
       title: `Folie ${slideIndex}`,
       content: formatSlideContentAsJSON(text, slideImages),
       speakerNote: text,
-      images: slideImages
+      images: slideImages,
+      importMode: 'content'
     });
     
     onProgress(40 + (progressPerSlide * (i + 1)), `Folie ${slideIndex}/${slideFiles.length} verarbeitet...`);
@@ -410,11 +465,36 @@ async function analyzePPTX(filename, webinarId, onProgress) {
 /**
  * Format slide content as TipTap JSON instead of HTML
  * This ensures imported PPTX/PDF content uses the same storage format as manually created slides
+ * @param {string} text - Text content
+ * @param {Array} images - Array of image objects
+ * @param {boolean} screenshotOnly - If true, only include images (no text)
  */
-function formatSlideContentAsJSON(text, images) {
+function formatSlideContentAsJSON(text, images, screenshotOnly = false) {
   const content = [];
   
-  // Add text content as TipTap nodes
+  // Add images first (especially important for screenshot mode)
+  if (images && images.length > 0) {
+    images.forEach(img => {
+      content.push({
+        type: 'image',
+        attrs: {
+          src: img.publicPath,
+          alt: 'Slide Image',
+          class: screenshotOnly ? 'img-full' : 'img-medium'
+        }
+      });
+    });
+  }
+  
+  // In screenshot mode, skip text content (text goes only to speakerNote)
+  if (screenshotOnly) {
+    return {
+      type: 'doc',
+      content: content
+    };
+  }
+  
+  // Add text content as TipTap nodes (content mode only)
   if (text) {
     const paragraphs = text.split(/\n+/).filter(p => p.trim());
     if (paragraphs.length > 0) {
@@ -436,20 +516,6 @@ function formatSlideContentAsJSON(text, images) {
         });
       });
     }
-  }
-  
-  // Add images
-  if (images && images.length > 0) {
-    images.forEach(img => {
-      content.push({
-        type: 'image',
-        attrs: {
-          src: img.publicPath,
-          alt: 'Slide Image',
-          class: 'img-medium'
-        }
-      });
-    });
   }
   
   // Return as TipTap JSON document
@@ -494,9 +560,85 @@ async function extractPDFImages(filename, webinarId) {
 }
 
 /**
- * Analyze PDF file and extract pages with images
+ * Extract PPTX slides as images using LibreOffice
  */
-async function analyzePDF(filename, webinarId, onProgress) {
+async function extractPPTXSlideImages(filename, webinarId) {
+  const pptxPath = path.join(UPLOADS_DIR, filename);
+  const imageDir = path.join(UPLOADS_DIR, webinarId);
+  const tempDir = path.join(imageDir, 'temp_conversion');
+  
+  // Create directories
+  await fs.mkdir(imageDir, { recursive: true });
+  await fs.mkdir(tempDir, { recursive: true });
+  
+  try {
+    // First convert PPTX to PDF using LibreOffice
+    try {
+      await spawnAsync(
+        'libreoffice',
+        ['--headless', '--convert-to', 'pdf', '--outdir', tempDir, pptxPath],
+        { timeout: 120000 }
+      );
+    } catch (libreofficeError) {
+      console.error('LibreOffice conversion failed:', libreofficeError);
+      throw new Error('LibreOffice konnte PPTX nicht in PDF konvertieren. Bitte stellen Sie sicher, dass LibreOffice installiert ist.');
+    }
+    
+    // Find the generated PDF
+    const files = await fs.readdir(tempDir);
+    const pdfFile = files.find(f => f.endsWith('.pdf'));
+    
+    if (!pdfFile) {
+      throw new Error('PDF-Datei wurde von LibreOffice nicht generiert');
+    }
+    
+    // Now convert PDF to images using pdftoppm
+    const pdfPath = path.join(tempDir, pdfFile);
+    const outputPrefix = path.join(imageDir, 'slide');
+    
+    try {
+      await spawnAsync('pdftoppm', [pdfPath, outputPrefix, '-png'], { timeout: 120000 });
+    } catch (pdftoppmError) {
+      console.error('pdftoppm conversion failed:', pdftoppmError);
+      throw new Error('pdftoppm konnte PDF nicht in Bilder konvertieren. Bitte stellen Sie sicher, dass pdftoppm (poppler-utils) installiert ist.');
+    }
+    
+    // Clean up temp directory
+    await fs.rm(tempDir, { recursive: true, force: true });
+    
+    // Find generated images
+    const imageFiles = (await fs.readdir(imageDir))
+      .filter(f => f.startsWith('slide') && f.endsWith('.png'))
+      .sort();
+    
+    // Return image metadata
+    return imageFiles.map((filename, index) => ({
+      originalPath: `${imageDir}/${filename}`,
+      filename: filename,
+      publicPath: `/uploads/${webinarId}/${filename}`,
+      slideNumber: index + 1
+    }));
+  } catch (error) {
+    console.error('PPTX slide image extraction error:', error);
+    // Clean up temp directory on error
+    try {
+      await fs.rm(tempDir, { recursive: true, force: true });
+    } catch (cleanupError) {
+      // Ignore cleanup errors
+    }
+    // Re-throw with the specific error message
+    throw error;
+  }
+}
+
+/**
+ * Analyze PDF file and extract pages with images
+ * @param {string} filename - The PDF filename
+ * @param {string} webinarId - The webinar ID
+ * @param {function} onProgress - Progress callback
+ * @param {string} importMode - 'content' (default) or 'screenshot'
+ */
+async function analyzePDF(filename, webinarId, onProgress, importMode = 'content') {
   const filePath = path.join(UPLOADS_DIR, filename);
   const dataBuffer = await fs.readFile(filePath);
   
@@ -527,46 +669,82 @@ async function analyzePDF(filename, webinarId, onProgress) {
     const pageText = textPages[i] || '';
     const pageImage = pdfImages.find(img => img.pageNumber === i + 1);
     
-    // Build content as TipTap JSON with image if available
+    // Build content as TipTap JSON
     let content;
-    if (pageImage) {
-      // Create TipTap JSON with image
-      content = {
-        type: 'doc',
-        content: [
-          {
-            type: 'image',
-            attrs: {
-              src: pageImage.publicPath,
-              alt: `Seite ${i + 1}`,
-              class: 'img-medium'
+    
+    // Screenshot mode: Always use full-page image, text only in speakerNote
+    if (importMode === 'screenshot') {
+      if (pageImage) {
+        content = {
+          type: 'doc',
+          content: [
+            {
+              type: 'image',
+              attrs: {
+                src: pageImage.publicPath,
+                alt: `Seite ${i + 1}`,
+                class: 'img-full' // Use full-size for screenshots
+              }
             }
-          }
-        ]
-      };
+          ]
+        };
+      } else {
+        // Fallback if image extraction failed
+        content = {
+          type: 'doc',
+          content: [
+            {
+              type: 'paragraph',
+              content: [{
+                type: 'text',
+                marks: [{ type: 'italic' }],
+                text: 'Screenshot konnte nicht erstellt werden. Bitte stellen Sie sicher, dass pdftoppm installiert ist.'
+              }]
+            }
+          ]
+        };
+      }
     } else {
-      // Fallback to text preview if image extraction failed
-      const textPreview = pageText.trim().substring(0, PDF_TEXT_PREVIEW_LENGTH);
-      content = {
-        type: 'doc',
-        content: [
-          {
+      // Content mode (default): Image + text preview
+      if (pageImage) {
+        // Create TipTap JSON with image
+        content = {
+          type: 'doc',
+          content: [
+            {
+              type: 'image',
+              attrs: {
+                src: pageImage.publicPath,
+                alt: `Seite ${i + 1}`,
+                class: 'img-medium'
+              }
+            }
+          ]
+        };
+      } else {
+        // Fallback to text preview if image extraction failed
+        const textPreview = pageText.trim().substring(0, PDF_TEXT_PREVIEW_LENGTH);
+        content = {
+          type: 'doc',
+          content: [
+            {
+              type: 'paragraph',
+              content: [{ type: 'text', text: textPreview }]
+            }
+          ]
+        };
+        
+        if (pdfImages.length === 0) {
+          // Add note about missing images
+          content.content.push({
             type: 'paragraph',
-            content: [{ type: 'text', text: textPreview }]
-          }
-        ]
-      };
-      
-      if (pdfImages.length === 0) {
-        // Add note about missing images
-        content.content.push({
-          type: 'paragraph',
-          content: [{
-            type: 'text',
-            marks: [{ type: 'italic' }],
-            text: 'Hinweis: PDF-Bilder konnten nicht extrahiert werden. Bitte stellen Sie sicher, dass pdftoppm (poppler-utils) installiert ist.'
-          }]
-        });
+            content: [{
+              type: 'text',
+              marks: [{ type: 'italic' }],
+              text: 'Hinweis: PDF-Bilder konnten nicht extrahiert werden. Bitte stellen Sie sicher, dass pdftoppm (poppler-utils) installiert ist.'
+            }]
+          });
+        }
       }
     }
     
@@ -574,7 +752,8 @@ async function analyzePDF(filename, webinarId, onProgress) {
       title: `Seite ${i + 1}`,
       content: content,
       speakerNote: pageText.trim(),
-      images: pageImage ? [pageImage] : []
+      images: pageImage ? [pageImage] : [],
+      importMode: importMode
     });
     
     onProgress(60 + (progressPerPage * (i + 1)), `Seite ${i + 1}/${pdfData.numpages} verarbeitet...`);
@@ -625,8 +804,12 @@ function escapeHtml(text) {
 
 /**
  * Main analysis function
+ * @param {string} filename - The file to analyze
+ * @param {string} webinarId - The webinar ID
+ * @param {string} sessionId - Session ID for progress tracking
+ * @param {string} importMode - 'content' (default) or 'screenshot'
  */
-async function analyzePresentation(filename, webinarId, sessionId) {
+async function analyzePresentation(filename, webinarId, sessionId, importMode = 'content') {
   const isPDF = filename.toLowerCase().endsWith('.pdf');
   
   progressTracker.create(sessionId);
@@ -643,9 +826,9 @@ async function analyzePresentation(filename, webinarId, sessionId) {
     let slides;
     
     if (isPDF) {
-      slides = await analyzePDF(filename, webinarId, onProgress);
+      slides = await analyzePDF(filename, webinarId, onProgress, importMode);
     } else {
-      slides = await analyzePPTX(filename, webinarId, onProgress);
+      slides = await analyzePPTX(filename, webinarId, onProgress, importMode);
     }
     
     progressTracker.update(sessionId, {
