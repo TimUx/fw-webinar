@@ -526,7 +526,8 @@ async function loadWebinars() {
       const statusText = isActive ? 'Aktiv' : 'Inaktiv';
       const toggleText = isActive ? 'Deaktivieren' : 'Aktivieren';
       const escapedTitle = escapeHtml(webinar.title);
-      const ariaLabel = isActive ? `Webinar "${escapedTitle}" deaktivieren` : `Webinar "${escapedTitle}" aktivieren`;
+      // Escape the entire aria-label for safe attribute usage
+      const ariaLabelText = isActive ? `Webinar ${escapedTitle} deaktivieren` : `Webinar ${escapedTitle} aktivieren`;
       
       return `
         <div class="webinar-item ${statusClass}">
@@ -536,7 +537,7 @@ async function loadWebinars() {
           <p>Fragen: ${webinar.questions?.length || 0}</p>
           <p>Erstellt: ${new Date(webinar.createdAt).toLocaleDateString('de-DE')}</p>
           <div class="webinar-actions">
-            <button onclick="toggleWebinarActive('${webinar.id}')" class="btn-toggle" aria-label="${ariaLabel}">${toggleText}</button>
+            <button onclick="toggleWebinarActive('${webinar.id}')" class="btn-toggle" aria-label="${ariaLabelText}">${toggleText}</button>
             <button onclick="editWebinar('${webinar.id}')">Bearbeiten</button>
             <button onclick="viewWebinar('${webinar.id}')" class="btn-secondary">Vorschau</button>
             <button class="btn-danger" onclick="deleteWebinar('${webinar.id}')">Löschen</button>
