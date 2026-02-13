@@ -207,49 +207,21 @@ function getCommonPresentationStyles() {
 }
 
 /**
- * Convert PPTX or PDF to HTML using OnlyOffice
+ * Convert PPTX or PDF to HTML - Legacy function
+ * Note: This function is no longer used as we now use screenshot mode for imports
+ * Kept for backwards compatibility
  */
 async function convertPPTXToHTML(pptxFilename, webinarId) {
-  const { isOnlyOfficeAvailable, convertDocument } = require('../utils/onlyoffice');
-  const pptxPath = path.join(UPLOADS_DIR, pptxFilename);
   const outputDir = path.join(SLIDES_DIR, webinarId);
   
   // Create output directory
   await fs.mkdir(outputDir, { recursive: true });
   
-  // Determine file type
-  const isPDF = pptxFilename.toLowerCase().endsWith('.pdf');
-  const fileType = isPDF ? 'PDF' : 'PPTX';
+  // Create placeholder slides
+  console.log('convertPPTXToHTML called - creating placeholder (use screenshot mode instead)');
+  await createPlaceholderSlides(pptxFilename, outputDir);
   
-  // Check if OnlyOffice is available
-  const hasOnlyOffice = await isOnlyOfficeAvailable();
-  
-  if (!hasOnlyOffice) {
-    console.log('OnlyOffice nicht verfügbar. Erstelle Platzhalter-Slides...');
-    await createPlaceholderSlides(pptxFilename, outputDir);
-    return 'slides.html';
-  }
-  
-  // Convert PPTX/PDF to HTML using OnlyOffice
-  try {
-    const htmlFilename = path.basename(pptxFilename, path.extname(pptxFilename)) + '.html';
-    const htmlPath = path.join(outputDir, htmlFilename);
-    
-    // Convert to HTML format using OnlyOffice
-    await convertDocument(pptxPath, htmlPath, 'html');
-    
-    console.log(`OnlyOffice conversion output (${fileType}): Success`);
-    
-    return htmlFilename;
-  } catch (error) {
-    console.error(`${fileType} conversion error:`, error);
-    
-    // Fallback: Create a simple placeholder if OnlyOffice conversion fails
-    console.log('OnlyOffice Konvertierung fehlgeschlagen. Erstelle Platzhalter-Slides...');
-    await createPlaceholderSlides(pptxFilename, outputDir);
-    
-    return 'slides.html';
-  }
+  return 'slides.html';
 }
 
 /**
@@ -288,8 +260,8 @@ async function convertPDFToSlides(pdfFilename, webinarId) {
   } catch (error) {
     console.error('PDF to images conversion error:', error);
     
-    // Fallback to LibreOffice conversion
-    console.log('Versuche PDF-Konvertierung mit LibreOffice...');
+    // Fallback to placeholder
+    console.log('PDF-Konvertierung fehlgeschlagen, erstelle Platzhalter...');
     return await convertPPTXToHTML(pdfFilename, webinarId);
   }
 }
@@ -371,8 +343,8 @@ async function createPlaceholderSlides(filename, outputDir) {
 <body>
   <div>
     <h1>Platzhalter-Präsentation</h1>
-    <p>Die ${fileType}-Datei "${filename}" wurde hochgeladen, aber noch nicht konvertiert.</p>
-    <p>Bitte konfigurieren Sie OnlyOffice DocumentServer für die automatische Konvertierung.</p>
+    <p>Die ${fileType}-Datei "${filename}" wurde hochgeladen.</p>
+    <p>Bitte verwenden Sie den Screenshot-Modus beim Import für die beste Darstellung.</p>
   </div>
 </body>
 </html>

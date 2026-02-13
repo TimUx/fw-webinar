@@ -35,7 +35,7 @@ Eine vollständig selbst gehostete, automatisierte Webinar- und E-Learning-Platt
 - **Text-to-Speech**: Piper TTS (Python Flask Service mit deutscher Thorsten Stimme)
 - **Authentifizierung**: JWT + bcrypt
 - **E-Mail**: Nodemailer (SMTP)
-- **PPTX/PDF-Konvertierung**: OnlyOffice DocumentServer (Container), pdftoppm für PDF
+- **PPTX/PDF-Konvertierung**: Playwright + JSZip (Browser-basiertes Rendering für Screenshot-Modus)
 - **Speicher**: Dateibasiert (JSON)
 - **Container**: Docker & Docker Compose
 
@@ -48,18 +48,14 @@ Die Plattform besteht aus zwei Hauptcontainern:
    - API-Endpunkte
    - Authentifizierung
    - Datei-Verwaltung
+   - PPTX/PDF-Konvertierung mit LibreOffice
 
 2. **tts**: Python-basierter Piper TTS Service
    - Sprachsynthese
    - Audio-Caching
    - REST-API
 
-3. **onlyoffice**: OnlyOffice DocumentServer
-   - PPTX/PDF zu PDF Konvertierung
-   - Hochwertige Dokumentenverarbeitung
-   - REST-API für Konvertierung
-
-Der TTS-Service und OnlyOffice laufen unabhängig und werden vom Backend über interne REST-APIs angesprochen.
+Der TTS-Service läuft unabhängig und wird vom Backend über interne REST-APIs angesprochen.
 
 ### Sprachausgabe mit Piper TTS
 
@@ -78,29 +74,30 @@ Die Webinar-Plattform verwendet **Piper TTS** für hochwertige, natürlich kling
 - Caching: MD5-basiertes Caching
 - API: REST-API für einfache Integration
 
-### Dokumentenkonvertierung mit OnlyOffice
+### Dokumentenkonvertierung mit Playwright
 
-Die Plattform verwendet **OnlyOffice DocumentServer** für hochwertige PPTX/PDF-Konvertierung.
+Die Plattform verwendet **Playwright** mit headless Browser-Rendering für PPTX-Konvertierung im Screenshot-Modus.
 
 **Funktionen:**
-- Bessere Folien-Darstellung als LibreOffice
-- Enterprise-Grade Dokumentenverarbeitung
+- Browser-basiertes PPTX-Rendering
+- JSZip für PPTX-Parsing direkt im Browser
+- Pixelgenaue Screenshot-Erfassung jeder Folie
+- Keine externe Software erforderlich
 - Präzise Layout-Beibehaltung
-- Unterstützung für komplexe Präsentationen
 - Selbst gehostet und datenschutzfreundlich
 
 **Technische Details:**
-- Engine: OnlyOffice DocumentServer
-- Service: Docker-Container mit eingebautem Webserver
-- API: REST-API für Konvertierung
-- Formate: PPTX, PDF, DOCX und mehr
+- Engine: Playwright (Chromium headless)
+- Parser: JSZip (JavaScript PPTX-Parser)
+- Workflow: PPTX → JSZip Parse → Browser Render → Screenshot (PNG)
+- Tools: Playwright + JSZip (CDN)
 
 ## Schnellstart
 
 ### Voraussetzungen
 
 - Docker & Docker Compose installiert
-- Mindestens 3GB RAM (2GB für OnlyOffice DocumentServer, 1GB für Backend/TTS)
+- Mindestens 1.5GB RAM (1GB für Backend/LibreOffice/TTS, 512MB für System)
 - Port 3000 verfügbar (oder anderer Port nach Wahl)
 
 ### Installation
@@ -134,60 +131,20 @@ docker-compose up -d
 
 ### Häufige Probleme
 
-**OnlyOffice Error -4 beim PPTX-Upload:**
+**PPTX-Import funktioniert nicht:**
 
-Wenn Sie beim Import von PPTX-Dateien die Fehlermeldung "OnlyOffice cannot download the source file (error -4)" erhalten:
+Wenn Sie beim Import von PPTX-Dateien im Screenshot-Modus Fehler erhalten:
 
-1. **HÄUFIGSTE URSACHE (OnlyOffice v9+) - Private IP Blocking**: OnlyOffice v9.x blockiert standardmäßig Anfragen an private IP-Adressen (Docker interne Netzwerke).
-   
-   **Schnelle Lösung**: Diese Konfiguration ist bereits in `docker-compose.yml` gesetzt über Umgebungsvariablen:
+1. **Verwenden Sie den Screenshot-Modus**: Beim Hochladen einer PPTX-Datei wählen Sie "Screenshot-Modus" für die beste Darstellung.
+
+2. **Playwright Fehler**: Falls Playwright nicht verfügbar ist, stellen Sie sicher, dass der Container korrekt gebaut wurde:
    ```bash
-   # Container neu starten (falls noch nicht geschehen)
    docker-compose down
+   docker-compose build --no-cache backend
    docker-compose up -d
    ```
-   
-   Die Umgebungsvariablen `DS_ALLOW_PRIVATE_IP_ADDRESS=true` und `DS_ALLOW_META_IP_ADDRESS=true` 
-   stellen sicher, dass OnlyOffice auf Docker-interne Netzwerke zugreifen kann.
 
-2. **Zweithäufigste Ursache - JWT-Authentifizierung**: OnlyOffice hat JWT standardmäßig aktiviert und benötigt ein JWT-Secret.
-   
-   **NEU**: Das System funktioniert jetzt automatisch mit OnlyOffices Standard-Secret als Fallback!
-   Sie sehen jedoch eine Sicherheitswarnung beim Backend-Start.
-   
-   **Für Produktivbetrieb - Sicheres Secret konfigurieren**:
-   ```bash
-   # Option 1 - Neues sicheres Secret generieren (EMPFOHLEN)
-   SECRET=$(openssl rand -hex 32)
-   echo "ONLYOFFICE_JWT_SECRET=$SECRET" >> .env
-   docker-compose restart
-   
-   # Option 2 - Vorhandenes OnlyOffice-Secret verwenden
-   ./get-onlyoffice-jwt-secret.sh
-   echo "ONLYOFFICE_JWT_SECRET=<angezeigtes-secret>" >> .env
-   docker-compose restart backend
-   ```
-   
-   **Schnelltest** (ob JWT das Problem ist):
-   ```bash
-   docker exec webinar-onlyoffice wget http://webinar-backend:3000/uploads/test.pptx
-   ```
-   Wenn wget erfolgreich ist (HTTP 200), aber Error -4 auftritt → **JWT ist das Problem!**
-
-3. **Alternative Ursache - Container-Namen**: Diskrepanz zwischen Backend-Container-Namen und `BACKEND_URL`.
-   
-   **Lösung**: 
-   ```bash
-   # Container-Namen prüfen
-   docker-compose ps
-   
-   # Wenn Ihr Backend-Container z.B. "fw-webinar-backend" heißt,
-   # passen Sie die .env Datei an:
-   BACKEND_URL=http://fw-webinar-backend:3000
-   
-   # Container neu starten
-   docker-compose restart backend
-   ```
+3. **Browser-Timeout**: Bei sehr großen PPTX-Dateien kann das Parsing länger dauern. Das System wartet bis zu 30 Sekunden.
 
 4. **Weitere Details**: Siehe [ADMINISTRATOR_GUIDE.md - Fehlerbehebung](ADMINISTRATOR_GUIDE.md#fehlerbehebung)
 
@@ -263,6 +220,19 @@ Pull Requests sind willkommen!
 Design basiert auf: https://github.com/TimUx/fw-fragenkatalog
 
 ## Changelog
+
+### Version 1.6.1 (2026)
+- Migration von LibreOffice zu Playwright + JSZip
+- Browser-basiertes PPTX-Rendering (keine externe Software)
+- Vereinfachte Abhängigkeiten
+- Schnellere Container-Builds ohne LibreOffice
+
+### Version 1.6.0 (2026)
+- Entfernung von OnlyOffice DocumentServer
+- Migration zu LibreOffice + Playwright für Screenshot-Rendering
+- Vereinfachte Architektur mit nur 2 Containern
+- Reduzierte RAM-Anforderungen (von 3GB auf 1.5GB)
+- LibreOffice direkt im Backend-Container integriert
 
 ### Version 1.5.0 (2026)
 - Migration von LibreOffice zu OnlyOffice DocumentServer
