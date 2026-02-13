@@ -368,20 +368,27 @@ router.delete('/pptx/:filename', async (req, res) => {
 router.post('/pptx/:filename/analyze', async (req, res) => {
   try {
     const { filename } = req.params;
-    const { webinarId } = req.body;
+    const { webinarId, importMode } = req.body;
     
     if (!webinarId) {
       return res.status(400).json({ error: 'Webinar-ID erforderlich' });
+    }
+    
+    // Validate importMode parameter
+    const mode = importMode || 'content';
+    if (mode !== 'content' && mode !== 'screenshot') {
+      return res.status(400).json({ error: 'Ungültiger Import-Modus. Muss "content" oder "screenshot" sein.' });
     }
     
     // Generate session ID for progress tracking
     const sessionId = `${webinarId}-${Date.now()}`;
     
     const fileType = filename.toLowerCase().endsWith('.pdf') ? 'PDF' : 'PPTX';
-    logAudit('FILE_ANALYZE', req.user.username, `${fileType} Analyse gestartet: ${filename}`);
+    const modeText = mode === 'screenshot' ? 'Screenshot-Modus' : 'Inhalts-Modus';
+    logAudit('FILE_ANALYZE', req.user.username, `${fileType} Analyse gestartet: ${filename} (${modeText})`);
     
     // Start analysis in background
-    analyzePresentation(filename, webinarId, sessionId)
+    analyzePresentation(filename, webinarId, sessionId, mode)
       .catch(error => {
         console.error('Analysis failed:', error);
       });
@@ -418,10 +425,16 @@ router.get('/webinars', async (req, res) => {
  */
 router.post('/webinars', async (req, res) => {
   try {
-    const { title, pptxFile, questions, slides } = req.body;
+    const { title, pptxFile, questions, slides, importMode } = req.body;
     
     if (!title) {
       return res.status(400).json({ error: 'Titel erforderlich' });
+    }
+    
+    // Validate importMode if provided
+    const mode = importMode || 'content';
+    if (mode !== 'content' && mode !== 'screenshot') {
+      return res.status(400).json({ error: 'Ungültiger Import-Modus. Muss "content" oder "screenshot" sein.' });
     }
     
     const webinar = {
@@ -440,11 +453,13 @@ router.post('/webinars', async (req, res) => {
       try {
         const sessionId = `${webinar.id}-${Date.now()}`;
         
-        logAudit('FILE_ANALYZE', req.user.username, `Auto-analysiere: ${pptxFile} für Webinar: ${title}`);
+        const modeText = mode === 'screenshot' ? 'Screenshot-Modus' : 'Inhalts-Modus';
+        logAudit('FILE_ANALYZE', req.user.username, `Auto-analysiere: ${pptxFile} für Webinar: ${title} (${modeText})`);
         
         // Analyze presentation to get slide metadata for the webinar object
         // This now handles both PPTX and PDF files, extracting images and text
-        const analyzedSlides = await analyzePresentation(pptxFile, webinar.id, sessionId);
+        // The importMode parameter controls whether to extract content or use screenshots
+        const analyzedSlides = await analyzePresentation(pptxFile, webinar.id, sessionId, mode);
         webinar.slides = analyzedSlides;
         
         // Generate slides presentation from analyzed data for both PPTX and PDF
