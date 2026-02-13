@@ -437,7 +437,35 @@ Dieser Fehler tritt auf, wenn OnlyOffice die Datei nicht vom Backend-Server heru
 
 **Ursachen und Lösungen:**
 
-1. **Container-Namen stimmen nicht überein** (häufigste Ursache):
+1. **JWT-Authentifizierung fehlt** (HÄUFIGSTE URSACHE):
+   - OnlyOffice DocumentServer hat standardmäßig JWT aktiviert, auch wenn `JWT_ENABLED=false` gesetzt ist
+   - Die Conversion API benötigt JWT-Tokens für alle Anfragen
+   
+   **Lösung - JWT-Secret abrufen und konfigurieren:**
+   ```bash
+   # 1. JWT-Status und Secret anzeigen
+   docker exec fw-webinar-onlyoffice sudo documentserver-jwt-status.sh
+   
+   # Ausgabe zeigt z.B.:
+   # JWT is enabled. Secret: w8KvKFsZrC1xqkN...
+   
+   # 2. Secret in .env Datei eintragen
+   echo "ONLYOFFICE_JWT_SECRET=w8KvKFsZrC1xqkN..." >> .env
+   
+   # 3. Backend-Container neu starten
+   docker-compose restart backend
+   ```
+   
+   **Testen ob JWT das Problem ist:**
+   ```bash
+   # Von OnlyOffice-Container aus die Datei herunterladen
+   docker exec fw-webinar-onlyoffice wget http://fw-webinar-backend:3000/uploads/datei.pptx
+   
+   # Wenn wget erfolgreich ist (HTTP 200), aber OnlyOffice Error -4 zeigt,
+   # dann ist JWT das Problem!
+   ```
+
+2. **Container-Namen stimmen nicht überein**:
    - Überprüfen Sie die BACKEND_URL Umgebungsvariable in `.env` oder `docker-compose.yml`
    - **Wichtig**: Der Hostname in BACKEND_URL muss mit dem tatsächlichen Backend-Container-Namen übereinstimmen
    - Beispiel: Wenn Ihr Backend-Container `fw-webinar-backend` heißt, muss BACKEND_URL `http://fw-webinar-backend:3000` sein
@@ -448,30 +476,26 @@ Dieser Fehler tritt auf, wenn OnlyOffice die Datei nicht vom Backend-Server heru
      ```
    - Dann Container neu starten: `docker-compose restart backend`
 
-2. **Container sind nicht im gleichen Netzwerk**:
+3. **Container sind nicht im gleichen Netzwerk**:
    - Überprüfen Sie `docker-compose.yml`, dass beide Container im gleichen Netzwerk sind
    - Standard-Netzwerk: `webinar-network`
 
-3. **Backend-Server läuft nicht oder ist nicht erreichbar**:
+4. **Backend-Server läuft nicht oder ist nicht erreichbar**:
    - Status prüfen: `docker-compose ps backend`
    - Logs prüfen: `docker-compose logs backend`
 
-4. **Datei existiert nicht oder ist nicht zugänglich**:
+5. **Datei existiert nicht oder ist nicht zugänglich**:
    - Prüfen Sie, ob die Datei im uploads-Verzeichnis vorhanden ist
    - Prüfen Sie Dateiberechtigungen: `ls -la uploads/`
 
 **Schnelle Diagnose:**
 
-Testen Sie die Erreichbarkeit vom Backend-Container aus (sollte HTTP 200 zurückgeben):
 ```bash
-# Container-Namen ermitteln
-docker-compose ps
+# 1. Netzwerk-Test: Kann OnlyOffice die Datei herunterladen?
+docker exec fw-webinar-onlyoffice wget http://fw-webinar-backend:3000/uploads/test.pptx
 
-# Testen vom Backend-Container aus
-docker exec <backend-container-name> curl -I http://webinar-backend:3000/api/health
-
-# Wenn Ihr Container fw-webinar-backend heißt, testen Sie mit dem richtigen Namen:
-docker exec fw-webinar-backend curl -I http://fw-webinar-backend:3000/api/health
+# Wenn HTTP 200 OK → Netzwerk funktioniert, JWT ist wahrscheinlich das Problem
+# Wenn Fehler → Netzwerk-/Container-Name-Problem
 ```
 
 **Andere OnlyOffice Error Codes:**

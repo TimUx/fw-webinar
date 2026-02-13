@@ -3,9 +3,11 @@ const fs = require('fs').promises;
 const path = require('path');
 const FormData = require('form-data');
 const crypto = require('crypto');
+const jwt = require('jsonwebtoken');
 
 const ONLYOFFICE_URL = process.env.ONLYOFFICE_URL || 'http://onlyoffice';
 const BACKEND_URL = process.env.BACKEND_URL || 'http://webinar-backend:3000';
+const ONLYOFFICE_JWT_SECRET = process.env.ONLYOFFICE_JWT_SECRET || '';
 
 /**
  * Check if OnlyOffice DocumentServer is available
@@ -38,6 +40,30 @@ async function testUrlAccessibility(url) {
       error: error.message,
       code: error.code 
     };
+  }
+}
+
+/**
+ * Generate JWT token for OnlyOffice API requests
+ * OnlyOffice requires JWT tokens for conversion API even when JWT_ENABLED=false
+ * @param {object} payload - The request payload to sign
+ * @returns {string|null} JWT token or null if no secret configured
+ */
+function generateOnlyOfficeJWT(payload) {
+  if (!ONLYOFFICE_JWT_SECRET) {
+    return null;
+  }
+  
+  try {
+    // OnlyOffice expects the token to contain the payload in a specific format
+    const token = jwt.sign(payload, ONLYOFFICE_JWT_SECRET, {
+      algorithm: 'HS256',
+      expiresIn: '5m' // Token valid for 5 minutes
+    });
+    return token;
+  } catch (error) {
+    console.error('Failed to generate OnlyOffice JWT:', error.message);
+    return null;
   }
 }
 
@@ -110,14 +136,34 @@ async function convertDocument(inputPath, outputPath, outputFormat = 'pdf') {
       url: fileUrl
     };
     
+    // Generate JWT token if secret is configured
+    // OnlyOffice requires JWT even when JWT_ENABLED=false is set
+    const token = generateOnlyOfficeJWT(requestBody);
+    if (token) {
+      // Add token to request body as per OnlyOffice API spec
+      requestBody.token = token;
+      console.log('✓ JWT token generated for OnlyOffice request');
+    } else {
+      console.log('⚠️  No OnlyOffice JWT secret configured - request may fail if JWT is enabled');
+      console.log('   Set ONLYOFFICE_JWT_SECRET environment variable if you see authentication errors');
+    }
+    
+    // Prepare headers
+    const headers = {
+      'Content-Type': 'application/json'
+    };
+    
+    // OnlyOffice also accepts token in Authorization header (alternative method)
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    
     // Make conversion request with JSON body
     const response = await axios.post(
       conversionUrl,
       requestBody,
       {
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers,
         timeout: 120000, // 2 minutes timeout
         maxContentLength: Infinity,
         maxBodyLength: Infinity
@@ -136,14 +182,21 @@ async function convertDocument(inputPath, outputPath, outputFormat = 'pdf') {
         errorMessage = 'OnlyOffice cannot download the source file (error -4)';
         troubleshooting = [
           `The file URL provided to OnlyOffice: ${fileUrl}`,
-          `OnlyOffice container needs to be able to reach this URL over HTTP`,
-          `Current BACKEND_URL: ${BACKEND_URL}`,
-          `Make sure:`,
-          `  1. The BACKEND_URL environment variable matches your backend container name`,
-          `  2. Both containers are on the same Docker network`,
-          `  3. The file exists and is readable: ${inputPath}`,
-          `  4. Check docker-compose.yml container_name matches BACKEND_URL hostname`,
-          `Example: If container_name is "fw-webinar-backend", BACKEND_URL should be "http://fw-webinar-backend:3000"`
+          `Possible causes:`,
+          `  1. JWT Authentication: OnlyOffice has JWT enabled but requests are not signed`,
+          `     Solution: Get the JWT secret from OnlyOffice and set ONLYOFFICE_JWT_SECRET environment variable`,
+          `     Check JWT status: docker exec <onlyoffice-container> sudo documentserver-jwt-status.sh`,
+          `  2. Network connectivity: OnlyOffice cannot reach the backend URL`,
+          `     Current BACKEND_URL: ${BACKEND_URL}`,
+          `     Test: docker exec <onlyoffice-container> wget ${fileUrl}`,
+          `  3. Container name mismatch: BACKEND_URL doesn't match actual container name`,
+          `     Check: docker-compose ps to see actual container names`,
+          ``,
+          `Quick fix for JWT issue:`,
+          `  1. Run: docker exec <onlyoffice-container> sudo documentserver-jwt-status.sh`,
+          `  2. Copy the JWT secret shown in the output`,
+          `  3. Add to .env file: ONLYOFFICE_JWT_SECRET=<the-secret>`,
+          `  4. Restart backend: docker-compose restart backend`
         ];
       } else if (errorCode === -3) {
         errorMessage = 'OnlyOffice conversion error (error -3)';
