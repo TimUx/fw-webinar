@@ -81,7 +81,7 @@ Die Plattform verwendet **LibreOffice** für PPTX-Konvertierung im Screenshot-Mo
 **Funktionen:**
 - Zuverlässiges PPTX-Rendering mit LibreOffice Impress
 - Konvertierung über PDF als Zwischenformat
-- Hochqualitative Bildausgabe (300 DPI)
+- Hochqualitative Bildausgabe (200 DPI, FullHD-optimiert)
 - Präzise Layout-Beibehaltung
 - Selbst gehostet und datenschutzfreundlich
 

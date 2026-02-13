@@ -62,7 +62,7 @@ async function convertPPTXToImages(pptxPath, outputDir) {
     const generatedPdf = pdfFiles.find(f => f.endsWith('.pdf'));
     
     if (!generatedPdf) {
-      throw new Error('LibreOffice konnte keine PDF-Datei erstellen');
+      throw new Error('LibreOffice could not create PDF file');
     }
     
     const actualPdfPath = path.join(tempDir, generatedPdf);
@@ -79,7 +79,6 @@ async function convertPPTXToImages(pptxPath, outputDir) {
     await spawnAsync('pdftoppm', [
       '-png',
       '-r', '200',  // 200 DPI for FullHD-like resolution (~1920px width for 10" slides)
-      '-jpegopt', 'quality=95',  // High quality JPEG compression
       actualPdfPath,
       outputPrefix
     ], { timeout: 120000 });
