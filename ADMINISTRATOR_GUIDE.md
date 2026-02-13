@@ -492,7 +492,7 @@ Dieser Fehler tritt auf, wenn OnlyOffice die Datei nicht vom Backend-Server heru
 
 ```bash
 # 1. Netzwerk-Test: Kann OnlyOffice die Datei herunterladen?
-docker exec fw-webinar-onlyoffice wget http://fw-webinar-backend:3000/uploads/test.pptx
+docker exec webinar-onlyoffice wget http://webinar-backend:3000/uploads/test.pptx
 
 # Wenn HTTP 200 OK → Netzwerk funktioniert, JWT ist wahrscheinlich das Problem
 # Wenn Fehler → Netzwerk-/Container-Name-Problem

@@ -142,7 +142,7 @@ Wenn Sie beim Import von PPTX-Dateien die Fehlermeldung "OnlyOffice cannot downl
    
    **Schnelltest**: Kann OnlyOffice die Datei herunterladen?
    ```bash
-   docker exec fw-webinar-onlyoffice wget http://fw-webinar-backend:3000/uploads/test.pptx
+   docker exec webinar-onlyoffice wget http://webinar-backend:3000/uploads/test.pptx
    ```
    
    Wenn wget erfolgreich ist (HTTP 200), aber Error -4 auftritt → **JWT ist das Problem!**
