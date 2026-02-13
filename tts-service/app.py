@@ -43,28 +43,28 @@ def download_model(quality='medium'):
     model_name = f'de_DE-thorsten-{quality}'
     
     try:
-        print(f"Downloading {quality} quality model using piper.download_voices...")
+        print(f"Downloading {quality} quality model using piper.download...")
         
-        # Use piper's built-in download tool
-        result = subprocess.run(
-            ['python3', '-m', 'piper.download_voices', '--data-dir', MODELS_DIR, model_name],
-            capture_output=True,
-            text=True,
-            timeout=300  # 5 minutes timeout for download
+        from piper.download import ensure_voice_exists, get_voices
+        
+        # Get voice information
+        voices_info = get_voices(MODELS_DIR)
+        
+        # Download the voice
+        ensure_voice_exists(
+            name=model_name,
+            data_dirs=[MODELS_DIR],
+            download_dir=MODELS_DIR,
+            voices_info=voices_info
         )
         
-        if result.returncode == 0:
-            print(f"Successfully downloaded {model_name}")
-            return True
-        else:
-            print(f"Error downloading {model_name}: {result.stderr}")
-            return False
+        print(f"Successfully downloaded {model_name}")
+        return True
             
-    except subprocess.TimeoutExpired:
-        print(f"Timeout while downloading {quality} model")
-        return False
     except Exception as e:
         print(f"Error downloading {quality} model: {e}")
+        import traceback
+        traceback.print_exc()
         return False
 
 def ensure_models_available():
@@ -319,10 +319,10 @@ if __name__ == '__main__':
         print("✓ Piper TTS models are available")
     else:
         print("⚠ WARNING: Piper TTS models could not be downloaded automatically.")
-        print("  Please download models manually using:")
-        print("  python3 -m piper.download_voices --data-dir", MODELS_DIR, "de_DE-thorsten-medium")
-        print("  python3 -m piper.download_voices --data-dir", MODELS_DIR, "de_DE-thorsten-high")
-        print("\n  Service will return errors until models are available.")
+        print("  Models will be downloaded on first request if internet access is available.")
+        print("  Or download models manually using:")
+        print("  python3 -c \"from piper.download import ensure_voice_exists, get_voices; voices=get_voices('/app/models'); ensure_voice_exists('de_DE-thorsten-medium', ['/app/models'], '/app/models', voices)\"")
+        print("\n  Service will attempt to download models on first request.")
     
     # Start Flask server
     print("\nStarting Flask server...")
