@@ -14,7 +14,7 @@ if (!ONLYOFFICE_JWT_SECRET) {
   console.warn('⚠️  ONLYOFFICE_JWT_SECRET is not configured!');
   console.warn('   OnlyOffice DocumentServer has JWT enabled by default.');
   console.warn('   PPTX/PDF conversion will likely fail without proper JWT configuration.');
-  console.warn('   To fix: Run "docker exec fw-webinar-onlyoffice sudo documentserver-jwt-status.sh"');
+  console.warn('   To fix: Run "./get-onlyoffice-jwt-secret.sh"');
   console.warn('   Then add the secret to your .env file: ONLYOFFICE_JWT_SECRET=<secret>');
 }
 
@@ -156,7 +156,7 @@ async function convertDocument(inputPath, outputPath, outputFormat = 'pdf') {
       console.error('⚠️  WARNING: No OnlyOffice JWT secret configured!');
       console.error('   OnlyOffice conversion will likely fail with error -4');
       console.error('   To fix:');
-      console.error('     1. Run: docker exec fw-webinar-onlyoffice sudo documentserver-jwt-status.sh');
+      console.error('     1. Run: ./get-onlyoffice-jwt-secret.sh');
       console.error('     2. Add secret to .env: ONLYOFFICE_JWT_SECRET=<the-secret>');
       console.error('     3. Restart: docker-compose restart backend');
     }
@@ -198,15 +198,15 @@ async function convertDocument(inputPath, outputPath, outputFormat = 'pdf') {
           `Possible causes:`,
           `  1. JWT Authentication: OnlyOffice has JWT enabled but requests are not signed`,
           `     Solution: Get the JWT secret from OnlyOffice and set ONLYOFFICE_JWT_SECRET environment variable`,
-          `     Check JWT status: docker exec fw-webinar-onlyoffice sudo documentserver-jwt-status.sh`,
+          `     Check JWT status: ./get-onlyoffice-jwt-secret.sh`,
           `  2. Network connectivity: OnlyOffice cannot reach the backend URL`,
           `     Current BACKEND_URL: ${BACKEND_URL}`,
-          `     Test: docker exec fw-webinar-onlyoffice wget ${fileUrl}`,
+          `     Test: docker exec webinar-onlyoffice wget ${fileUrl}`,
           `  3. Container name mismatch: BACKEND_URL doesn't match actual container name`,
           `     Check: docker-compose ps to see actual container names`,
           ``,
           `Quick fix for JWT issue:`,
-          `  1. Run: docker exec fw-webinar-onlyoffice sudo documentserver-jwt-status.sh`,
+          `  1. Run: ./get-onlyoffice-jwt-secret.sh`,
           `  2. Copy the JWT secret shown in the output`,
           `  3. Add to .env file: ONLYOFFICE_JWT_SECRET=<the-secret>`,
           `  4. Restart backend: docker-compose restart backend`

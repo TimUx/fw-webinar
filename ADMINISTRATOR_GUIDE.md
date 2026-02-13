@@ -444,7 +444,7 @@ Dieser Fehler tritt auf, wenn OnlyOffice die Datei nicht vom Backend-Server heru
    **Lösung - JWT-Secret abrufen und konfigurieren:**
    ```bash
    # 1. JWT-Status und Secret anzeigen
-   docker exec fw-webinar-onlyoffice sudo documentserver-jwt-status.sh
+   ./get-onlyoffice-jwt-secret.sh
    
    # Ausgabe zeigt z.B.:
    # JWT is enabled. Secret: w8KvKFsZrC1xqkN...
@@ -459,7 +459,7 @@ Dieser Fehler tritt auf, wenn OnlyOffice die Datei nicht vom Backend-Server heru
    **Testen ob JWT das Problem ist:**
    ```bash
    # Von OnlyOffice-Container aus die Datei herunterladen
-   docker exec fw-webinar-onlyoffice wget http://fw-webinar-backend:3000/uploads/datei.pptx
+   docker exec webinar-onlyoffice wget http://webinar-backend:3000/uploads/datei.pptx
    
    # Wenn wget erfolgreich ist (HTTP 200), aber OnlyOffice Error -4 zeigt,
    # dann ist JWT das Problem!

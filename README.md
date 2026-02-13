@@ -150,7 +150,7 @@ Wenn Sie beim Import von PPTX-Dateien die Fehlermeldung "OnlyOffice cannot downl
    **Lösung**:
    ```bash
    # 1. JWT-Secret abrufen
-   docker exec fw-webinar-onlyoffice sudo documentserver-jwt-status.sh
+   ./get-onlyoffice-jwt-secret.sh
    
    # 2. Secret in .env eintragen
    echo "ONLYOFFICE_JWT_SECRET=<das-angezeigte-secret>" >> .env
