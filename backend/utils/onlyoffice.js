@@ -46,7 +46,15 @@ async function convertDocument(inputPath, outputPath, outputFormat = 'pdf') {
     
     // Create the URL path relative to uploads
     const relativePath = path.relative(uploadsDir, inputPath);
-    const fileUrl = `${BACKEND_URL}/uploads/${relativePath.replace(/\\/g, '/')}`;
+    
+    // Security: Prevent path traversal attacks
+    if (relativePath.startsWith('..') || relativePath.includes('../')) {
+      throw new Error(`Invalid file path: path traversal detected in ${relativePath}`);
+    }
+    
+    // Encode the path properly for URL
+    const encodedPath = relativePath.split(path.sep).map(encodeURIComponent).join('/');
+    const fileUrl = `${BACKEND_URL}/uploads/${encodedPath}`;
     
     console.log(`OnlyOffice conversion: ${fileUrl} -> ${outputFormat}`);
     
