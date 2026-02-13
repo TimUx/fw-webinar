@@ -80,9 +80,9 @@ services:
       retries: 3
       start_period: 120s
 
-  # LibreOffice for PPTX conversion
-  # Note: LibreOffice is now installed directly in the backend container
-  # This separate service is no longer needed and can be removed
+  # Legacy LibreOffice service - REMOVED
+  # Note: LibreOffice has been replaced with OnlyOffice DocumentServer
+  # OnlyOffice provides better slide rendering and more reliable conversion
   # libreoffice:
   #   image: linuxserver/libreoffice:latest
   #   container_name: webinar-libreoffice
