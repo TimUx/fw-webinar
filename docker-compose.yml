@@ -18,9 +18,6 @@ services:
       - SLIDES_DIR=/app/slides
       - ASSETS_DIR=/app/assets
       - TTS_SERVICE_URL=http://tts:5000
-      - ONLYOFFICE_URL=http://onlyoffice
-      - ONLYOFFICE_JWT_SECRET=${ONLYOFFICE_JWT_SECRET:-}
-      - BACKEND_URL=http://webinar-backend:3000
     volumes:
       - ./data:/app/data
       - ./uploads:/app/uploads
@@ -30,7 +27,6 @@ services:
       - webinar-network
     depends_on:
       - tts
-      - onlyoffice
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/api/health"]
       interval: 30s
@@ -62,59 +58,6 @@ services:
       retries: 3
       start_period: 60s
 
-  # OnlyOffice DocumentServer for PPTX/PDF conversion
-  onlyoffice:
-    image: onlyoffice/documentserver:latest
-    container_name: webinar-onlyoffice
-    restart: unless-stopped
-    environment:
-      # JWT Configuration
-      # Note: JWT_ENABLED=false only disables JWT for document editing API
-      # The conversion API still requires JWT tokens regardless of this setting
-      - JWT_ENABLED=false
-      # IMPORTANT: You must configure JWT_SECRET for conversion API to work
-      # If not set, OnlyOffice will generate a random secret at startup
-      # Run ./get-onlyoffice-jwt-secret.sh to retrieve the secret after first start
-      - JWT_SECRET=${ONLYOFFICE_JWT_SECRET:-}
-      # Network Configuration
-      # Allow OnlyOffice to access private IP addresses (Docker internal networks)
-      # Required for v9.x which blocks private IPs by default (RFC 1918)
-      # Without this, conversion API returns error -4 when downloading from backend
-      - DS_ALLOW_PRIVATE_IP_ADDRESS=true
-      # Allow requests to metadata IP addresses (169.254.x.x)
-      # This ensures maximum compatibility with Docker networking
-      - DS_ALLOW_META_IP_ADDRESS=true
-    volumes:
-      - onlyoffice-data:/var/www/onlyoffice/Data
-      - onlyoffice-logs:/var/log/onlyoffice
-    tmpfs:
-      - /var/www/onlyoffice/Data/certs:mode=700
-    networks:
-      - webinar-network
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost/healthcheck"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 120s
-
-  # Legacy LibreOffice service - REMOVED
-  # Note: LibreOffice has been replaced with OnlyOffice DocumentServer
-  # OnlyOffice provides better slide rendering and more reliable conversion
-  # libreoffice:
-  #   image: linuxserver/libreoffice:latest
-  #   container_name: webinar-libreoffice
-  #   restart: unless-stopped
-  #   environment:
-  #     - PUID=${PUID:-1000}
-  #     - PGID=${PGID:-1000}
-  #     - TZ=Europe/Berlin
-  #   volumes:
-  #     - ./uploads:/app/uploads
-  #     - ./slides:/app/slides
-  #   networks:
-  #     - webinar-network
-
 networks:
   webinar-network:
     driver: bridge
@@ -122,5 +65,3 @@ networks:
 volumes:
   tts-cache:
   tts-models:
-  onlyoffice-data:
-  onlyoffice-logs:

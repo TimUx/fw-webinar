@@ -577,17 +577,18 @@ async function isCommandAvailable(command) {
 }
 
 /**
- * Extract PPTX slides as images using OnlyOffice DocumentServer
+ * Extract PPTX slides as images using LibreOffice and pdftoppm
+ * Alternative to OnlyOffice using open-source tools
  */
 async function extractPPTXSlideImages(filename, webinarId) {
-  const { isOnlyOfficeAvailable, convertDocument } = require('../utils/onlyoffice');
+  const { isLibreOfficeAvailable, convertPPTXViaPDF } = require('../utils/playwright-renderer');
   
   // Check if required dependencies are available
-  const hasOnlyOffice = await isOnlyOfficeAvailable();
+  const hasLibreOffice = await isLibreOfficeAvailable();
   const hasPdftoppm = await isCommandAvailable('pdftoppm');
   
-  if (!hasOnlyOffice) {
-    throw new Error('OnlyOffice DocumentServer ist nicht verfügbar. Bitte stellen Sie sicher, dass der OnlyOffice-Container läuft.');
+  if (!hasLibreOffice) {
+    throw new Error('LibreOffice ist nicht installiert. Bitte installieren Sie LibreOffice für PPTX-Konvertierung im Screenshot-Modus.');
   }
   
   if (!hasPdftoppm) {
@@ -596,57 +597,20 @@ async function extractPPTXSlideImages(filename, webinarId) {
   
   const pptxPath = path.join(UPLOADS_DIR, filename);
   const imageDir = path.join(UPLOADS_DIR, webinarId);
-  const tempDir = path.join(imageDir, 'temp_conversion');
-  
-  // Create directories
-  await fs.mkdir(imageDir, { recursive: true });
-  await fs.mkdir(tempDir, { recursive: true });
   
   try {
-    // First convert PPTX to PDF using OnlyOffice
-    const pdfFilename = path.basename(filename, path.extname(filename)) + '.pdf';
-    const pdfPath = path.join(tempDir, pdfFilename);
+    // Convert PPTX to images via PDF using LibreOffice
+    const images = await convertPPTXViaPDF(pptxPath, imageDir);
     
-    try {
-      await convertDocument(pptxPath, pdfPath, 'pdf');
-    } catch (onlyofficeError) {
-      console.error('OnlyOffice conversion failed:', onlyofficeError);
-      throw new Error('OnlyOffice konnte PPTX nicht in PDF konvertieren. Bitte stellen Sie sicher, dass der OnlyOffice-Container läuft.');
-    }
-    
-    // Now convert PDF to images using pdftoppm
-    const outputPrefix = path.join(imageDir, 'slide');
-    
-    try {
-      await spawnAsync('pdftoppm', [pdfPath, outputPrefix, '-png'], { timeout: 120000 });
-    } catch (pdftoppmError) {
-      console.error('pdftoppm conversion failed:', pdftoppmError);
-      throw new Error('pdftoppm konnte PDF nicht in Bilder konvertieren. Bitte stellen Sie sicher, dass pdftoppm (poppler-utils) installiert ist.');
-    }
-    
-    // Clean up temp directory
-    await fs.rm(tempDir, { recursive: true, force: true });
-    
-    // Find generated images
-    const imageFiles = (await fs.readdir(imageDir))
-      .filter(f => f.startsWith('slide') && f.endsWith('.png'))
-      .sort();
-    
-    // Return image metadata
-    return imageFiles.map((filename, index) => ({
-      originalPath: `${imageDir}/${filename}`,
-      filename: filename,
-      publicPath: `/uploads/${webinarId}/${filename}`,
-      slideNumber: index + 1
+    // Return image metadata in the expected format
+    return images.map((img) => ({
+      originalPath: img.path,
+      filename: img.filename,
+      publicPath: `/uploads/${webinarId}/${img.filename}`,
+      slideNumber: img.slideNumber
     }));
   } catch (error) {
     console.error('PPTX slide image extraction error:', error);
-    // Clean up temp directory on error
-    try {
-      await fs.rm(tempDir, { recursive: true, force: true });
-    } catch (cleanupError) {
-      // Ignore cleanup errors
-    }
     // Re-throw with the specific error message
     throw error;
   }
