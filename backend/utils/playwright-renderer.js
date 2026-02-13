@@ -115,13 +115,10 @@ async function convertPPTXToImages(pptxPath, outputDir) {
 }
 
 /**
- * Create HTML viewer for PPTX file using Microsoft Office Online Viewer
- * This uses GitHub's PPTX viewer approach via iframe
+ * Create HTML viewer for PPTX file that properly renders slides with images
+ * Extracts images and text from PPTX and displays them as close to the original as possible
  */
 function createPPTXViewerHTML(pptxBase64, filename) {
-  // Create a viewer using Microsoft Office Online Viewer
-  // We'll use the data URL approach to embed the PPTX file
-  
   return `
 <!DOCTYPE html>
 <html>
@@ -155,19 +152,32 @@ function createPPTXViewerHTML(pptxBase64, filename) {
       top: 0;
       left: 0;
       background: white;
-      justify-content: center;
-      align-items: center;
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
     }
     .slide.active {
-      display: flex;
+      display: block;
     }
-    .slide-content {
+    .slide-image {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display: block;
+    }
+    .slide-text {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
       padding: 60px;
       font-family: Arial, sans-serif;
-      font-size: 32px;
-      text-align: left;
+      font-size: 48px;
+      text-align: center;
       max-width: 90%;
       word-wrap: break-word;
+      color: #000;
+      text-shadow: 0 0 10px rgba(255,255,255,0.8);
     }
     #loading {
       width: 100%;
@@ -188,10 +198,11 @@ function createPPTXViewerHTML(pptxBase64, filename) {
   </div>
   
   <script>
-    // Parse PPTX and render slides
+    // Parse PPTX and render slides with images
     const pptxData = '${pptxBase64}';
     let slides = [];
     let currentSlideIndex = 0;
+    let imageCache = {};
     
     async function loadPPTX() {
       try {
@@ -205,9 +216,25 @@ function createPPTXViewerHTML(pptxBase64, filename) {
         // Load PPTX as ZIP
         const zip = await JSZip.loadAsync(bytes);
         
+        // Extract all images from PPTX
+        console.log('Extracting images from PPTX...');
+        const imageFiles = Object.keys(zip.files).filter(name => 
+          name.startsWith('ppt/media/') && /\\.(png|jpg|jpeg|gif|svg)$/i.test(name)
+        );
+        
+        for (const imagePath of imageFiles) {
+          const imageData = await zip.files[imagePath].async('base64');
+          const ext = imagePath.match(/\\.(\\w+)$/)[1].toLowerCase();
+          const mimeType = ext === 'png' ? 'image/png' : 
+                          ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg' :
+                          ext === 'gif' ? 'image/gif' : 'image/svg+xml';
+          imageCache[imagePath] = 'data:' + mimeType + ';base64,' + imageData;
+          console.log('Extracted image:', imagePath);
+        }
+        
         // Find all slide files
         const slideFiles = Object.keys(zip.files)
-          .filter(name => name.match(/ppt\\/slides\\/slide\\d+\\.xml/))
+          .filter(name => name.match(/ppt\\/slides\\/slide\\d+\\.xml$/))
           .sort((a, b) => {
             const numA = parseInt(a.match(/slide(\\d+)/)[1]);
             const numB = parseInt(b.match(/slide(\\d+)/)[1]);
@@ -216,9 +243,45 @@ function createPPTXViewerHTML(pptxBase64, filename) {
         
         console.log('Found', slideFiles.length, 'slides');
         
-        // Extract slide content
-        for (const slideFile of slideFiles) {
+        // Extract slide content and relationships
+        for (let i = 0; i < slideFiles.length; i++) {
+          const slideFile = slideFiles[i];
+          const slideIndex = i + 1;
           const slideXml = await zip.files[slideFile].async('string');
+          
+          // Parse slide relationships to map image references
+          const relsPath = 'ppt/slides/_rels/slide' + slideIndex + '.xml.rels';
+          const relationships = {};
+          
+          if (zip.files[relsPath]) {
+            const relsXml = await zip.files[relsPath].async('string');
+            const relMatches = relsXml.match(/<Relationship[^>]*>/g) || [];
+            
+            relMatches.forEach(match => {
+              const idMatch = match.match(/Id="([^"]+)"/);
+              const targetMatch = match.match(/Target="([^"]+)"/);
+              
+              if (idMatch && targetMatch) {
+                const id = idMatch[1];
+                const target = targetMatch[1].replace(/\\.\\.\\\//g, 'ppt/');
+                relationships[id] = target;
+              }
+            });
+          }
+          
+          // Extract image references from slide
+          const imageRefs = [];
+          const blipMatches = slideXml.match(/r:embed="([^"]+)"/g) || [];
+          
+          blipMatches.forEach(match => {
+            const refId = match.replace(/r:embed="|"/g, '');
+            if (relationships[refId]) {
+              const imagePath = relationships[refId];
+              if (imageCache[imagePath]) {
+                imageRefs.push(imageCache[imagePath]);
+              }
+            }
+          });
           
           // Extract text content from slide XML
           const textMatches = slideXml.match(/<a:t>([^<]*)<\\/a:t>/g) || [];
@@ -226,9 +289,18 @@ function createPPTXViewerHTML(pptxBase64, filename) {
             return match.replace(/<a:t>|<\\/a:t>/g, '');
           });
           
+          // Extract background color if present
+          let bgColor = 'white';
+          const bgColorMatch = slideXml.match(/<a:srgbClr val="([^"]+)"/);
+          if (bgColorMatch) {
+            bgColor = '#' + bgColorMatch[1];
+          }
+          
           slides.push({
             file: slideFile,
             text: texts.join(' '),
+            images: imageRefs,
+            backgroundColor: bgColor,
             xml: slideXml
           });
         }
@@ -241,12 +313,22 @@ function createPPTXViewerHTML(pptxBase64, filename) {
           const slideDiv = document.createElement('div');
           slideDiv.className = 'slide' + (index === 0 ? ' active' : '');
           slideDiv.id = 'slide-' + index;
+          slideDiv.style.backgroundColor = slide.backgroundColor;
           
-          const content = document.createElement('div');
-          content.className = 'slide-content';
-          content.textContent = slide.text || 'Slide ' + (index + 1);
+          // Add images if present - use first image as main slide image
+          if (slide.images && slide.images.length > 0) {
+            const img = document.createElement('img');
+            img.className = 'slide-image';
+            img.src = slide.images[0];
+            slideDiv.appendChild(img);
+          } else if (slide.text) {
+            // Only show text if no images (fallback)
+            const textDiv = document.createElement('div');
+            textDiv.className = 'slide-text';
+            textDiv.textContent = slide.text || 'Slide ' + (index + 1);
+            slideDiv.appendChild(textDiv);
+          }
           
-          slideDiv.appendChild(content);
           container.appendChild(slideDiv);
         });
         
@@ -276,6 +358,7 @@ function createPPTXViewerHTML(pptxBase64, filename) {
         };
         
         console.log('PPTX loaded successfully. Total slides:', window.slideCount);
+        console.log('Images extracted:', Object.keys(imageCache).length);
         
       } catch (error) {
         console.error('Error loading PPTX:', error);
