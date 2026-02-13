@@ -548,23 +548,23 @@ router.put('/webinars/:id/toggle-active', async (req, res) => {
   try {
     const { id } = req.params;
     
-    const data = await webinarsStorage.update(data => {
-      if (!data.webinars) data.webinars = [];
-      const index = data.webinars.findIndex(w => w.id === id);
+    const updatedData = await webinarsStorage.update(storageData => {
+      if (!storageData.webinars) storageData.webinars = [];
+      const index = storageData.webinars.findIndex(w => w.id === id);
       
       if (index === -1) {
         throw new Error('Webinar nicht gefunden');
       }
       
       // Toggle isActive status (default to true if not set)
-      const currentStatus = data.webinars[index].isActive !== false;
-      data.webinars[index].isActive = !currentStatus;
-      data.webinars[index].updatedAt = new Date().toISOString();
+      const currentStatus = storageData.webinars[index].isActive !== false;
+      storageData.webinars[index].isActive = !currentStatus;
+      storageData.webinars[index].updatedAt = new Date().toISOString();
       
-      return data;
+      return storageData;
     });
     
-    const webinar = data.webinars.find(w => w.id === id);
+    const webinar = updatedData.webinars.find(w => w.id === id);
     const statusText = webinar.isActive ? 'aktiviert' : 'deaktiviert';
     logAudit('WEBINAR_TOGGLE', req.user.username, `Webinar ${statusText}: ${webinar.title}`);
     

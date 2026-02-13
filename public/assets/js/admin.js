@@ -513,6 +513,7 @@ async function loadWebinars() {
       const statusClass = isActive ? 'active' : 'inactive';
       const statusText = isActive ? 'Aktiv' : 'Inaktiv';
       const toggleText = isActive ? 'Deaktivieren' : 'Aktivieren';
+      const ariaLabel = isActive ? `Webinar "${webinar.title}" deaktivieren` : `Webinar "${webinar.title}" aktivieren`;
       
       return `
         <div class="webinar-item ${statusClass}">
@@ -522,7 +523,7 @@ async function loadWebinars() {
           <p>Fragen: ${webinar.questions?.length || 0}</p>
           <p>Erstellt: ${new Date(webinar.createdAt).toLocaleDateString('de-DE')}</p>
           <div class="webinar-actions">
-            <button onclick="toggleWebinarActive('${webinar.id}')" class="btn-toggle">${toggleText}</button>
+            <button onclick="toggleWebinarActive('${webinar.id}')" class="btn-toggle" aria-label="${ariaLabel}">${toggleText}</button>
             <button onclick="editWebinar('${webinar.id}')">Bearbeiten</button>
             <button onclick="viewWebinar('${webinar.id}')" class="btn-secondary">Vorschau</button>
             <button class="btn-danger" onclick="deleteWebinar('${webinar.id}')">Löschen</button>
