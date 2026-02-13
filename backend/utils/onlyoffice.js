@@ -12,6 +12,10 @@ const BACKEND_URL = process.env.BACKEND_URL || 'http://webinar-backend:3000';
 // Priority order:
 // 1. ONLYOFFICE_JWT_SECRET from environment (custom secret)
 // 2. Fall back to OnlyOffice default secret for compatibility
+// 
+// Note: OnlyOffice DocumentServer uses "verysecretstring" as the default JWT secret
+// when JWT_SECRET is not provided. This has been consistent across OnlyOffice v7.x - v9.x.
+// Reference: https://api.onlyoffice.com/editors/signature/
 const ONLYOFFICE_DEFAULT_SECRET = 'verysecretstring'; // OnlyOffice's default JWT secret
 const ONLYOFFICE_JWT_SECRET = process.env.ONLYOFFICE_JWT_SECRET || ONLYOFFICE_DEFAULT_SECRET;
 
@@ -179,9 +183,13 @@ async function convertDocument(inputPath, outputPath, outputFormat = 'pdf') {
         console.log('✓ JWT token generated for OnlyOffice request (using default secret)');
       }
     } else {
-      // This should not happen since we have a fallback, but keep for safety
+      // This should rarely happen since we have a fallback, but could occur if:
+      // - JWT library fails (e.g., memory issues)
+      // - Payload is malformed
+      // Keep this for defensive programming
       console.error('⚠️  CRITICAL: Failed to generate OnlyOffice JWT token!');
       console.error('   OnlyOffice conversion will likely fail with error -4');
+      console.error('   Check if jsonwebtoken library is working correctly');
     }
     
     // Prepare headers
@@ -230,7 +238,8 @@ async function convertDocument(inputPath, outputPath, outputFormat = 'pdf') {
           `     OnlyOffice container may have generated its own random secret if not configured`,
           `  3. Network connectivity: OnlyOffice cannot reach the backend URL`,
           `     Current BACKEND_URL: ${BACKEND_URL}`,
-          `     Test: docker exec <onlyoffice-container> wget ${fileUrl}`,
+          `     Test: docker exec webinar-onlyoffice wget ${fileUrl}`,
+          `     (Use your actual OnlyOffice container name if different)`,
           `  4. Container name mismatch: BACKEND_URL doesn't match actual container name`,
           `     Check: docker-compose ps to see actual container names`,
           ``,
