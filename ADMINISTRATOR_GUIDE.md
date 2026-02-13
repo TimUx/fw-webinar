@@ -442,26 +442,69 @@ Dieser Fehler tritt auf, wenn OnlyOffice die Datei nicht vom Backend-Server heru
    - Docker interne Netzwerke verwenden private IP-Bereiche (172.x.x.x, 10.x.x.x, 192.168.x.x)
    - Ohne Konfiguration kann OnlyOffice nicht auf Backend-Container zugreifen
    
-   **Lösung - DS_ALLOW_PRIVATE_IP_ADDRESS aktivieren:**
-   Die Umgebungsvariable ist bereits in der mitgelieferten `docker-compose.yml` konfiguriert:
+   **Lösung - local.json Konfigurationsdatei (EMPFOHLEN für v9+):**
+   Die mitgelieferte `onlyoffice-local.json` ist bereits in `docker-compose.yml` eingebunden:
    ```yaml
    onlyoffice:
      environment:
        - DS_ALLOW_PRIVATE_IP_ADDRESS=true
+     volumes:
+       - ./onlyoffice-local.json:/etc/onlyoffice/documentserver/local.json:ro
    ```
    
-   **Falls Sie eine ältere Version verwenden:**
-   ```bash
-   # 1. docker-compose.yml bearbeiten und die Zeile hinzufügen
-   #    unter onlyoffice -> environment:
-   #    - DS_ALLOW_PRIVATE_IP_ADDRESS=true
+   Die `onlyoffice-local.json` Datei enthält die notwendige OnlyOffice-Konfiguration mit:
+   ```json
+   {
+     "services": {
+       "CoAuthoring": {
+         "token": {
+           "enable": {
+             "request": {
+               "inbox": false,
+               "outbox": false
+             },
+             "browser": false
+           }
+         },
+         "secret": {
+           "inbox": {
+             "string": "secret"
+           },
+           "outbox": {
+             "string": "secret"
+           },
+           "session": {
+             "string": "secret"
+           }
+         },
+         "request-filtering-agent": {
+           "allowPrivateIPAddress": true,
+           "allowMetaIPAddress": true
+         }
+       }
+     },
+     "rabbitmq": {
+       "url": "amqp://guest:guest@localhost"
+     }
+   }
+   ```
    
-   # 2. Container neu starten
+   **Hinweis zu den Konfigurationswerten**: Die Werte für `secret` und `rabbitmq` sind interne OnlyOffice-Standardwerte, 
+   die für die Docker-Container-Kommunikation verwendet werden. Diese sind nicht extern zugänglich und 
+   müssen in dieser Setup-Variante nicht geändert werden.
+   
+   Der wichtigste Teil für die Fehler-Behebung ist `request-filtering-agent` mit `allowPrivateIPAddress` und `allowMetaIPAddress` auf `true` gesetzt.
+   
+   **Wichtig**: Sowohl die Umgebungsvariable `DS_ALLOW_PRIVATE_IP_ADDRESS=true` als auch die 
+   `local.json` Konfiguration sind notwendig. Die Umgebungsvariable alleine reicht bei v9+ nicht aus.
+   
+   **Nach Änderungen Container neu starten:**
+   ```bash
    docker-compose down
    docker-compose up -d
    ```
    
-   **Hinweis**: Diese Einstellung ist erforderlich für OnlyOffice v9.0 und höher. Ältere Versionen benötigen sie nicht.
+   **Hinweis**: Diese Konfiguration ist erforderlich für OnlyOffice v9.0 und höher. Ältere Versionen benötigen sie nicht.
 
 2. **JWT-Authentifizierung fehlt** (ZWEITHÄUFIGSTE URSACHE):
    - OnlyOffice DocumentServer hat standardmäßig JWT aktiviert, auch wenn `JWT_ENABLED=false` gesetzt ist
