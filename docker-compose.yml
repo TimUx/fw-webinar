@@ -18,6 +18,7 @@ services:
       - SLIDES_DIR=/app/slides
       - ASSETS_DIR=/app/assets
       - TTS_SERVICE_URL=http://tts:5000
+      - ONLYOFFICE_URL=http://onlyoffice
     volumes:
       - ./data:/app/data
       - ./uploads:/app/uploads
@@ -27,6 +28,7 @@ services:
       - webinar-network
     depends_on:
       - tts
+      - onlyoffice
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/api/health"]
       interval: 30s
@@ -58,9 +60,29 @@ services:
       retries: 3
       start_period: 60s
 
-  # LibreOffice for PPTX conversion
-  # Note: LibreOffice is now installed directly in the backend container
-  # This separate service is no longer needed and can be removed
+  # OnlyOffice DocumentServer for PPTX/PDF conversion
+  onlyoffice:
+    image: onlyoffice/documentserver:latest
+    container_name: webinar-onlyoffice
+    restart: unless-stopped
+    environment:
+      - JWT_ENABLED=false
+      - JWT_SECRET=${ONLYOFFICE_JWT_SECRET:-}
+    volumes:
+      - onlyoffice-data:/var/www/onlyoffice/Data
+      - onlyoffice-logs:/var/log/onlyoffice
+    networks:
+      - webinar-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/healthcheck"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
+
+  # Legacy LibreOffice service - REMOVED
+  # Note: LibreOffice has been replaced with OnlyOffice DocumentServer
+  # OnlyOffice provides better slide rendering and more reliable conversion
   # libreoffice:
   #   image: linuxserver/libreoffice:latest
   #   container_name: webinar-libreoffice
@@ -82,3 +104,5 @@ networks:
 volumes:
   tts-cache:
   tts-models:
+  onlyoffice-data:
+  onlyoffice-logs:

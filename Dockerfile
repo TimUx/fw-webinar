@@ -4,16 +4,14 @@ WORKDIR /app
 
 # Install dependencies for PDF/PPTX conversion
 # - poppler-utils: for PDF to image conversion (pdftoppm)
-# - libreoffice: for PPTX to PDF conversion
 # - fonts-dejavu: for proper text rendering in conversions
 # - wget: for health checks
+# - curl: for OnlyOffice API communication
 RUN apt-get update && apt-get install -y --no-install-recommends \
     poppler-utils \
-    libreoffice \
-    libreoffice-writer \
-    libreoffice-impress \
     fonts-dejavu \
     wget \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy package files

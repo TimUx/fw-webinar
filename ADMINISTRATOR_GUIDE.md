@@ -169,6 +169,55 @@ docker compose build --no-cache
 docker compose up -d
 ```
 
+### Migration von LibreOffice zu OnlyOffice (Version 1.5.0+)
+
+**Wichtig**: Ab Version 1.5.0 wurde LibreOffice durch OnlyOffice DocumentServer ersetzt.
+
+**Upgrade-Schritte:**
+
+1. **Container stoppen:**
+   ```bash
+   docker compose down
+   ```
+
+2. **Code aktualisieren:**
+   ```bash
+   git pull
+   ```
+
+3. **Dependencies installieren:**
+   ```bash
+   npm install
+   ```
+
+4. **Container neu bauen (wichtig!):**
+   ```bash
+   docker compose build --no-cache
+   docker compose up -d
+   ```
+
+5. **OnlyOffice-Container überprüfen:**
+   ```bash
+   docker compose ps onlyoffice
+   docker compose logs onlyoffice
+   ```
+
+**Wichtige Hinweise:**
+- OnlyOffice benötigt ca. 2 Minuten zum Starten (initial start-up)
+- Mindestens 3GB RAM erforderlich (2GB für OnlyOffice)
+- Alte LibreOffice-Container können entfernt werden
+- Bestehende Präsentationen funktionieren weiterhin
+- Neue PPTX/PDF-Imports nutzen automatisch OnlyOffice
+
+**Rollback bei Problemen:**
+Falls OnlyOffice Probleme verursacht, können Sie temporär zum vorherigen Commit zurückkehren:
+```bash
+git checkout <vorheriger-commit-hash>
+docker compose down
+docker compose build --no-cache
+docker compose up -d
+```
+
 ### Browser-Cache leeren
 
 **Wichtig**: Der Browser cached JavaScript- und CSS-Dateien. Nach einem Update:
@@ -258,7 +307,7 @@ Alle administrativen Aktionen werden in `data/audit.log` protokolliert:
    - **Inhalts-Modus** (Standard): Text und Bilder werden getrennt extrahiert und als formatierter Markdown-Inhalt in den Folien dargestellt
    - **Screenshot-Modus**: Jede Folie wird als Ganzes als Bild/Screenshot in den Folien dargestellt, der extrahierte Text wird nur im TTS-Feld (Sprechernotiz) gespeichert
 4. System konvertiert automatisch und erstellt Folien
-5. Bei fehlenden Tools (pdftoppm, LibreOffice): Fallback auf Textextraktion
+5. Bei fehlenden Tools (pdftoppm, OnlyOffice): Fallback auf Textextraktion
 
 #### Import-Modi im Detail
 
@@ -363,22 +412,39 @@ docker-compose logs -f tts
 3. Cache-Verzeichnis überprüfen: `ls -la tts-service/cache/`
 4. Modell neu laden lassen: `docker-compose down && docker-compose up -d`
 
-### LibreOffice-Warnungen
+### OnlyOffice DocumentServer Probleme
 
-**Hinweis:** Ab Version 1.4.1 ist LibreOffice direkt im Backend-Container enthalten (läuft im Headless-Modus).
+**Hinweis:** Ab Version 1.5.0 wird OnlyOffice DocumentServer für PPTX/PDF-Konvertierung verwendet (ersetzt LibreOffice).
 
-LibreOffice läuft im Headless-Modus ohne grafische Oberfläche. Eventuelle Warnungen in den Logs sind harmlos und beeinträchtigen die PPTX-Konvertierung nicht:
-- GUI-bezogene Warnungen können ignoriert werden
-- Die Konvertierung erfolgt vollständig im Hintergrund
-- Bei Problemen: Backend-Container-Logs überprüfen mit `docker-compose logs backend`
+OnlyOffice läuft als separater Container-Service. Bei Problemen:
 
-### LibreOffice-Konvertierung fehlschlägt
+**Symptome:**
+- PPTX/PDF-Import schlägt fehl
+- Fehlermeldung "OnlyOffice DocumentServer ist nicht verfügbar"
+- Screenshot-Modus funktioniert nicht
 
-**Hinweis:** Ab Version 1.4.1 ist LibreOffice direkt im Backend-Container enthalten und muss nicht mehr separat aktiviert werden.
+**Lösungsschritte:**
+1. OnlyOffice-Container-Status überprüfen: `docker-compose ps onlyoffice`
+2. OnlyOffice-Container-Logs überprüfen: `docker-compose logs onlyoffice`
+3. OnlyOffice-Service neu starten: `docker-compose restart onlyoffice`
+4. OnlyOffice-Health-Check prüfen: `curl http://localhost/healthcheck` (aus dem Backend-Container)
+5. Sicherstellen, dass alle Container im gleichen Netzwerk sind
+6. Bei Speicherproblemen: OnlyOffice-Volumes überprüfen
 
-- Container-Logs überprüfen: `docker-compose logs backend`
-- Sicherstellen, dass der Backend-Container neu gebaut wurde: `docker-compose build backend`
-- Alternative: Manuelle Slides verwenden oder Inhalts-Modus statt Screenshot-Modus nutzen
+**Hinweise:**
+- OnlyOffice benötigt beim ersten Start bis zu 2 Minuten für die Initialisierung
+- Der Container benötigt mindestens 2GB RAM
+- OnlyOffice läuft auf Port 80 intern (nicht nach außen exponiert)
+- Alternative: Bei Problemen Inhalts-Modus statt Screenshot-Modus nutzen
+
+### Legacy LibreOffice-Hinweis
+
+**Hinweis:** LibreOffice wurde in Version 1.5.0 durch OnlyOffice DocumentServer ersetzt.
+
+Wenn Sie von einer älteren Version upgraden:
+- Der alte LibreOffice-Container ist nicht mehr nötig
+- Die LibreOffice-Pakete wurden aus dem Dockerfile entfernt
+- Bitte die Container neu bauen: `docker-compose build --no-cache`
 
 ### Berechtigungsprobleme
 
