@@ -60,7 +60,6 @@ function escapeHtml(unsafe) {
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
 }
-}
 
 // Show notification
 function showNotification(message, isError = false) {
