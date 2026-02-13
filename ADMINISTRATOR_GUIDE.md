@@ -452,7 +452,7 @@ Dieser Fehler tritt auf, wenn OnlyOffice die Datei nicht vom Backend-Server heru
        - ./onlyoffice-local.json:/etc/onlyoffice/documentserver/local.json:ro
    ```
    
-   Die `onlyoffice-local.json` Datei enthält eine vollständige OnlyOffice-Konfiguration mit:
+   Die `onlyoffice-local.json` Datei enthält die notwendige OnlyOffice-Konfiguration mit:
    ```json
    {
      "services": {
@@ -489,7 +489,11 @@ Dieser Fehler tritt auf, wenn OnlyOffice die Datei nicht vom Backend-Server heru
    }
    ```
    
-   Der wichtigste Teil ist `request-filtering-agent` mit `allowPrivateIPAddress` und `allowMetaIPAddress` auf `true` gesetzt.
+   **Hinweis zu den Konfigurationswerten**: Die Werte für `secret` und `rabbitmq` sind interne OnlyOffice-Standardwerte, 
+   die für die Docker-Container-Kommunikation verwendet werden. Diese sind nicht extern zugänglich und 
+   müssen in dieser Setup-Variante nicht geändert werden.
+   
+   Der wichtigste Teil für die Fehler-Behebung ist `request-filtering-agent` mit `allowPrivateIPAddress` und `allowMetaIPAddress` auf `true` gesetzt.
    
    **Wichtig**: Sowohl die Umgebungsvariable `DS_ALLOW_PRIVATE_IP_ADDRESS=true` als auch die 
    `local.json` Konfiguration sind notwendig. Die Umgebungsvariable alleine reicht bei v9+ nicht aus.
