@@ -132,6 +132,29 @@ docker-compose up -d
 
 **Hinweis**: Für Produktionsumgebungen siehe [ADMINISTRATOR_GUIDE.md](ADMINISTRATOR_GUIDE.md) für Reverse Proxy Konfiguration und erweiterte Einstellungen.
 
+### Häufige Probleme
+
+**OnlyOffice Error -4 beim PPTX-Upload:**
+
+Wenn Sie beim Import von PPTX-Dateien die Fehlermeldung "OnlyOffice cannot download the source file (error -4)" erhalten:
+
+1. **Container-Namen überprüfen**: Der häufigste Grund ist eine Diskrepanz zwischen dem Backend-Container-Namen und der `BACKEND_URL` Umgebungsvariable.
+   
+2. **Lösung**: 
+   ```bash
+   # Container-Namen prüfen
+   docker-compose ps
+   
+   # Wenn Ihr Backend-Container z.B. "fw-webinar-backend" heißt (nicht "webinar-backend"),
+   # passen Sie die .env Datei an:
+   BACKEND_URL=http://fw-webinar-backend:3000
+   
+   # Container neu starten
+   docker-compose restart backend
+   ```
+
+3. **Weitere Details**: Siehe [ADMINISTRATOR_GUIDE.md - Fehlerbehebung](ADMINISTRATOR_GUIDE.md#fehlerbehebung)
+
 
 ## Dateistruktur
 
