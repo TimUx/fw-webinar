@@ -25,7 +25,6 @@ Eine vollständig selbst gehostete, automatisierte Webinar- und E-Learning-Platt
 - **Text-to-Speech**: Piper TTS (Python Flask Service mit deutscher Thorsten Stimme)
 - **Authentifizierung**: JWT + bcrypt
 - **E-Mail**: Nodemailer (SMTP)
-- **Reverse Proxy**: Caddy
 - **PPTX/PDF-Konvertierung**: LibreOffice (optional), pdftoppm für PDF
 - **Speicher**: Dateibasiert (JSON)
 - **Container**: Docker & Docker Compose
@@ -36,7 +35,7 @@ Eine vollständig selbst gehostete, automatisierte Webinar- und E-Learning-Platt
 
 - Docker & Docker Compose installiert
 - Mindestens 1GB RAM
-- Port 80 und 443 verfügbar
+- Port 3000 verfügbar (oder anderer Port nach Wahl)
 
 ### Installation
 
@@ -66,12 +65,14 @@ docker-compose up -d
 ```
 
 5. **Zugriff**
-- Webinar-Frontend: http://localhost
-- Admin-Panel: http://localhost/admin/
+- Webinar-Frontend: http://localhost:3000
+- Admin-Panel: http://localhost:3000/admin/
+
+**Hinweis**: In einer Produktionsumgebung sollte ein externer Reverse Proxy (z.B. Caddy, Traefik, Nginx) vor die Anwendung geschaltet werden.
 
 ### Erstes Login
 
-1. Öffnen Sie http://localhost/admin/login.html
+1. Öffnen Sie http://localhost:3000/admin/login.html
 2. Benutzername: `admin`
 3. Passwort: Beliebiges Passwort (wird beim ersten Login gesetzt)
 
@@ -116,38 +117,22 @@ docker-compose up -d
 
 3. Test-E-Mail senden zur Überprüfung
 
+### Reverse Proxy Konfiguration (Empfohlen für Produktion)
+
+Für den Produktionseinsatz wird empfohlen, einen externen Reverse Proxy wie Caddy, Traefik oder Nginx zu verwenden. Dieser sollte:
+- HTTPS/TLS-Terminierung übernehmen
+- Den Backend-Container auf Port 3000 weiterleiten
+- Security-Header setzen
+- Kompression aktivieren (gzip/zstd)
+
+Beispiel-Konfiguration für verschiedene Reverse Proxies finden Sie in deren jeweiliger Dokumentation.
+
 ### Header und Logo anpassen
 
 1. Im Admin-Panel zu "Einstellungen" navigieren
 2. Header-Titel eingeben
 3. Logo hochladen (PNG, JPG, SVG)
 4. Speichern
-
-### Caddy für HTTPS konfigurieren
-
-Für Produktion mit HTTPS:
-
-1. `Caddyfile` bearbeiten:
-```
-your-domain.com {
-    reverse_proxy backend:3000
-    encode gzip zstd
-    
-    header {
-        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
-        X-Content-Type-Options "nosniff"
-        X-Frame-Options "SAMEORIGIN"
-        Referrer-Policy "strict-origin-when-cross-origin"
-    }
-}
-```
-
-2. Container neu starten:
-```bash
-docker-compose restart caddy
-```
-
-Caddy richtet automatisch Let's Encrypt HTTPS ein.
 
 ## Webinar erstellen
 
@@ -222,10 +207,9 @@ Die Webinar-Plattform verwendet **Coqui AI TTS** (Open Source) für hochwertige,
 
 ### Container-Architektur
 
-Die Plattform besteht aus drei Hauptcontainern:
+Die Plattform besteht aus zwei Hauptcontainern:
 - **backend**: Node.js-Anwendung (Express)
 - **tts**: Python-basierter Coqui TTS Service
-- **caddy**: Reverse Proxy für HTTPS
 
 Der TTS-Service läuft unabhängig und wird vom Backend über eine interne REST-API angesprochen.
 
@@ -298,7 +282,6 @@ fw-webminar/
 ├── assets/              # Logos, Theme-Bilder
 ├── docker-compose.yml   # Docker-Konfiguration
 ├── Dockerfile           # Backend-Container
-├── Caddyfile           # Caddy-Konfiguration
 └── README.md
 ```
 
@@ -379,23 +362,6 @@ docker compose up -d
 
 ## Fehlerbehebung
 
-### Häufige Docker-Warnungen
-
-**"version attribute is obsolete"**:
-- Falls diese Warnung erscheint, verwenden Sie eine veraltete Version der docker-compose.yml
-- Die aktuelle Version enthält kein `version`-Attribut mehr (wurde in Docker Compose v2 entfernt)
-- Aktualisieren Sie Ihre Dateien mit `git pull`
-
-**Caddy-Formatierungswarnungen**:
-- Caddy erwartet Tab-Einrückung im Caddyfile (nicht Leerzeichen)
-- Die aktuelle Version ist bereits korrekt formatiert
-- Bei Änderungen am Caddyfile: Verwenden Sie Tabs für Einrückungen
-
-**Caddy-Berechtigungsfehler** ("/config/caddy/autosave.json: permission denied"):
-- Tritt auf, wenn Caddy mit falschen Benutzerrechten läuft
-- Die aktuelle Konfiguration läuft mit Standard-Caddy-Benutzer (hat die richtigen Berechtigungen)
-- Ändern Sie nicht das `user`-Attribut im Caddy-Service
-
 ### Container starten nicht
 ```bash
 docker-compose logs -f
@@ -451,6 +417,8 @@ npm run dev
 ```
 
 4. Zugriff auf http://localhost:3000
+
+**Hinweis**: Bei lokaler Entwicklung ohne Docker ist kein Reverse Proxy erforderlich.
 
 ### Logs anzeigen
 ```bash
