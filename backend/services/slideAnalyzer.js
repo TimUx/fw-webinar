@@ -53,13 +53,13 @@ const progressTracker = new AnalysisProgress();
  */
 const REPETITIVE_CONTENT_CONFIG = {
   // Minimum percentage of slides that must contain the text to be considered repetitive
-  minOccurrencePercentage: 0.6, // 60% of slides
+  minOccurrencePercentage: 0.5, // 50% of slides (lowered from 60% to catch more repetitive content)
   // Minimum percentage for known pattern matches (lower threshold)
   minPatternOccurrencePercentage: 0.3, // 30% of slides
   // Minimum text length to be considered (ignore very short text like single characters)
   minTextLength: 3,
-  // Maximum text length to be considered (ignore very long text that's unlikely to be header/footer)
-  maxTextLength: 200,
+  // Maximum text length to be considered (increased to catch longer headers/titles)
+  maxTextLength: 300,
   // Patterns that indicate repetitive content (case-insensitive)
   repetitivePatterns: [
     /^\d+$/, // Pure numbers (page numbers)
@@ -68,6 +68,8 @@ const REPETITIVE_CONTENT_CONFIG = {
     /^\d+\s*\/\s*\d+$/, // "1/10", "2/10", etc.
     /©\s*\d{4}/, // Copyright with year
     /\d{1,2}[.\/]\d{1,2}[.\/]\d{2,4}/, // Dates
+    // Common presentation headers/titles (German)
+    /^(kurs|webinar|präsentation|schulung|training)/i,
   ]
 };
 
