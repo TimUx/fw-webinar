@@ -132,6 +132,50 @@ docker-compose up -d
 
 **Hinweis**: Für Produktionsumgebungen siehe [ADMINISTRATOR_GUIDE.md](ADMINISTRATOR_GUIDE.md) für Reverse Proxy Konfiguration und erweiterte Einstellungen.
 
+### Häufige Probleme
+
+**OnlyOffice Error -4 beim PPTX-Upload:**
+
+Wenn Sie beim Import von PPTX-Dateien die Fehlermeldung "OnlyOffice cannot download the source file (error -4)" erhalten:
+
+1. **HÄUFIGSTE URSACHE - JWT-Authentifizierung**: OnlyOffice hat JWT standardmäßig aktiviert und benötigt ein JWT-Secret.
+   
+   **Schnelltest**: Kann OnlyOffice die Datei herunterladen?
+   ```bash
+   docker exec fw-webinar-onlyoffice wget http://fw-webinar-backend:3000/uploads/test.pptx
+   ```
+   
+   Wenn wget erfolgreich ist (HTTP 200), aber Error -4 auftritt → **JWT ist das Problem!**
+   
+   **Lösung**:
+   ```bash
+   # 1. JWT-Secret abrufen
+   docker exec fw-webinar-onlyoffice sudo documentserver-jwt-status.sh
+   
+   # 2. Secret in .env eintragen
+   echo "ONLYOFFICE_JWT_SECRET=<das-angezeigte-secret>" >> .env
+   
+   # 3. Backend neu starten
+   docker-compose restart backend
+   ```
+
+2. **Alternative Ursache - Container-Namen**: Diskrepanz zwischen Backend-Container-Namen und `BACKEND_URL`.
+   
+   **Lösung**: 
+   ```bash
+   # Container-Namen prüfen
+   docker-compose ps
+   
+   # Wenn Ihr Backend-Container z.B. "fw-webinar-backend" heißt,
+   # passen Sie die .env Datei an:
+   BACKEND_URL=http://fw-webinar-backend:3000
+   
+   # Container neu starten
+   docker-compose restart backend
+   ```
+
+3. **Weitere Details**: Siehe [ADMINISTRATOR_GUIDE.md - Fehlerbehebung](ADMINISTRATOR_GUIDE.md#fehlerbehebung)
+
 
 ## Dateistruktur
 

@@ -3,9 +3,20 @@ const fs = require('fs').promises;
 const path = require('path');
 const FormData = require('form-data');
 const crypto = require('crypto');
+const jwt = require('jsonwebtoken');
 
 const ONLYOFFICE_URL = process.env.ONLYOFFICE_URL || 'http://onlyoffice';
 const BACKEND_URL = process.env.BACKEND_URL || 'http://webinar-backend:3000';
+const ONLYOFFICE_JWT_SECRET = process.env.ONLYOFFICE_JWT_SECRET || '';
+
+// Warn about missing JWT secret at startup
+if (!ONLYOFFICE_JWT_SECRET) {
+  console.warn('⚠️  ONLYOFFICE_JWT_SECRET is not configured!');
+  console.warn('   OnlyOffice DocumentServer has JWT enabled by default.');
+  console.warn('   PPTX/PDF conversion will likely fail without proper JWT configuration.');
+  console.warn('   To fix: Run "docker exec fw-webinar-onlyoffice sudo documentserver-jwt-status.sh"');
+  console.warn('   Then add the secret to your .env file: ONLYOFFICE_JWT_SECRET=<secret>');
+}
 
 /**
  * Check if OnlyOffice DocumentServer is available
@@ -17,6 +28,51 @@ async function isOnlyOfficeAvailable() {
   } catch (error) {
     console.error('OnlyOffice health check failed:', error.message);
     return false;
+  }
+}
+
+/**
+ * Test if a URL is accessible from this container
+ * This helps diagnose network connectivity issues
+ */
+async function testUrlAccessibility(url) {
+  try {
+    const response = await axios.head(url, { 
+      timeout: 5000,
+      maxRedirects: 0,
+      validateStatus: (status) => status >= 200 && status < 500 // Accept 2xx success and 4xx client errors (file exists but may need auth)
+    });
+    return { accessible: true, status: response.status };
+  } catch (error) {
+    return { 
+      accessible: false, 
+      error: error.message,
+      code: error.code 
+    };
+  }
+}
+
+/**
+ * Generate JWT token for OnlyOffice API requests
+ * OnlyOffice requires JWT tokens for conversion API even when JWT_ENABLED=false
+ * @param {object} payload - The request payload to sign
+ * @returns {string|null} JWT token or null if no secret configured
+ */
+function generateOnlyOfficeJWT(payload) {
+  if (!ONLYOFFICE_JWT_SECRET) {
+    return null;
+  }
+  
+  try {
+    // OnlyOffice expects the token to contain the payload in a specific format
+    const token = jwt.sign(payload, ONLYOFFICE_JWT_SECRET, {
+      algorithm: 'HS256',
+      expiresIn: '5m' // Token valid for 5 minutes
+    });
+    return token;
+  } catch (error) {
+    console.error('Failed to generate OnlyOffice JWT:', error.message);
+    return null;
   }
 }
 
@@ -64,6 +120,20 @@ async function convertDocument(inputPath, outputPath, outputFormat = 'pdf') {
     
     console.log(`OnlyOffice conversion: ${fileUrl} -> ${outputFormat}`);
     
+    // Test if the file URL is accessible from this container
+    // This helps diagnose issues where OnlyOffice cannot reach the backend
+    const urlTest = await testUrlAccessibility(fileUrl);
+    if (!urlTest.accessible) {
+      console.error(`⚠️  File URL is not accessible from backend container:`, urlTest);
+      console.error(`   This suggests OnlyOffice will also not be able to download the file.`);
+      console.error(`   URL: ${fileUrl}`);
+      console.error(`   Error: ${urlTest.error}`);
+      console.error(`   BACKEND_URL environment variable: ${BACKEND_URL}`);
+      console.error(`   Make sure the file exists and is accessible via HTTP.`);
+    } else {
+      console.log(`✓ File URL is accessible (HTTP ${urlTest.status})`);
+    }
+    
     // Build conversion request according to OnlyOffice API spec
     const conversionUrl = `${ONLYOFFICE_URL}/ConvertService.ashx`;
     const requestBody = {
@@ -75,14 +145,38 @@ async function convertDocument(inputPath, outputPath, outputFormat = 'pdf') {
       url: fileUrl
     };
     
+    // Generate JWT token if secret is configured
+    // OnlyOffice requires JWT even when JWT_ENABLED=false is set
+    const token = generateOnlyOfficeJWT(requestBody);
+    if (token) {
+      // Add token to request body as per OnlyOffice API spec
+      requestBody.token = token;
+      console.log('✓ JWT token generated for OnlyOffice request');
+    } else {
+      console.error('⚠️  WARNING: No OnlyOffice JWT secret configured!');
+      console.error('   OnlyOffice conversion will likely fail with error -4');
+      console.error('   To fix:');
+      console.error('     1. Run: docker exec fw-webinar-onlyoffice sudo documentserver-jwt-status.sh');
+      console.error('     2. Add secret to .env: ONLYOFFICE_JWT_SECRET=<the-secret>');
+      console.error('     3. Restart: docker-compose restart backend');
+    }
+    
+    // Prepare headers
+    const headers = {
+      'Content-Type': 'application/json'
+    };
+    
+    // OnlyOffice also accepts token in Authorization header (alternative method)
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    
     // Make conversion request with JSON body
     const response = await axios.post(
       conversionUrl,
       requestBody,
       {
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers,
         timeout: 120000, // 2 minutes timeout
         maxContentLength: Infinity,
         maxBodyLength: Infinity
@@ -92,7 +186,62 @@ async function convertDocument(inputPath, outputPath, outputFormat = 'pdf') {
     console.log('OnlyOffice response:', JSON.stringify(response.data));
     
     if (response.data.error) {
-      throw new Error(`OnlyOffice conversion error: ${response.data.error}`);
+      const errorCode = response.data.error;
+      let errorMessage = `OnlyOffice conversion error: ${errorCode}`;
+      let troubleshooting = [];
+      
+      // Provide specific guidance based on error code
+      if (errorCode === -4) {
+        errorMessage = 'OnlyOffice cannot download the source file (error -4)';
+        troubleshooting = [
+          `The file URL provided to OnlyOffice: ${fileUrl}`,
+          `Possible causes:`,
+          `  1. JWT Authentication: OnlyOffice has JWT enabled but requests are not signed`,
+          `     Solution: Get the JWT secret from OnlyOffice and set ONLYOFFICE_JWT_SECRET environment variable`,
+          `     Check JWT status: docker exec fw-webinar-onlyoffice sudo documentserver-jwt-status.sh`,
+          `  2. Network connectivity: OnlyOffice cannot reach the backend URL`,
+          `     Current BACKEND_URL: ${BACKEND_URL}`,
+          `     Test: docker exec fw-webinar-onlyoffice wget ${fileUrl}`,
+          `  3. Container name mismatch: BACKEND_URL doesn't match actual container name`,
+          `     Check: docker-compose ps to see actual container names`,
+          ``,
+          `Quick fix for JWT issue:`,
+          `  1. Run: docker exec fw-webinar-onlyoffice sudo documentserver-jwt-status.sh`,
+          `  2. Copy the JWT secret shown in the output`,
+          `  3. Add to .env file: ONLYOFFICE_JWT_SECRET=<the-secret>`,
+          `  4. Restart backend: docker-compose restart backend`
+        ];
+      } else if (errorCode === -3) {
+        errorMessage = 'OnlyOffice conversion error (error -3)';
+        troubleshooting = [
+          'The file format may not be supported by OnlyOffice',
+          'The file may be corrupted or malformed',
+          'Try opening the file in PowerPoint/Office to verify it\'s valid'
+        ];
+      } else if (errorCode === -2) {
+        errorMessage = 'OnlyOffice conversion timeout (error -2)';
+        troubleshooting = [
+          'The file may be too large to convert within the timeout period',
+          'The file may contain complex graphics or animations',
+          'Try simplifying the presentation or splitting it into smaller files'
+        ];
+      } else if (errorCode === -1) {
+        errorMessage = 'OnlyOffice unknown conversion error (error -1)';
+        troubleshooting = [
+          'Check OnlyOffice DocumentServer logs for more details: docker-compose logs onlyoffice',
+          'The OnlyOffice service may be experiencing issues',
+          'Try restarting the OnlyOffice container: docker-compose restart onlyoffice'
+        ];
+      }
+      
+      console.error(`\n❌ ${errorMessage}`);
+      if (troubleshooting.length > 0) {
+        console.error('\n🔧 Troubleshooting:');
+        troubleshooting.forEach(tip => console.error(`   ${tip}`));
+      }
+      console.error('');
+      
+      throw new Error(errorMessage);
     }
     
     // Download converted file
@@ -162,5 +311,6 @@ async function generateKey(filePath) {
 
 module.exports = {
   isOnlyOfficeAvailable,
-  convertDocument
+  convertDocument,
+  testUrlAccessibility
 };

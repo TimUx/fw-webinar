@@ -431,20 +431,80 @@ OnlyOffice läuft als separater Container-Service. Bei Problemen:
 5. Sicherstellen, dass alle Container im gleichen Netzwerk sind
 6. Bei Speicherproblemen: OnlyOffice-Volumes überprüfen
 
-**Spezifischer Fehler: OnlyOffice conversion error: -7**
+**Spezifischer Fehler: OnlyOffice conversion error: -4 (Download Error)**
 
-Dieser Fehler tritt auf, wenn OnlyOffice die Datei nicht vom Backend-Server herunterladen kann:
+Dieser Fehler tritt auf, wenn OnlyOffice die Datei nicht vom Backend-Server herunterladen kann. Dies ist der häufigste Fehler bei OnlyOffice-Integration.
 
-1. Überprüfen Sie die BACKEND_URL Umgebungsvariable in `docker-compose.yml`:
-   - Sollte auf `http://webinar-backend:3000` gesetzt sein
-   - Der Container-Name muss mit dem tatsächlichen Backend-Container-Namen übereinstimmen
-2. Stellen Sie sicher, dass beide Container im gleichen Docker-Netzwerk sind
-3. Überprüfen Sie, dass der Backend-Server läuft: `docker-compose ps backend`
-4. Testen Sie die Erreichbarkeit vom OnlyOffice-Container aus:
+**Ursachen und Lösungen:**
+
+1. **JWT-Authentifizierung fehlt** (HÄUFIGSTE URSACHE):
+   - OnlyOffice DocumentServer hat standardmäßig JWT aktiviert, auch wenn `JWT_ENABLED=false` gesetzt ist
+   - Die Conversion API benötigt JWT-Tokens für alle Anfragen
+   
+   **Lösung - JWT-Secret abrufen und konfigurieren:**
    ```bash
-   docker exec <onlyoffice-container-name> curl http://webinar-backend:3000/api/health
+   # 1. JWT-Status und Secret anzeigen
+   docker exec fw-webinar-onlyoffice sudo documentserver-jwt-status.sh
+   
+   # Ausgabe zeigt z.B.:
+   # JWT is enabled. Secret: w8KvKFsZrC1xqkN...
+   
+   # 2. Secret in .env Datei eintragen
+   echo "ONLYOFFICE_JWT_SECRET=w8KvKFsZrC1xqkN..." >> .env
+   
+   # 3. Backend-Container neu starten
+   docker-compose restart backend
    ```
-   (Container-Name mit `docker-compose ps` ermitteln, z.B. `fw-webinar-onlyoffice`)
+   
+   **Testen ob JWT das Problem ist:**
+   ```bash
+   # Von OnlyOffice-Container aus die Datei herunterladen
+   docker exec fw-webinar-onlyoffice wget http://fw-webinar-backend:3000/uploads/datei.pptx
+   
+   # Wenn wget erfolgreich ist (HTTP 200), aber OnlyOffice Error -4 zeigt,
+   # dann ist JWT das Problem!
+   ```
+
+2. **Container-Namen stimmen nicht überein**:
+   - Überprüfen Sie die BACKEND_URL Umgebungsvariable in `.env` oder `docker-compose.yml`
+   - **Wichtig**: Der Hostname in BACKEND_URL muss mit dem tatsächlichen Backend-Container-Namen übereinstimmen
+   - Beispiel: Wenn Ihr Backend-Container `fw-webinar-backend` heißt, muss BACKEND_URL `http://fw-webinar-backend:3000` sein
+   - Container-Namen prüfen: `docker-compose ps`
+   - BACKEND_URL in `.env` anpassen:
+     ```bash
+     BACKEND_URL=http://fw-webinar-backend:3000
+     ```
+   - Dann Container neu starten: `docker-compose restart backend`
+
+3. **Container sind nicht im gleichen Netzwerk**:
+   - Überprüfen Sie `docker-compose.yml`, dass beide Container im gleichen Netzwerk sind
+   - Standard-Netzwerk: `webinar-network`
+
+4. **Backend-Server läuft nicht oder ist nicht erreichbar**:
+   - Status prüfen: `docker-compose ps backend`
+   - Logs prüfen: `docker-compose logs backend`
+
+5. **Datei existiert nicht oder ist nicht zugänglich**:
+   - Prüfen Sie, ob die Datei im uploads-Verzeichnis vorhanden ist
+   - Prüfen Sie Dateiberechtigungen: `ls -la uploads/`
+
+**Schnelle Diagnose:**
+
+```bash
+# 1. Netzwerk-Test: Kann OnlyOffice die Datei herunterladen?
+docker exec fw-webinar-onlyoffice wget http://fw-webinar-backend:3000/uploads/test.pptx
+
+# Wenn HTTP 200 OK → Netzwerk funktioniert, JWT ist wahrscheinlich das Problem
+# Wenn Fehler → Netzwerk-/Container-Name-Problem
+```
+
+**Andere OnlyOffice Error Codes:**
+
+- **Error -3**: Dateiformat wird nicht unterstützt oder die Datei ist beschädigt
+- **Error -2**: Konvertierung hat zu lange gedauert (Timeout)
+- **Error -1**: Unbekannter Konvertierungsfehler (OnlyOffice-Logs prüfen)
+
+**Hinweis**: Error -7 wurde in älteren OnlyOffice-Versionen für Download-Fehler verwendet, wurde aber durch Error -4 ersetzt.
 
 **Hinweise:**
 - OnlyOffice benötigt beim ersten Start bis zu 2 Minuten für die Initialisierung
