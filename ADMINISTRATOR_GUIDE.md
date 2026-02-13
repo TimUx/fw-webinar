@@ -431,20 +431,55 @@ OnlyOffice läuft als separater Container-Service. Bei Problemen:
 5. Sicherstellen, dass alle Container im gleichen Netzwerk sind
 6. Bei Speicherproblemen: OnlyOffice-Volumes überprüfen
 
-**Spezifischer Fehler: OnlyOffice conversion error: -7**
+**Spezifischer Fehler: OnlyOffice conversion error: -4 (Download Error)**
 
-Dieser Fehler tritt auf, wenn OnlyOffice die Datei nicht vom Backend-Server herunterladen kann:
+Dieser Fehler tritt auf, wenn OnlyOffice die Datei nicht vom Backend-Server herunterladen kann. Dies ist der häufigste Fehler bei OnlyOffice-Integration.
 
-1. Überprüfen Sie die BACKEND_URL Umgebungsvariable in `docker-compose.yml`:
-   - Sollte auf `http://webinar-backend:3000` gesetzt sein
-   - Der Container-Name muss mit dem tatsächlichen Backend-Container-Namen übereinstimmen
-2. Stellen Sie sicher, dass beide Container im gleichen Docker-Netzwerk sind
-3. Überprüfen Sie, dass der Backend-Server läuft: `docker-compose ps backend`
-4. Testen Sie die Erreichbarkeit vom OnlyOffice-Container aus:
-   ```bash
-   docker exec <onlyoffice-container-name> curl http://webinar-backend:3000/api/health
-   ```
-   (Container-Name mit `docker-compose ps` ermitteln, z.B. `fw-webinar-onlyoffice`)
+**Ursachen und Lösungen:**
+
+1. **Container-Namen stimmen nicht überein** (häufigste Ursache):
+   - Überprüfen Sie die BACKEND_URL Umgebungsvariable in `.env` oder `docker-compose.yml`
+   - **Wichtig**: Der Hostname in BACKEND_URL muss mit dem tatsächlichen Backend-Container-Namen übereinstimmen
+   - Beispiel: Wenn Ihr Backend-Container `fw-webinar-backend` heißt, muss BACKEND_URL `http://fw-webinar-backend:3000` sein
+   - Container-Namen prüfen: `docker-compose ps`
+   - BACKEND_URL in `.env` anpassen:
+     ```bash
+     BACKEND_URL=http://fw-webinar-backend:3000
+     ```
+   - Dann Container neu starten: `docker-compose restart backend`
+
+2. **Container sind nicht im gleichen Netzwerk**:
+   - Überprüfen Sie `docker-compose.yml`, dass beide Container im gleichen Netzwerk sind
+   - Standard-Netzwerk: `webinar-network`
+
+3. **Backend-Server läuft nicht oder ist nicht erreichbar**:
+   - Status prüfen: `docker-compose ps backend`
+   - Logs prüfen: `docker-compose logs backend`
+
+4. **Datei existiert nicht oder ist nicht zugänglich**:
+   - Prüfen Sie, ob die Datei im uploads-Verzeichnis vorhanden ist
+   - Prüfen Sie Dateiberechtigungen: `ls -la uploads/`
+
+**Schnelle Diagnose:**
+
+Testen Sie die Erreichbarkeit vom Backend-Container aus (sollte HTTP 200 zurückgeben):
+```bash
+# Container-Namen ermitteln
+docker-compose ps
+
+# Testen vom Backend-Container aus
+docker exec <backend-container-name> curl -I http://webinar-backend:3000/api/health
+
+# Wenn Ihr Container fw-webinar-backend heißt, testen Sie mit dem richtigen Namen:
+docker exec fw-webinar-backend curl -I http://fw-webinar-backend:3000/api/health
+```
+
+**Andere OnlyOffice Error Codes:**
+
+- **Error -3**: Dateiformat wird nicht unterstützt oder die Datei ist beschädigt
+- **Error -2**: Konvertierung hat zu lange gedauert (Timeout)
+- **Error -1**: Unbekannter Konvertierungsfehler (OnlyOffice-Logs prüfen)
+- **Error -7**: Alte Fehlerbezeichnung für Download-Fehler (siehe Error -4)
 
 **Hinweise:**
 - OnlyOffice benötigt beim ersten Start bis zu 2 Minuten für die Initialisierung

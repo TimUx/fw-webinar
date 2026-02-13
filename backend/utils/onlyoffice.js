@@ -21,6 +21,27 @@ async function isOnlyOfficeAvailable() {
 }
 
 /**
+ * Test if a URL is accessible from this container
+ * This helps diagnose network connectivity issues
+ */
+async function testUrlAccessibility(url) {
+  try {
+    const response = await axios.head(url, { 
+      timeout: 5000,
+      maxRedirects: 0,
+      validateStatus: (status) => status >= 200 && status < 500 // Accept any non-server-error
+    });
+    return { accessible: true, status: response.status };
+  } catch (error) {
+    return { 
+      accessible: false, 
+      error: error.message,
+      code: error.code 
+    };
+  }
+}
+
+/**
  * Convert document using OnlyOffice DocumentServer conversion API
  * @param {string} inputPath - Path to input file (PPTX, PDF, etc.)
  * @param {string} outputPath - Path where converted file should be saved
@@ -64,6 +85,20 @@ async function convertDocument(inputPath, outputPath, outputFormat = 'pdf') {
     
     console.log(`OnlyOffice conversion: ${fileUrl} -> ${outputFormat}`);
     
+    // Test if the file URL is accessible from this container
+    // This helps diagnose issues where OnlyOffice cannot reach the backend
+    const urlTest = await testUrlAccessibility(fileUrl);
+    if (!urlTest.accessible) {
+      console.error(`⚠️  File URL is not accessible from backend container:`, urlTest);
+      console.error(`   This suggests OnlyOffice will also not be able to download the file.`);
+      console.error(`   URL: ${fileUrl}`);
+      console.error(`   Error: ${urlTest.error}`);
+      console.error(`   BACKEND_URL environment variable: ${BACKEND_URL}`);
+      console.error(`   Make sure the file exists and is accessible via HTTP.`);
+    } else {
+      console.log(`✓ File URL is accessible (HTTP ${urlTest.status})`);
+    }
+    
     // Build conversion request according to OnlyOffice API spec
     const conversionUrl = `${ONLYOFFICE_URL}/ConvertService.ashx`;
     const requestBody = {
@@ -92,7 +127,43 @@ async function convertDocument(inputPath, outputPath, outputFormat = 'pdf') {
     console.log('OnlyOffice response:', JSON.stringify(response.data));
     
     if (response.data.error) {
-      throw new Error(`OnlyOffice conversion error: ${response.data.error}`);
+      const errorCode = response.data.error;
+      let errorMessage = `OnlyOffice conversion error: ${errorCode}`;
+      let troubleshooting = [];
+      
+      // Provide specific guidance based on error code
+      if (errorCode === -4) {
+        errorMessage = 'OnlyOffice cannot download the source file (error -4)';
+        troubleshooting = [
+          `The file URL provided to OnlyOffice: ${fileUrl}`,
+          `OnlyOffice container needs to be able to reach this URL over HTTP`,
+          `Current BACKEND_URL: ${BACKEND_URL}`,
+          `Make sure:`,
+          `  1. The BACKEND_URL environment variable matches your backend container name`,
+          `  2. Both containers are on the same Docker network`,
+          `  3. The file exists and is readable: ${inputPath}`,
+          `  4. Check docker-compose.yml container_name matches BACKEND_URL hostname`,
+          `Example: If container_name is "fw-webinar-backend", BACKEND_URL should be "http://fw-webinar-backend:3000"`
+        ];
+      } else if (errorCode === -3) {
+        errorMessage = 'OnlyOffice conversion error (error -3)';
+        troubleshooting = ['The file format may not be supported or the file is corrupted'];
+      } else if (errorCode === -2) {
+        errorMessage = 'OnlyOffice conversion timeout (error -2)';
+        troubleshooting = ['The file may be too large or complex to convert'];
+      } else if (errorCode === -1) {
+        errorMessage = 'OnlyOffice unknown conversion error (error -1)';
+        troubleshooting = ['Check OnlyOffice DocumentServer logs for more details'];
+      }
+      
+      console.error(`\n❌ ${errorMessage}`);
+      if (troubleshooting.length > 0) {
+        console.error('\n🔧 Troubleshooting:');
+        troubleshooting.forEach(tip => console.error(`   ${tip}`));
+      }
+      console.error('');
+      
+      throw new Error(errorMessage);
     }
     
     // Download converted file
@@ -162,5 +233,6 @@ async function generateKey(filePath) {
 
 module.exports = {
   isOnlyOfficeAvailable,
-  convertDocument
+  convertDocument,
+  testUrlAccessibility
 };
