@@ -169,9 +169,9 @@ docker compose build --no-cache
 docker compose up -d
 ```
 
-### Migration von LibreOffice zu OnlyOffice (Version 1.5.0+)
+### Migration von OnlyOffice zu LibreOffice (Version 1.6.0+)
 
-**Wichtig**: Ab Version 1.5.0 wurde LibreOffice durch OnlyOffice DocumentServer ersetzt.
+**Wichtig**: Ab Version 1.6.0 wurde OnlyOffice DocumentServer durch LibreOffice + Playwright ersetzt.
 
 **Upgrade-Schritte:**
 
@@ -196,27 +196,24 @@ docker compose up -d
    docker compose up -d
    ```
 
-5. **OnlyOffice-Container überprüfen:**
+5. **Backend-Container überprüfen:**
    ```bash
-   docker compose ps onlyoffice
-   docker compose logs onlyoffice
+   docker compose ps backend
+   docker compose logs backend
    ```
 
 **Wichtige Hinweise:**
-- OnlyOffice benötigt ca. 2 Minuten zum Starten (initial start-up)
-- Mindestens 3GB RAM erforderlich (2GB für OnlyOffice)
-- Alte LibreOffice-Container können entfernt werden
+- LibreOffice ist nun direkt im Backend-Container integriert
+- Reduzierte RAM-Anforderungen: nur noch 1.5GB statt 3GB
+- OnlyOffice-Container und Volumes können entfernt werden
 - Bestehende Präsentationen funktionieren weiterhin
-- Neue PPTX/PDF-Imports nutzen automatisch OnlyOffice
+- Neue PPTX/PDF-Imports nutzen LibreOffice im Screenshot-Modus
 
-**Rollback bei Problemen:**
-Falls OnlyOffice Probleme verursacht, können Sie temporär zum vorherigen Commit zurückkehren:
+**Alte OnlyOffice-Volumes entfernen (optional):**
 ```bash
-git checkout <vorheriger-commit-hash>
-docker compose down
-docker compose build --no-cache
-docker compose up -d
+docker volume rm fw-webinar_onlyoffice-data fw-webinar_onlyoffice-logs
 ```
+
 
 ### Browser-Cache leeren
 
@@ -307,7 +304,7 @@ Alle administrativen Aktionen werden in `data/audit.log` protokolliert:
    - **Inhalts-Modus** (Standard): Text und Bilder werden getrennt extrahiert und als formatierter Markdown-Inhalt in den Folien dargestellt
    - **Screenshot-Modus**: Jede Folie wird als Ganzes als Bild/Screenshot in den Folien dargestellt, der extrahierte Text wird nur im TTS-Feld (Sprechernotiz) gespeichert
 4. System konvertiert automatisch und erstellt Folien
-5. Bei fehlenden Tools (pdftoppm, OnlyOffice): Fallback auf Textextraktion
+5. Bei fehlenden Tools (LibreOffice, pdftoppm): Fallback auf Textextraktion
 
 #### Import-Modi im Detail
 
@@ -412,172 +409,69 @@ docker-compose logs -f tts
 3. Cache-Verzeichnis überprüfen: `ls -la tts-service/cache/`
 4. Modell neu laden lassen: `docker-compose down && docker-compose up -d`
 
-### OnlyOffice DocumentServer Probleme
+### LibreOffice PPTX/PDF Konvertierung Probleme
 
-**Hinweis:** Ab Version 1.5.0 wird OnlyOffice DocumentServer für PPTX/PDF-Konvertierung verwendet (ersetzt LibreOffice).
+**Hinweis:** Ab Version 1.6.0 wird LibreOffice für PPTX/PDF-Konvertierung im Screenshot-Modus verwendet.
 
-OnlyOffice läuft als separater Container-Service. Bei Problemen:
+LibreOffice ist direkt im Backend-Container integriert. Bei Problemen:
 
 **Symptome:**
-- PPTX/PDF-Import schlägt fehl
-- Fehlermeldung "OnlyOffice DocumentServer ist nicht verfügbar"
+- PPTX/PDF-Import schlägt im Screenshot-Modus fehl
+- Fehlermeldung "LibreOffice ist nicht installiert"
 - Screenshot-Modus funktioniert nicht
 
 **Lösungsschritte:**
-1. OnlyOffice-Container-Status überprüfen: `docker-compose ps onlyoffice`
-2. OnlyOffice-Container-Logs überprüfen: `docker-compose logs onlyoffice`
-3. OnlyOffice-Service neu starten: `docker-compose restart onlyoffice`
-4. OnlyOffice-Health-Check prüfen: `curl http://localhost/healthcheck` (aus dem Backend-Container)
-5. Sicherstellen, dass alle Container im gleichen Netzwerk sind
-6. Bei Speicherproblemen: OnlyOffice-Volumes überprüfen
-
-**Spezifischer Fehler: OnlyOffice conversion error: -4 (Download Error)**
-
-Dieser Fehler tritt auf, wenn OnlyOffice die Datei nicht vom Backend-Server herunterladen kann. Dies ist der häufigste Fehler bei OnlyOffice-Integration.
-
-**Ursachen und Lösungen:**
-
-1. **OnlyOffice v9+ blockiert private IPs** (HÄUFIGSTE URSACHE bei neueren Versionen):
-   - OnlyOffice DocumentServer v9.x blockiert standardmäßig Anfragen an private IP-Adressen (RFC 1918)
-   - Docker interne Netzwerke verwenden private IP-Bereiche (172.x.x.x, 10.x.x.x, 192.168.x.x)
-   - Ohne Konfiguration kann OnlyOffice nicht auf Backend-Container zugreifen
-   
-   **Lösung - Umgebungsvariablen (EMPFOHLEN für v9+):**
-   Die Konfiguration ist bereits in `docker-compose.yml` eingebunden:
-   ```yaml
-   onlyoffice:
-     environment:
-       - DS_ALLOW_PRIVATE_IP_ADDRESS=true
-       - DS_ALLOW_META_IP_ADDRESS=true
-   ```
-   
-   Diese Umgebungsvariablen konfigurieren OnlyOffice so, dass:
-   - Private IP-Adressen (RFC 1918: 10.x.x.x, 172.16-31.x.x, 192.168.x.x) erlaubt sind
-   - Metadata-IP-Adressen (169.254.x.x) erlaubt sind
-   - Docker-interne Netzwerke erreichbar sind
-   
-   **Nach Änderungen Container neu starten:**
+1. Backend-Container-Logs überprüfen: `docker-compose logs backend`
+2. Container neu bauen (falls LibreOffice fehlt): 
    ```bash
    docker-compose down
+   docker-compose build --no-cache backend
    docker-compose up -d
    ```
-   
-   **Hinweis**: Diese Konfiguration ist erforderlich für OnlyOffice v9.0 und höher. Ältere Versionen benötigen sie möglicherweise nicht.
-   
-   **Fehlerbehebung**: Wenn diese Umgebungsvariablen alleine nicht ausreichen (sehr selten), 
-   kann zusätzlich die `onlyoffice-local.json` Datei mit erweiterten Einstellungen verwendet werden.
-   Dies sollte jedoch normalerweise nicht erforderlich sein.
-
-2. **JWT-Authentifizierung fehlt** (ZWEITHÄUFIGSTE URSACHE):
-   - OnlyOffice DocumentServer hat standardmäßig JWT aktiviert, auch wenn `JWT_ENABLED=false` gesetzt ist
-   - Die Conversion API benötigt JWT-Tokens für alle Anfragen
-   
-   **NEU - Automatischer Fallback**: Das System funktioniert jetzt automatisch mit OnlyOffices Standard-Secret als Fallback!
-   Beim Backend-Start erscheint jedoch eine Sicherheitswarnung.
-   
-   **Für Produktivbetrieb - Sicheres JWT-Secret konfigurieren:**
+3. Testen ob LibreOffice verfügbar ist:
    ```bash
-   # Option 1 - Neues sicheres Secret generieren (EMPFOHLEN)
-   SECRET=$(openssl rand -hex 32)
-   echo "ONLYOFFICE_JWT_SECRET=$SECRET" >> .env
-   # Stellen Sie sicher, dass docker-compose.yml folgende Zeile enthält:
-   # JWT_SECRET=${ONLYOFFICE_JWT_SECRET:-}
-   docker-compose restart
-   
-   # Option 2 - Vorhandenes OnlyOffice-Secret verwenden
-   ./get-onlyoffice-jwt-secret.sh
-   # Ausgabe zeigt z.B.: JWT Secret found: w8KvKFsZrC1xqkN...
-   echo "ONLYOFFICE_JWT_SECRET=w8KvKFsZrC1xqkN..." >> .env
-   docker-compose restart backend
+   docker exec webinar-backend libreoffice --version
    ```
-   
-   **Testen ob JWT das Problem ist:**
+4. Testen ob pdftoppm verfügbar ist:
    ```bash
-   # Von OnlyOffice-Container aus die Datei herunterladen
-   docker exec webinar-onlyoffice wget http://webinar-backend:3000/uploads/datei.pptx
-   
-   # Wenn wget erfolgreich ist (HTTP 200), aber OnlyOffice Error -4 zeigt,
-   # dann ist JWT das Problem!
+   docker exec webinar-backend pdftoppm -v
    ```
 
-3. **403 Forbidden beim Download der konvertierten Datei**:
-   - OnlyOffice gibt die konvertierte Datei zurück, aber der Download schlägt mit 403 fehl
-   - Dies liegt daran, dass OnlyOffice nginx (Port 80) den Zugriff auf `/cache/files` blockiert
-   
-   **Lösung - Port 8000 verwenden (BEREITS IMPLEMENTIERT):**
-   Das Backend wurde bereits angepasst, um Port 8000 (interner docservice) statt Port 80 (nginx) zu verwenden:
-   - Port 80 → nginx mit Zugriffsbeschränkungen
-   - Port 8000 → interner docservice ohne nginx-Beschränkungen
-   
-   Diese Lösung ist bereits im Code implementiert und sollte automatisch funktionieren.
-   
-   **Falls weiterhin 403 Fehler auftreten:**
-   ```bash
-   # Netzwerkverbindung testen
-   docker exec webinar-backend curl -I http://onlyoffice:8000/healthcheck
-   
-   # OnlyOffice Logs prüfen
-   docker-compose logs onlyoffice | tail -50
-   ```
+**Häufige Fehler:**
 
-3. **Container-Namen stimmen nicht überein**:
-   - Überprüfen Sie die BACKEND_URL Umgebungsvariable in `.env` oder `docker-compose.yml`
-   - **Wichtig**: Der Hostname in BACKEND_URL muss mit dem tatsächlichen Backend-Container-Namen übereinstimmen
-   - Beispiel: Wenn Ihr Backend-Container `fw-webinar-backend` heißt, muss BACKEND_URL `http://fw-webinar-backend:3000` sein
-   - Container-Namen prüfen: `docker-compose ps`
-   - BACKEND_URL in `.env` anpassen:
-     ```bash
-     BACKEND_URL=http://fw-webinar-backend:3000
-     ```
-   - Dann Container neu starten: `docker-compose restart backend`
+1. **LibreOffice Konvertierung schlägt fehl:**
+   - Prüfen Sie, ob die PPTX-Datei nicht beschädigt ist
+   - Versuchen Sie die Datei in PowerPoint zu öffnen
+   - Größere Dateien können länger dauern (bis zu 2 Minuten)
+   - Bei Timeout-Fehlern: Datei vereinfachen oder splitten
 
-4. **Container sind nicht im gleichen Netzwerk**:
-   - Überprüfen Sie `docker-compose.yml`, dass beide Container im gleichen Netzwerk sind
-   - Standard-Netzwerk: `webinar-network`
+2. **pdftoppm Fehler:**
+   - Stellen Sie sicher, dass poppler-utils installiert ist (im Dockerfile enthalten)
+   - Prüfen Sie Speicherplatz: `df -h`
+   - Prüfen Sie Berechtigungen im uploads-Verzeichnis
 
-4. **Backend-Server läuft nicht oder ist nicht erreichbar**:
-   - Status prüfen: `docker-compose ps backend`
-   - Logs prüfen: `docker-compose logs backend`
+3. **Container hat zu wenig Ressourcen:**
+   - LibreOffice benötigt mindestens 512MB RAM
+   - Bei großen PPTX-Dateien kann mehr RAM erforderlich sein
+   - Docker-Ressourcen erhöhen, falls nötig
 
-5. **Datei existiert nicht oder ist nicht zugänglich**:
-   - Prüfen Sie, ob die Datei im uploads-Verzeichnis vorhanden ist
-   - Prüfen Sie Dateiberechtigungen: `ls -la uploads/`
+**Alternative:**
+- Bei Problemen mit Screenshot-Modus: Nutzen Sie den Inhalts-Modus
+- Inhalts-Modus funktioniert auch ohne LibreOffice-Konvertierung
 
-**Schnelle Diagnose:**
+### Legacy OnlyOffice-Hinweis
 
-```bash
-# 1. Netzwerk-Test: Kann OnlyOffice die Datei herunterladen?
-docker exec webinar-onlyoffice wget http://webinar-backend:3000/uploads/test.pptx
+**Hinweis:** OnlyOffice DocumentServer wurde in Version 1.6.0 durch LibreOffice ersetzt.
 
-# Wenn HTTP 200 OK → Netzwerk funktioniert, JWT ist wahrscheinlich das Problem
-# Wenn Fehler → Netzwerk-/Container-Name-Problem
-```
-
-**Andere OnlyOffice Error Codes:**
-
-- **Error -3**: Dateiformat wird nicht unterstützt oder die Datei ist beschädigt
-- **Error -2**: Konvertierung hat zu lange gedauert (Timeout)
-- **Error -1**: Unbekannter Konvertierungsfehler (OnlyOffice-Logs prüfen)
-
-**Hinweis**: Error -7 wurde in älteren OnlyOffice-Versionen für Download-Fehler verwendet, wurde aber durch Error -4 ersetzt.
-
-**Hinweise:**
-- OnlyOffice benötigt beim ersten Start bis zu 2 Minuten für die Initialisierung
-- Der Container benötigt mindestens 2GB RAM
-- OnlyOffice läuft auf Port 80 intern (nicht nach außen exponiert)
-- Alternative: Bei Problemen Inhalts-Modus statt Screenshot-Modus nutzen
-- Das Zertifikatsverzeichnis (`/var/www/onlyoffice/Data/certs`) wird als tmpfs gemountet, da Zertifikate zur Laufzeit generiert werden
-- Bei jedem Container-Neustart werden die Zertifikate neu generiert (dies ist normales Verhalten)
-- OnlyOffice verwendet die DocumentServer Conversion API, die Dateien über HTTP-URLs herunterlädt (nicht als Datei-Upload)
-
-### Legacy LibreOffice-Hinweis
-
-**Hinweis:** LibreOffice wurde in Version 1.5.0 durch OnlyOffice DocumentServer ersetzt.
-
-Wenn Sie von einer älteren Version upgraden:
-- Der alte LibreOffice-Container ist nicht mehr nötig
-- Die LibreOffice-Pakete wurden aus dem Dockerfile entfernt
-- Bitte die Container neu bauen: `docker-compose build --no-cache`
+Wenn Sie von Version 1.5.0 upgraden:
+- Der OnlyOffice-Container ist nicht mehr nötig und wurde entfernt
+- OnlyOffice-Volumes können gelöscht werden:
+  ```bash
+  docker volume rm fw-webinar_onlyoffice-data fw-webinar_onlyoffice-logs
+  ```
+- Die .env Datei benötigt keine `ONLYOFFICE_JWT_SECRET` oder `BACKEND_URL` mehr
+- Container neu bauen: `docker-compose build --no-cache`
+- RAM-Anforderungen reduziert: von 3GB auf 1.5GB
 
 ### Berechtigungsprobleme
 
