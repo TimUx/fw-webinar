@@ -58,8 +58,9 @@ services:
       retries: 3
       start_period: 60s
 
-  # LibreOffice for PPTX conversion (optional)
-  # Uncomment if you want automatic PPTX conversion
+  # LibreOffice for PPTX conversion
+  # Note: LibreOffice is now installed directly in the backend container
+  # This separate service is no longer needed and can be removed
   # libreoffice:
   #   image: linuxserver/libreoffice:latest
   #   container_name: webinar-libreoffice

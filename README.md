@@ -35,7 +35,7 @@ Eine vollständig selbst gehostete, automatisierte Webinar- und E-Learning-Platt
 - **Text-to-Speech**: Piper TTS (Python Flask Service mit deutscher Thorsten Stimme)
 - **Authentifizierung**: JWT + bcrypt
 - **E-Mail**: Nodemailer (SMTP)
-- **PPTX/PDF-Konvertierung**: LibreOffice (optional), pdftoppm für PDF
+- **PPTX/PDF-Konvertierung**: LibreOffice (integriert), pdftoppm für PDF
 - **Speicher**: Dateibasiert (JSON)
 - **Container**: Docker & Docker Compose
 
@@ -181,6 +181,11 @@ Pull Requests sind willkommen!
 Design basiert auf: https://github.com/TimUx/fw-fragenkatalog
 
 ## Changelog
+
+### Version 1.4.1 (2026)
+- LibreOffice direkt im Backend-Container integriert
+- Screenshot-Modus funktioniert out-of-the-box ohne separate Container
+- Vereinfachte Architektur und Deployment
 
 ### Version 1.4.0 (2026)
 - Neuer Screenshot-Import-Modus für Präsentationen
