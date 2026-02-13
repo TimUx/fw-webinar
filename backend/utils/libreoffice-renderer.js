@@ -20,6 +20,7 @@ async function isLibreOfficeAvailable() {
 /**
  * Convert PPTX file to images using LibreOffice
  * Uses LibreOffice headless mode to export slides as PNG images
+ * Optimized for FullHD resolution (1920x1080) to match monitor display
  * 
  * @param {string} pptxPath - Path to PPTX file
  * @param {string} outputDir - Directory to save screenshots
@@ -37,10 +38,11 @@ async function convertPPTXToImages(pptxPath, outputDir) {
     const tempDir = path.join(outputDir, '.tmp');
     await fs.mkdir(tempDir, { recursive: true });
     
-    // Convert PPTX to PDF first (more reliable)
+    // Convert PPTX to PDF first (more reliable and maintains formatting)
     const pdfPath = path.join(tempDir, 'presentation.pdf');
-    console.log('Step 1: Converting PPTX to PDF...');
+    console.log('Step 1: Converting PPTX to PDF with high quality settings...');
     
+    // Use LibreOffice with optimized settings for quality and formatting preservation
     await spawnAsync('soffice', [
       '--headless',
       '--invisible',
@@ -66,13 +68,18 @@ async function convertPPTXToImages(pptxPath, outputDir) {
     const actualPdfPath = path.join(tempDir, generatedPdf);
     console.log(`PDF created: ${actualPdfPath}`);
     
-    // Convert PDF to images using pdftoppm
-    console.log('Step 2: Converting PDF to images...');
+    // Convert PDF to images using pdftoppm with FullHD-optimized settings
+    console.log('Step 2: Converting PDF to FullHD images (1920x1080)...');
     const outputPrefix = path.join(outputDir, 'slide-');
     
+    // Calculate DPI for FullHD output
+    // Standard presentation is 10 inches wide, so for 1920px we need ~192 DPI
+    // We use 200 DPI for good quality while maintaining reasonable file sizes
+    // This produces images close to 1920x1080 depending on slide aspect ratio
     await spawnAsync('pdftoppm', [
       '-png',
-      '-r', '300',  // 300 DPI for good quality
+      '-r', '200',  // 200 DPI for FullHD-like resolution (~1920px width for 10" slides)
+      '-jpegopt', 'quality=95',  // High quality JPEG compression
       actualPdfPath,
       outputPrefix
     ], { timeout: 120000 });

@@ -315,9 +315,11 @@ Alle administrativen Aktionen werden in `data/audit.log` protokolliert:
 **Screenshot-Modus**:
 - Konvertiert jede Folie in ein vollständiges Bild
 - Behält das exakte Aussehen der Original-Folie bei
+- FullHD-optimierte Auflösung (~1920px Breite, 200 DPI)
 - Text wird nur für TTS (Text-to-Speech) extrahiert
 - Ideal für Design-intensive Präsentationen oder wenn Layout wichtig ist
 - Keine nachträgliche Textbearbeitung möglich
+- Verwendet LibreOffice für maximale Formatierungstreue
 
 ### Sprechernotizen für TTS
 
