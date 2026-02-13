@@ -442,8 +442,9 @@ Dieser Fehler tritt auf, wenn OnlyOffice die Datei nicht vom Backend-Server heru
 3. Überprüfen Sie, dass der Backend-Server läuft: `docker-compose ps backend`
 4. Testen Sie die Erreichbarkeit vom OnlyOffice-Container aus:
    ```bash
-   docker exec fw-webinar-onlyoffice curl http://webinar-backend:3000/api/health
+   docker exec <onlyoffice-container-name> curl http://webinar-backend:3000/api/health
    ```
+   (Container-Name mit `docker-compose ps` ermitteln, z.B. `fw-webinar-onlyoffice`)
 
 **Hinweise:**
 - OnlyOffice benötigt beim ersten Start bis zu 2 Minuten für die Initialisierung

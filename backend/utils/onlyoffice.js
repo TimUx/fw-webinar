@@ -39,20 +39,24 @@ async function convertDocument(inputPath, outputPath, outputFormat = 'pdf') {
     const fileName = path.basename(inputPath);
     const uploadsDir = process.env.UPLOADS_DIR || '/app/uploads';
     
-    // Check if file is in uploads directory
-    if (!inputPath.startsWith(uploadsDir)) {
+    // Normalize paths to prevent path traversal attacks
+    const normalizedInputPath = path.normalize(inputPath);
+    const normalizedUploadsDir = path.normalize(uploadsDir);
+    
+    // Check if file is in uploads directory (after normalization)
+    if (!normalizedInputPath.startsWith(normalizedUploadsDir + path.sep) && normalizedInputPath !== normalizedUploadsDir) {
       throw new Error(`File must be in uploads directory for OnlyOffice access: ${inputPath}`);
     }
     
     // Create the URL path relative to uploads
-    const relativePath = path.relative(uploadsDir, inputPath);
+    const relativePath = path.relative(normalizedUploadsDir, normalizedInputPath);
     
-    // Security: Prevent path traversal attacks
-    if (relativePath.startsWith('..') || relativePath.includes('../')) {
+    // Security: Prevent path traversal attacks (check again after relative calculation)
+    if (relativePath.startsWith('..') || relativePath.includes('..')) {
       throw new Error(`Invalid file path: path traversal detected in ${relativePath}`);
     }
     
-    // Encode the path properly for URL
+    // Encode the path properly for URL (always use / for URLs, not platform-specific separator)
     const encodedPath = relativePath.split(path.sep).map(encodeURIComponent).join('/');
     const fileUrl = `${BACKEND_URL}/uploads/${encodedPath}`;
     
