@@ -472,18 +472,22 @@ Dieser Fehler tritt auf, wenn OnlyOffice die Datei nicht vom Backend-Server heru
    - OnlyOffice DocumentServer hat standardmäßig JWT aktiviert, auch wenn `JWT_ENABLED=false` gesetzt ist
    - Die Conversion API benötigt JWT-Tokens für alle Anfragen
    
-   **Lösung - JWT-Secret abrufen und konfigurieren:**
+   **NEU - Automatischer Fallback**: Das System funktioniert jetzt automatisch mit OnlyOffices Standard-Secret als Fallback!
+   Beim Backend-Start erscheint jedoch eine Sicherheitswarnung.
+   
+   **Für Produktivbetrieb - Sicheres JWT-Secret konfigurieren:**
    ```bash
-   # 1. JWT-Status und Secret anzeigen
+   # Option 1 - Neues sicheres Secret generieren (EMPFOHLEN)
+   SECRET=$(openssl rand -hex 32)
+   echo "ONLYOFFICE_JWT_SECRET=$SECRET" >> .env
+   # Stellen Sie sicher, dass docker-compose.yml folgende Zeile enthält:
+   # JWT_SECRET=${ONLYOFFICE_JWT_SECRET:-}
+   docker-compose restart
+   
+   # Option 2 - Vorhandenes OnlyOffice-Secret verwenden
    ./get-onlyoffice-jwt-secret.sh
-   
-   # Ausgabe zeigt z.B.:
-   # JWT is enabled. Secret: w8KvKFsZrC1xqkN...
-   
-   # 2. Secret in .env Datei eintragen
+   # Ausgabe zeigt z.B.: JWT Secret found: w8KvKFsZrC1xqkN...
    echo "ONLYOFFICE_JWT_SECRET=w8KvKFsZrC1xqkN..." >> .env
-   
-   # 3. Backend-Container neu starten
    docker-compose restart backend
    ```
    
