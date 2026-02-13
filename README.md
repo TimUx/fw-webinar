@@ -140,16 +140,15 @@ Wenn Sie beim Import von PPTX-Dateien die Fehlermeldung "OnlyOffice cannot downl
 
 1. **HÄUFIGSTE URSACHE (OnlyOffice v9+) - Private IP Blocking**: OnlyOffice v9.x blockiert standardmäßig Anfragen an private IP-Adressen (Docker interne Netzwerke).
    
-   **Schnelle Lösung**: Diese Konfiguration ist bereits in `docker-compose.yml` gesetzt. Sowohl die Umgebungsvariable als auch die `onlyoffice-local.json` Konfigurationsdatei sind erforderlich:
+   **Schnelle Lösung**: Diese Konfiguration ist bereits in `docker-compose.yml` gesetzt über Umgebungsvariablen:
    ```bash
    # Container neu starten (falls noch nicht geschehen)
    docker-compose down
    docker-compose up -d
    ```
    
-   **Wichtig**: Bei OnlyOffice v9+ reicht die Umgebungsvariable `DS_ALLOW_PRIVATE_IP_ADDRESS=true` alleine nicht aus. 
-   Die zusätzliche Konfiguration über `onlyoffice-local.json` (bereits im Repository enthalten und automatisch gemountet) 
-   stellt sicher, dass private IP-Adressen zugelassen werden.
+   Die Umgebungsvariablen `DS_ALLOW_PRIVATE_IP_ADDRESS=true` und `DS_ALLOW_META_IP_ADDRESS=true` 
+   stellen sicher, dass OnlyOffice auf Docker-interne Netzwerke zugreifen kann.
 
 2. **Zweithäufigste Ursache - JWT-Authentifizierung**: OnlyOffice hat JWT standardmäßig aktiviert und benötigt ein JWT-Secret.
    

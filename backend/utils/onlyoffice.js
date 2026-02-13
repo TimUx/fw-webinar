@@ -257,16 +257,33 @@ async function convertDocument(inputPath, outputPath, outputFormat = 'pdf') {
       throw new Error('OnlyOffice did not return a file URL');
     }
     
-    // Handle relative URLs
-    const downloadUrl = convertedFileUrl.startsWith('http') 
-      ? convertedFileUrl 
-      : `${ONLYOFFICE_URL}${convertedFileUrl}`;
+    // OnlyOffice returns URLs pointing to nginx (port 80) which blocks /cache/files access
+    // We need to download from the internal docservice (port 8000) instead
+    // Port 80 → nginx (access restricted for /cache/files)
+    // Port 8000 → internal docservice (no nginx restrictions)
+    
+    let downloadUrl;
+    if (convertedFileUrl.startsWith('http')) {
+      // Replace the host with port 8000 to bypass nginx restrictions
+      // Handle various container names: fw-webinar-onlyoffice, webinar-onlyoffice, onlyoffice
+      downloadUrl = convertedFileUrl
+        .replace('http://fw-webinar-onlyoffice/', 'http://fw-webinar-onlyoffice:8000/')
+        .replace('http://webinar-onlyoffice/', 'http://webinar-onlyoffice:8000/')
+        .replace('http://onlyoffice/', 'http://onlyoffice:8000/');
+    } else {
+      // Handle relative URLs
+      downloadUrl = `${ONLYOFFICE_URL}:8000${convertedFileUrl}`;
+    }
     
     console.log(`Downloading converted file from: ${downloadUrl}`);
+    console.log(`(Using port 8000 to bypass nginx restrictions on /cache/files)`);
     
     const fileResponse = await axios.get(downloadUrl, {
       responseType: 'arraybuffer',
-      timeout: 60000
+      timeout: 60000,
+      // No JWT token needed for internal docservice downloads
+      // The URL already contains md5 and expires parameters for authentication
+      validateStatus: (status) => status >= 200 && status < 300
     });
     
     // Save converted file
@@ -278,6 +295,22 @@ async function convertDocument(inputPath, outputPath, outputFormat = 'pdf') {
     if (error.response) {
       console.error('Response status:', error.response.status);
       console.error('Response data:', error.response.data);
+      
+      // Special handling for 403 errors when downloading converted file
+      if (error.response.status === 403 && error.config && error.config.url) {
+        console.error('\n❌ 403 Forbidden Error when downloading converted file');
+        console.error('   Download URL:', error.config.url);
+        console.error('   This error occurs when:');
+        console.error('   1. OnlyOffice nginx (port 80) blocks /cache/files access');
+        console.error('      Solution: Backend should use port 8000 (internal docservice) - already implemented');
+        console.error('   2. The URL signature (md5 parameter) has expired');
+        console.error('      Solution: Increase conversion timeout or retry');
+        console.error('   3. Network connectivity issue between containers');
+        console.error('      Solution: Ensure containers are in the same Docker network');
+        console.error('\n   If port 8000 is already being used, check:');
+        console.error('   - Container network connectivity: docker exec backend ping onlyoffice');
+        console.error('   - OnlyOffice logs: docker-compose logs onlyoffice');
+      }
     }
     throw new Error(`OnlyOffice konnte die Datei nicht konvertieren: ${error.message}`);
   }
