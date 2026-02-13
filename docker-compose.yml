@@ -71,6 +71,8 @@ services:
     volumes:
       - onlyoffice-data:/var/www/onlyoffice/Data
       - onlyoffice-logs:/var/log/onlyoffice
+    tmpfs:
+      - /var/www/onlyoffice/Data/certs:mode=700
     networks:
       - webinar-network
     healthcheck:

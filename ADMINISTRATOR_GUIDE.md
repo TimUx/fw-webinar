@@ -436,6 +436,8 @@ OnlyOffice läuft als separater Container-Service. Bei Problemen:
 - Der Container benötigt mindestens 2GB RAM
 - OnlyOffice läuft auf Port 80 intern (nicht nach außen exponiert)
 - Alternative: Bei Problemen Inhalts-Modus statt Screenshot-Modus nutzen
+- Das Zertifikatsverzeichnis (`/var/www/onlyoffice/Data/certs`) wird als tmpfs gemountet, da Zertifikate zur Laufzeit generiert werden
+- Bei jedem Container-Neustart werden die Zertifikate neu generiert (dies ist normales Verhalten)
 
 ### Legacy LibreOffice-Hinweis
 
