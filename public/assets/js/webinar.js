@@ -5,7 +5,7 @@ let currentWebinar = null;
 let currentSlideIndex = 0;
 let currentQuestionIndex = 0;
 let userAnswers = [];
-let ttsService = null; // Coqui TTS Service instance
+let ttsService = null; // Piper TTS Service instance
 let speechRate = 1.0;
 let speechErrorCount = 0;
 let narrationComplete = false;
@@ -16,7 +16,7 @@ let revealInstance = null; // Store Reveal.js instance
 // Load settings and webinars on page load
 document.addEventListener('DOMContentLoaded', async () => {
   // Initialize TTS Service
-  ttsService = new CoquiTTSService(API_BASE);
+  ttsService = new PiperTTSService(API_BASE);
   await loadPublicSettings();
   await loadWebinarList();
   await checkTTSService();
@@ -321,7 +321,7 @@ function closeTTSWarning() {
 
 // Dummy function for compatibility (voice controls removed)
 function changeVoice() {
-  // Voice selection not applicable with Coqui TTS (uses fixed German model)
+  // Voice selection not applicable with Piper TTS (uses fixed German Thorsten model)
   // Voice controls have been removed from UI
   console.log('Voice selection not available');
 }
@@ -392,7 +392,7 @@ function handleMutedSlideTransition() {
   }, MINIMUM_SLIDE_DURATION);
 }
 
-// Speech synthesis for narration using Coqui TTS
+// Speech synthesis for narration using Piper TTS
 async function speakSlideNote(slideIndex) {
   stopSpeaking();
   
@@ -426,11 +426,11 @@ async function speakSlideNote(slideIndex) {
   indicator.classList.remove('hidden');
   indicator.classList.add('speaking');
   
-  // Use Coqui TTS to speak chunks
+  // Use Piper TTS to speak chunks (quality defaults to 'medium')
   try {
     await ttsService.speakChunks(
       chunks,
-      speechRate,
+      'medium',  // Use medium quality by default
       () => {
         // On complete callback
         completeNarration();
