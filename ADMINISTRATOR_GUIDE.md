@@ -479,7 +479,8 @@ docker exec fw-webinar-backend curl -I http://fw-webinar-backend:3000/api/health
 - **Error -3**: Dateiformat wird nicht unterstützt oder die Datei ist beschädigt
 - **Error -2**: Konvertierung hat zu lange gedauert (Timeout)
 - **Error -1**: Unbekannter Konvertierungsfehler (OnlyOffice-Logs prüfen)
-- **Error -7**: Alte Fehlerbezeichnung für Download-Fehler (siehe Error -4)
+
+**Hinweis**: Error -7 wurde in älteren OnlyOffice-Versionen für Download-Fehler verwendet, wurde aber durch Error -4 ersetzt.
 
 **Hinweise:**
 - OnlyOffice benötigt beim ersten Start bis zu 2 Minuten für die Initialisierung

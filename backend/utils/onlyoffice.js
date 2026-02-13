@@ -29,7 +29,7 @@ async function testUrlAccessibility(url) {
     const response = await axios.head(url, { 
       timeout: 5000,
       maxRedirects: 0,
-      validateStatus: (status) => status >= 200 && status < 500 // Accept any non-server-error
+      validateStatus: (status) => status >= 200 && status < 500 // Accept 2xx success and 4xx client errors (file exists but may need auth)
     });
     return { accessible: true, status: response.status };
   } catch (error) {
@@ -147,13 +147,25 @@ async function convertDocument(inputPath, outputPath, outputFormat = 'pdf') {
         ];
       } else if (errorCode === -3) {
         errorMessage = 'OnlyOffice conversion error (error -3)';
-        troubleshooting = ['The file format may not be supported or the file is corrupted'];
+        troubleshooting = [
+          'The file format may not be supported by OnlyOffice',
+          'The file may be corrupted or malformed',
+          'Try opening the file in PowerPoint/Office to verify it\'s valid'
+        ];
       } else if (errorCode === -2) {
         errorMessage = 'OnlyOffice conversion timeout (error -2)';
-        troubleshooting = ['The file may be too large or complex to convert'];
+        troubleshooting = [
+          'The file may be too large to convert within the timeout period',
+          'The file may contain complex graphics or animations',
+          'Try simplifying the presentation or splitting it into smaller files'
+        ];
       } else if (errorCode === -1) {
         errorMessage = 'OnlyOffice unknown conversion error (error -1)';
-        troubleshooting = ['Check OnlyOffice DocumentServer logs for more details'];
+        troubleshooting = [
+          'Check OnlyOffice DocumentServer logs for more details: docker-compose logs onlyoffice',
+          'The OnlyOffice service may be experiencing issues',
+          'Try restarting the OnlyOffice container: docker-compose restart onlyoffice'
+        ];
       }
       
       console.error(`\n❌ ${errorMessage}`);
