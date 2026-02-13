@@ -78,10 +78,16 @@ services:
       # Allow OnlyOffice to access private IP addresses (Docker internal networks)
       # Required for v9.x which blocks private IPs by default (RFC 1918)
       # Without this, conversion API returns error -4 when downloading from backend
+      # Note: DS_ALLOW_PRIVATE_IP_ADDRESS alone may not be sufficient for v9+
+      # The local.json configuration file (mounted below) ensures this setting is applied
       - DS_ALLOW_PRIVATE_IP_ADDRESS=true
     volumes:
       - onlyoffice-data:/var/www/onlyoffice/Data
       - onlyoffice-logs:/var/log/onlyoffice
+      # Mount local.json to configure OnlyOffice to allow private IP addresses
+      # This is required for v9+ where DS_ALLOW_PRIVATE_IP_ADDRESS env var alone is insufficient
+      # The config enables allowPrivateIPAddress and allowMetaIPAddress in request-filtering-agent
+      - ./onlyoffice-local.json:/etc/onlyoffice/documentserver/local.json:ro
     tmpfs:
       - /var/www/onlyoffice/Data/certs:mode=700
     networks:
