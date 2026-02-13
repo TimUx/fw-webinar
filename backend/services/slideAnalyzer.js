@@ -208,6 +208,7 @@ function removeRepetitiveImages(images, repetitiveImages) {
  * Note: The speakerNote field contains the raw extracted text and is the source
  * for both detection and filtering. After filtering, formatSlideContentAsJSON() is called
  * to regenerate the TipTap JSON content based on the filtered text and images.
+ * In screenshot mode, the content is not regenerated to preserve the screenshot.
  */
 function filterRepetitiveContent(slides) {
   if (slides.length < 2) {
@@ -236,8 +237,11 @@ function filterRepetitiveContent(slides) {
     }
 
     // Regenerate content based on filtered data
-    const text = filteredSlide.speakerNote || '';
-    filteredSlide.content = formatSlideContentAsJSON(text, filteredSlide.images);
+    // In screenshot mode, don't regenerate content (keep the screenshot)
+    if (slide.importMode !== 'screenshot') {
+      const text = filteredSlide.speakerNote || '';
+      filteredSlide.content = formatSlideContentAsJSON(text, filteredSlide.images);
+    }
 
     return filteredSlide;
   });
