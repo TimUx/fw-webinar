@@ -110,21 +110,56 @@ echo ""
 
 # Step 7: Check if OnlyOffice is accessible
 echo "Step 7: Testing OnlyOffice HTTP endpoint..."
-HTTP_STATUS=$(docker exec webinar-backend curl -s -o /dev/null -w "%{http_code}" http://onlyoffice/healthcheck 2>/dev/null || echo "000")
 
-if [ "$HTTP_STATUS" == "200" ]; then
-    echo -e "${GREEN}✓ OnlyOffice HTTP endpoint is accessible (HTTP 200)${NC}"
-elif [ "$HTTP_STATUS" == "000" ]; then
-    echo -e "${RED}❌ Cannot connect to OnlyOffice endpoint${NC}"
+# Detect backend container name
+BACKEND_CONTAINER=$($COMPOSE_CMD ps backend --format json 2>/dev/null | grep -o '"Name":"[^"]*"' | cut -d'"' -f4 || echo "")
+if [ -z "$BACKEND_CONTAINER" ]; then
+    # Fallback: try common names
+    for name in "fw-webinar-backend" "webinar-backend"; do
+        if docker ps --format '{{.Names}}' | grep -q "^${name}$"; then
+            BACKEND_CONTAINER="$name"
+            break
+        fi
+    done
+fi
+
+if [ -z "$BACKEND_CONTAINER" ]; then
+    echo -e "${YELLOW}⚠ Cannot find backend container, skipping endpoint test${NC}"
 else
-    echo -e "${YELLOW}⚠ OnlyOffice returned HTTP $HTTP_STATUS${NC}"
+    HTTP_STATUS=$(docker exec "$BACKEND_CONTAINER" curl -s -o /dev/null -w "%{http_code}" http://onlyoffice/healthcheck 2>/dev/null || echo "000")
+    
+    if [ "$HTTP_STATUS" == "200" ]; then
+        echo -e "${GREEN}✓ OnlyOffice HTTP endpoint is accessible (HTTP 200)${NC}"
+    elif [ "$HTTP_STATUS" == "000" ]; then
+        echo -e "${RED}❌ Cannot connect to OnlyOffice endpoint${NC}"
+    else
+        echo -e "${YELLOW}⚠ OnlyOffice returned HTTP $HTTP_STATUS${NC}"
+    fi
 fi
 echo ""
 
 # Step 8: Check environment variables
 echo "Step 8: Checking OnlyOffice environment variables..."
-PRIVATE_IP_ALLOWED=$(docker exec webinar-onlyoffice printenv DS_ALLOW_PRIVATE_IP_ADDRESS 2>/dev/null || echo "NOT_SET")
-META_IP_ALLOWED=$(docker exec webinar-onlyoffice printenv DS_ALLOW_META_IP_ADDRESS 2>/dev/null || echo "NOT_SET")
+
+# Detect OnlyOffice container name
+ONLYOFFICE_CONTAINER=$($COMPOSE_CMD ps onlyoffice --format json 2>/dev/null | grep -o '"Name":"[^"]*"' | cut -d'"' -f4 || echo "")
+if [ -z "$ONLYOFFICE_CONTAINER" ]; then
+    # Fallback: try common names
+    for name in "fw-webinar-onlyoffice" "webinar-onlyoffice"; do
+        if docker ps --format '{{.Names}}' | grep -q "^${name}$"; then
+            ONLYOFFICE_CONTAINER="$name"
+            break
+        fi
+    done
+fi
+
+if [ -z "$ONLYOFFICE_CONTAINER" ]; then
+    echo -e "${RED}❌ Cannot find OnlyOffice container${NC}"
+    exit 1
+fi
+
+PRIVATE_IP_ALLOWED=$(docker exec "$ONLYOFFICE_CONTAINER" printenv DS_ALLOW_PRIVATE_IP_ADDRESS 2>/dev/null || echo "NOT_SET")
+META_IP_ALLOWED=$(docker exec "$ONLYOFFICE_CONTAINER" printenv DS_ALLOW_META_IP_ADDRESS 2>/dev/null || echo "NOT_SET")
 
 echo "DS_ALLOW_PRIVATE_IP_ADDRESS: $PRIVATE_IP_ALLOWED"
 echo "DS_ALLOW_META_IP_ADDRESS: $META_IP_ALLOWED"
@@ -144,7 +179,7 @@ echo ""
 
 # Step 9: Check JWT configuration
 echo "Step 9: Checking JWT configuration..."
-JWT_SECRET_SET=$(docker exec webinar-onlyoffice printenv JWT_SECRET 2>/dev/null | wc -c)
+JWT_SECRET_SET=$(docker exec "$ONLYOFFICE_CONTAINER" printenv JWT_SECRET 2>/dev/null | wc -c)
 
 if [ "$JWT_SECRET_SET" -gt 1 ]; then
     echo -e "${GREEN}✓ JWT_SECRET environment variable is set${NC}"
