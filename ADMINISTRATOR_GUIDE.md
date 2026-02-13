@@ -169,9 +169,9 @@ docker compose build --no-cache
 docker compose up -d
 ```
 
-### Migration von OnlyOffice zu LibreOffice (Version 1.6.0+)
+### Migration von LibreOffice zu Playwright (Version 1.6.1+)
 
-**Wichtig**: Ab Version 1.6.0 wurde OnlyOffice DocumentServer durch LibreOffice + Playwright ersetzt.
+**Wichtig**: Ab Version 1.6.1 wurde LibreOffice durch Playwright + JSZip (browser-basiertes Rendering) ersetzt.
 
 **Upgrade-Schritte:**
 
@@ -192,7 +192,7 @@ docker compose up -d
 
 4. **Container neu bauen (wichtig!):**
    ```bash
-   docker compose build --no-cache
+   docker compose build --no-cache backend
    docker compose up -d
    ```
 
@@ -203,16 +203,13 @@ docker compose up -d
    ```
 
 **Wichtige Hinweise:**
-- LibreOffice ist nun direkt im Backend-Container integriert
-- Reduzierte RAM-Anforderungen: nur noch 1.5GB statt 3GB
-- OnlyOffice-Container und Volumes können entfernt werden
+- Playwright mit Chromium ist nun direkt im Backend-Container integriert
+- Keine externe Software (LibreOffice) mehr erforderlich
+- Container-Build ist schneller (keine LibreOffice-Installation)
 - Bestehende Präsentationen funktionieren weiterhin
-- Neue PPTX/PDF-Imports nutzen LibreOffice im Screenshot-Modus
+- Neue PPTX/PDF-Imports nutzen Playwright im Screenshot-Modus
+- PPTX-Parsing erfolgt direkt im Browser mit JSZip
 
-**Alte OnlyOffice-Volumes entfernen (optional):**
-```bash
-docker volume rm fw-webinar_onlyoffice-data fw-webinar_onlyoffice-logs
-```
 
 
 ### Browser-Cache leeren
@@ -304,7 +301,7 @@ Alle administrativen Aktionen werden in `data/audit.log` protokolliert:
    - **Inhalts-Modus** (Standard): Text und Bilder werden getrennt extrahiert und als formatierter Markdown-Inhalt in den Folien dargestellt
    - **Screenshot-Modus**: Jede Folie wird als Ganzes als Bild/Screenshot in den Folien dargestellt, der extrahierte Text wird nur im TTS-Feld (Sprechernotiz) gespeichert
 4. System konvertiert automatisch und erstellt Folien
-5. Bei fehlenden Tools (LibreOffice, pdftoppm): Fallback auf Textextraktion
+5. Bei fehlenden Tools (Playwright): Fallback auf Textextraktion
 
 #### Import-Modi im Detail
 
@@ -409,69 +406,74 @@ docker-compose logs -f tts
 3. Cache-Verzeichnis überprüfen: `ls -la tts-service/cache/`
 4. Modell neu laden lassen: `docker-compose down && docker-compose up -d`
 
-### LibreOffice PPTX/PDF Konvertierung Probleme
+### Playwright PPTX-Konvertierung Probleme
 
-**Hinweis:** Ab Version 1.6.0 wird LibreOffice für PPTX/PDF-Konvertierung im Screenshot-Modus verwendet.
+**Hinweis:** Ab Version 1.6.1 wird Playwright mit JSZip für PPTX-Konvertierung im Screenshot-Modus verwendet.
 
-LibreOffice ist direkt im Backend-Container integriert. Bei Problemen:
+Playwright rendert PPTX-Dateien direkt im Browser. Bei Problemen:
 
 **Symptome:**
 - PPTX/PDF-Import schlägt im Screenshot-Modus fehl
-- Fehlermeldung "LibreOffice ist nicht installiert"
+- Fehlermeldung "Playwright ist nicht verfügbar"
 - Screenshot-Modus funktioniert nicht
+- Browser-Timeout Fehler
 
 **Lösungsschritte:**
 1. Backend-Container-Logs überprüfen: `docker-compose logs backend`
-2. Container neu bauen (falls LibreOffice fehlt): 
+2. Container neu bauen (falls Playwright fehlt): 
    ```bash
    docker-compose down
    docker-compose build --no-cache backend
    docker-compose up -d
    ```
-3. Testen ob LibreOffice verfügbar ist:
+3. Testen ob Playwright verfügbar ist:
    ```bash
-   docker exec webinar-backend libreoffice --version
+   docker exec webinar-backend npx playwright --version
    ```
-4. Testen ob pdftoppm verfügbar ist:
+4. Chromium Browser überprüfen:
    ```bash
-   docker exec webinar-backend pdftoppm -v
+   docker exec webinar-backend ls -la /root/.cache/ms-playwright/
    ```
 
 **Häufige Fehler:**
 
-1. **LibreOffice Konvertierung schlägt fehl:**
+1. **Playwright oder Chromium nicht installiert:**
+   - Stellen Sie sicher, dass `npx playwright install chromium --with-deps` im Dockerfile ausgeführt wird
+   - Container komplett neu bauen: `docker-compose build --no-cache backend`
+
+2. **PPTX-Parsing schlägt fehl:**
    - Prüfen Sie, ob die PPTX-Datei nicht beschädigt ist
    - Versuchen Sie die Datei in PowerPoint zu öffnen
-   - Größere Dateien können länger dauern (bis zu 2 Minuten)
-   - Bei Timeout-Fehlern: Datei vereinfachen oder splitten
+   - Sehr komplexe PPTX-Dateien können länger zum Parsen benötigen
 
-2. **pdftoppm Fehler:**
-   - Stellen Sie sicher, dass poppler-utils installiert ist (im Dockerfile enthalten)
-   - Prüfen Sie Speicherplatz: `df -h`
-   - Prüfen Sie Berechtigungen im uploads-Verzeichnis
+3. **Browser-Timeout (30 Sekunden):**
+   - Bei sehr großen PPTX-Dateien kann das Parsing länger dauern
+   - Datei vereinfachen oder in kleinere Teile aufteilen
+   - Prüfen Sie Container-Ressourcen
 
-3. **Container hat zu wenig Ressourcen:**
-   - LibreOffice benötigt mindestens 512MB RAM
+4. **Container hat zu wenig Ressourcen:**
+   - Playwright + Chromium benötigt mindestens 512MB RAM
    - Bei großen PPTX-Dateien kann mehr RAM erforderlich sein
    - Docker-Ressourcen erhöhen, falls nötig
 
+5. **JSZip kann PPTX nicht laden:**
+   - PPTX-Datei ist möglicherweise beschädigt
+   - Datei neu speichern und erneut hochladen
+   - Prüfen Sie Browser-Console-Logs in den Backend-Logs
+
 **Alternative:**
 - Bei Problemen mit Screenshot-Modus: Nutzen Sie den Inhalts-Modus
-- Inhalts-Modus funktioniert auch ohne LibreOffice-Konvertierung
+- Inhalts-Modus funktioniert auch ohne Browser-Rendering
 
-### Legacy OnlyOffice-Hinweis
+### Legacy LibreOffice-Hinweis
 
-**Hinweis:** OnlyOffice DocumentServer wurde in Version 1.6.0 durch LibreOffice ersetzt.
+**Hinweis:** LibreOffice wurde in Version 1.6.1 durch Playwright + JSZip ersetzt.
 
-Wenn Sie von Version 1.5.0 upgraden:
-- Der OnlyOffice-Container ist nicht mehr nötig und wurde entfernt
-- OnlyOffice-Volumes können gelöscht werden:
-  ```bash
-  docker volume rm fw-webinar_onlyoffice-data fw-webinar_onlyoffice-logs
-  ```
-- Die .env Datei benötigt keine `ONLYOFFICE_JWT_SECRET` oder `BACKEND_URL` mehr
-- Container neu bauen: `docker-compose build --no-cache`
-- RAM-Anforderungen reduziert: von 3GB auf 1.5GB
+Wenn Sie von Version 1.6.0 upgraden:
+- LibreOffice ist nicht mehr nötig und wurde aus dem Dockerfile entfernt
+- Container sind jetzt kleiner und schneller zu bauen
+- Keine externe Office-Software mehr erforderlich
+- Container neu bauen: `docker-compose build --no-cache backend`
 
 ### Berechtigungsprobleme
 

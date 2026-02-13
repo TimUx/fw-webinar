@@ -260,8 +260,8 @@ async function convertPDFToSlides(pdfFilename, webinarId) {
   } catch (error) {
     console.error('PDF to images conversion error:', error);
     
-    // Fallback to LibreOffice conversion
-    console.log('Versuche PDF-Konvertierung mit LibreOffice...');
+    // Fallback to placeholder
+    console.log('PDF-Konvertierung fehlgeschlagen, erstelle Platzhalter...');
     return await convertPPTXToHTML(pdfFilename, webinarId);
   }
 }

@@ -35,7 +35,7 @@ Eine vollständig selbst gehostete, automatisierte Webinar- und E-Learning-Platt
 - **Text-to-Speech**: Piper TTS (Python Flask Service mit deutscher Thorsten Stimme)
 - **Authentifizierung**: JWT + bcrypt
 - **E-Mail**: Nodemailer (SMTP)
-- **PPTX/PDF-Konvertierung**: LibreOffice + pdftoppm (Screenshot-Modus)
+- **PPTX/PDF-Konvertierung**: Playwright + JSZip (Browser-basiertes Rendering für Screenshot-Modus)
 - **Speicher**: Dateibasiert (JSON)
 - **Container**: Docker & Docker Compose
 
@@ -74,22 +74,23 @@ Die Webinar-Plattform verwendet **Piper TTS** für hochwertige, natürlich kling
 - Caching: MD5-basiertes Caching
 - API: REST-API für einfache Integration
 
-### Dokumentenkonvertierung mit LibreOffice
+### Dokumentenkonvertierung mit Playwright
 
-Die Plattform verwendet **LibreOffice** für PPTX/PDF-Konvertierung im Screenshot-Modus.
+Die Plattform verwendet **Playwright** mit headless Browser-Rendering für PPTX-Konvertierung im Screenshot-Modus.
 
 **Funktionen:**
-- Open-Source Dokumentenverarbeitung
-- PPTX zu PDF Konvertierung
-- PDF zu Bild Konvertierung mit pdftoppm
+- Browser-basiertes PPTX-Rendering
+- JSZip für PPTX-Parsing direkt im Browser
+- Pixelgenaue Screenshot-Erfassung jeder Folie
+- Keine externe Software erforderlich
 - Präzise Layout-Beibehaltung
 - Selbst gehostet und datenschutzfreundlich
 
 **Technische Details:**
-- Engine: LibreOffice Headless
-- Integration: Direkt im Backend-Container
-- Workflow: PPTX → PDF → PNG-Bilder
-- Tools: LibreOffice + poppler-utils (pdftoppm)
+- Engine: Playwright (Chromium headless)
+- Parser: JSZip (JavaScript PPTX-Parser)
+- Workflow: PPTX → JSZip Parse → Browser Render → Screenshot (PNG)
+- Tools: Playwright + JSZip (CDN)
 
 ## Schnellstart
 
@@ -136,14 +137,14 @@ Wenn Sie beim Import von PPTX-Dateien im Screenshot-Modus Fehler erhalten:
 
 1. **Verwenden Sie den Screenshot-Modus**: Beim Hochladen einer PPTX-Datei wählen Sie "Screenshot-Modus" für die beste Darstellung.
 
-2. **LibreOffice Fehler**: Falls LibreOffice nicht verfügbar ist, stellen Sie sicher, dass der Container korrekt gebaut wurde:
+2. **Playwright Fehler**: Falls Playwright nicht verfügbar ist, stellen Sie sicher, dass der Container korrekt gebaut wurde:
    ```bash
    docker-compose down
    docker-compose build --no-cache backend
    docker-compose up -d
    ```
 
-3. **PDF-Konvertierung schlägt fehl**: Stellen Sie sicher, dass poppler-utils installiert ist (bereits im Dockerfile enthalten).
+3. **Browser-Timeout**: Bei sehr großen PPTX-Dateien kann das Parsing länger dauern. Das System wartet bis zu 30 Sekunden.
 
 4. **Weitere Details**: Siehe [ADMINISTRATOR_GUIDE.md - Fehlerbehebung](ADMINISTRATOR_GUIDE.md#fehlerbehebung)
 
@@ -219,6 +220,12 @@ Pull Requests sind willkommen!
 Design basiert auf: https://github.com/TimUx/fw-fragenkatalog
 
 ## Changelog
+
+### Version 1.6.1 (2026)
+- Migration von LibreOffice zu Playwright + JSZip
+- Browser-basiertes PPTX-Rendering (keine externe Software)
+- Vereinfachte Abhängigkeiten
+- Schnellere Container-Builds ohne LibreOffice
 
 ### Version 1.6.0 (2026)
 - Entfernung von OnlyOffice DocumentServer
