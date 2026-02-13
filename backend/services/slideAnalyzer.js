@@ -367,12 +367,8 @@ async function analyzePPTX(filename, webinarId, onProgress, importMode = 'conten
   if (importMode === 'screenshot') {
     onProgress(30, 'Erstelle Screenshots der Folien...');
     
-    // Convert PPTX slides to images
+    // Convert PPTX slides to images (throws specific errors if fails)
     const slideImages = await extractPPTXSlideImages(filename, webinarId);
-    
-    if (slideImages.length === 0) {
-      throw new Error('Keine Folien-Screenshots konnten erstellt werden. Bitte stellen Sie sicher, dass LibreOffice und pdftoppm installiert sind.');
-    }
     
     onProgress(60, `${slideImages.length} Folien-Screenshots erstellt...`);
     
