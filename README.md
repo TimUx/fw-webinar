@@ -138,11 +138,22 @@ docker-compose up -d
 
 Wenn Sie beim Import von PPTX-Dateien die Fehlermeldung "OnlyOffice cannot download the source file (error -4)" erhalten:
 
-1. **HÄUFIGSTE URSACHE - JWT-Authentifizierung**: OnlyOffice hat JWT standardmäßig aktiviert und benötigt ein JWT-Secret.
+1. **HÄUFIGSTE URSACHE (OnlyOffice v9+) - Private IP Blocking**: OnlyOffice v9.x blockiert standardmäßig Anfragen an private IP-Adressen (Docker interne Netzwerke).
+   
+   **Schnelle Lösung**: Diese Konfiguration ist bereits in `docker-compose.yml` gesetzt. Stellen Sie sicher, dass Sie die neueste Version verwenden:
+   ```bash
+   # Container neu starten
+   docker-compose down
+   docker-compose up -d
+   ```
+   
+   Die Umgebungsvariable `DS_ALLOW_PRIVATE_IP_ADDRESS=true` erlaubt OnlyOffice den Zugriff auf Docker-Netzwerke.
+
+2. **Zweithäufigste Ursache - JWT-Authentifizierung**: OnlyOffice hat JWT standardmäßig aktiviert und benötigt ein JWT-Secret.
    
    **Schnelltest**: Kann OnlyOffice die Datei herunterladen?
    ```bash
-   docker exec fw-webinar-onlyoffice wget http://fw-webinar-backend:3000/uploads/test.pptx
+   docker exec webinar-onlyoffice wget http://webinar-backend:3000/uploads/test.pptx
    ```
    
    Wenn wget erfolgreich ist (HTTP 200), aber Error -4 auftritt → **JWT ist das Problem!**
@@ -150,7 +161,7 @@ Wenn Sie beim Import von PPTX-Dateien die Fehlermeldung "OnlyOffice cannot downl
    **Lösung**:
    ```bash
    # 1. JWT-Secret abrufen
-   docker exec fw-webinar-onlyoffice sudo documentserver-jwt-status.sh
+   ./get-onlyoffice-jwt-secret.sh
    
    # 2. Secret in .env eintragen
    echo "ONLYOFFICE_JWT_SECRET=<das-angezeigte-secret>" >> .env
@@ -159,7 +170,7 @@ Wenn Sie beim Import von PPTX-Dateien die Fehlermeldung "OnlyOffice cannot downl
    docker-compose restart backend
    ```
 
-2. **Alternative Ursache - Container-Namen**: Diskrepanz zwischen Backend-Container-Namen und `BACKEND_URL`.
+3. **Alternative Ursache - Container-Namen**: Diskrepanz zwischen Backend-Container-Namen und `BACKEND_URL`.
    
    **Lösung**: 
    ```bash
@@ -174,7 +185,8 @@ Wenn Sie beim Import von PPTX-Dateien die Fehlermeldung "OnlyOffice cannot downl
    docker-compose restart backend
    ```
 
-3. **Weitere Details**: Siehe [ADMINISTRATOR_GUIDE.md - Fehlerbehebung](ADMINISTRATOR_GUIDE.md#fehlerbehebung)
+4. **Weitere Details**: Siehe [ADMINISTRATOR_GUIDE.md - Fehlerbehebung](ADMINISTRATOR_GUIDE.md#fehlerbehebung)
+
 
 
 ## Dateistruktur

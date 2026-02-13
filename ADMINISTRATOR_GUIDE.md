@@ -437,14 +437,40 @@ Dieser Fehler tritt auf, wenn OnlyOffice die Datei nicht vom Backend-Server heru
 
 **Ursachen und Lösungen:**
 
-1. **JWT-Authentifizierung fehlt** (HÄUFIGSTE URSACHE):
+1. **OnlyOffice v9+ blockiert private IPs** (HÄUFIGSTE URSACHE bei neueren Versionen):
+   - OnlyOffice DocumentServer v9.x blockiert standardmäßig Anfragen an private IP-Adressen (RFC 1918)
+   - Docker interne Netzwerke verwenden private IP-Bereiche (172.x.x.x, 10.x.x.x, 192.168.x.x)
+   - Ohne Konfiguration kann OnlyOffice nicht auf Backend-Container zugreifen
+   
+   **Lösung - DS_ALLOW_PRIVATE_IP_ADDRESS aktivieren:**
+   Die Umgebungsvariable ist bereits in der mitgelieferten `docker-compose.yml` konfiguriert:
+   ```yaml
+   onlyoffice:
+     environment:
+       - DS_ALLOW_PRIVATE_IP_ADDRESS=true
+   ```
+   
+   **Falls Sie eine ältere Version verwenden:**
+   ```bash
+   # 1. docker-compose.yml bearbeiten und die Zeile hinzufügen
+   #    unter onlyoffice -> environment:
+   #    - DS_ALLOW_PRIVATE_IP_ADDRESS=true
+   
+   # 2. Container neu starten
+   docker-compose down
+   docker-compose up -d
+   ```
+   
+   **Hinweis**: Diese Einstellung ist erforderlich für OnlyOffice v9.0 und höher. Ältere Versionen benötigen sie nicht.
+
+2. **JWT-Authentifizierung fehlt** (ZWEITHÄUFIGSTE URSACHE):
    - OnlyOffice DocumentServer hat standardmäßig JWT aktiviert, auch wenn `JWT_ENABLED=false` gesetzt ist
    - Die Conversion API benötigt JWT-Tokens für alle Anfragen
    
    **Lösung - JWT-Secret abrufen und konfigurieren:**
    ```bash
    # 1. JWT-Status und Secret anzeigen
-   docker exec fw-webinar-onlyoffice sudo documentserver-jwt-status.sh
+   ./get-onlyoffice-jwt-secret.sh
    
    # Ausgabe zeigt z.B.:
    # JWT is enabled. Secret: w8KvKFsZrC1xqkN...
@@ -459,13 +485,13 @@ Dieser Fehler tritt auf, wenn OnlyOffice die Datei nicht vom Backend-Server heru
    **Testen ob JWT das Problem ist:**
    ```bash
    # Von OnlyOffice-Container aus die Datei herunterladen
-   docker exec fw-webinar-onlyoffice wget http://fw-webinar-backend:3000/uploads/datei.pptx
+   docker exec webinar-onlyoffice wget http://webinar-backend:3000/uploads/datei.pptx
    
    # Wenn wget erfolgreich ist (HTTP 200), aber OnlyOffice Error -4 zeigt,
    # dann ist JWT das Problem!
    ```
 
-2. **Container-Namen stimmen nicht überein**:
+3. **Container-Namen stimmen nicht überein**:
    - Überprüfen Sie die BACKEND_URL Umgebungsvariable in `.env` oder `docker-compose.yml`
    - **Wichtig**: Der Hostname in BACKEND_URL muss mit dem tatsächlichen Backend-Container-Namen übereinstimmen
    - Beispiel: Wenn Ihr Backend-Container `fw-webinar-backend` heißt, muss BACKEND_URL `http://fw-webinar-backend:3000` sein
@@ -476,7 +502,7 @@ Dieser Fehler tritt auf, wenn OnlyOffice die Datei nicht vom Backend-Server heru
      ```
    - Dann Container neu starten: `docker-compose restart backend`
 
-3. **Container sind nicht im gleichen Netzwerk**:
+4. **Container sind nicht im gleichen Netzwerk**:
    - Überprüfen Sie `docker-compose.yml`, dass beide Container im gleichen Netzwerk sind
    - Standard-Netzwerk: `webinar-network`
 
@@ -492,7 +518,7 @@ Dieser Fehler tritt auf, wenn OnlyOffice die Datei nicht vom Backend-Server heru
 
 ```bash
 # 1. Netzwerk-Test: Kann OnlyOffice die Datei herunterladen?
-docker exec fw-webinar-onlyoffice wget http://fw-webinar-backend:3000/uploads/test.pptx
+docker exec webinar-onlyoffice wget http://webinar-backend:3000/uploads/test.pptx
 
 # Wenn HTTP 200 OK → Netzwerk funktioniert, JWT ist wahrscheinlich das Problem
 # Wenn Fehler → Netzwerk-/Container-Name-Problem
