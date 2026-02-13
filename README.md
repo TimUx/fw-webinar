@@ -14,9 +14,17 @@ Eine vollständig selbst gehostete, automatisierte Webinar- und E-Learning-Platt
 🎨 **Modernes Design** - Basierend auf fw-fragenkatalog Design  
 📱 **Responsive** - Funktioniert auf Desktop, Tablet und Mobile  
 🌐 **Deutsch** - Vollständig auf Deutsch lokalisiert  
-📄 **PDF & PPTX Support** - Import von PDF- und PowerPoint-Präsentationen  
+📄 **PDF & PPTX Support** - Import von PDF- und PowerPoint-Präsentationen
 
-## Tech Stack
+## Dokumentation
+
+- **[README.md](README.md)** - Diese Datei: Übersicht, Architektur und Quickstart
+- **[ADMINISTRATOR_GUIDE.md](ADMINISTRATOR_GUIDE.md)** - Installation, Konfiguration, Fehlerbehebung und Admin-Panel-Bedienung
+- **[USER_GUIDE.md](USER_GUIDE.md)** - Verwendung im Frontend und TipTap-Editor  
+
+## Architektur
+
+### Tech Stack
 
 - **Backend**: Node.js mit Express
 - **Frontend**: HTML, CSS, JavaScript (Vanilla)
@@ -28,6 +36,40 @@ Eine vollständig selbst gehostete, automatisierte Webinar- und E-Learning-Platt
 - **PPTX/PDF-Konvertierung**: LibreOffice (optional), pdftoppm für PDF
 - **Speicher**: Dateibasiert (JSON)
 - **Container**: Docker & Docker Compose
+
+### Container-Architektur
+
+Die Plattform besteht aus zwei Hauptcontainern:
+
+1. **backend**: Node.js-Anwendung (Express)
+   - Haupt-Webserver
+   - API-Endpunkte
+   - Authentifizierung
+   - Datei-Verwaltung
+
+2. **tts**: Python-basierter Piper TTS Service
+   - Sprachsynthese
+   - Audio-Caching
+   - REST-API
+
+Der TTS-Service läuft unabhängig und wird vom Backend über eine interne REST-API angesprochen.
+
+### Sprachausgabe mit Piper TTS
+
+Die Webinar-Plattform verwendet **Piper TTS** für hochwertige, natürlich klingende deutsche Sprachausgabe.
+
+**Funktionen:**
+- Hochwertige deutsche Stimme (Thorsten-Modell)
+- Konsistente Qualität in allen Browsern
+- Audio-Caching für optimale Performance
+- Geschwindigkeitsregelung (0.5x - 1.5x)
+- Selbst gehostet und datenschutzfreundlich
+
+**Technische Details:**
+- TTS-Engine: Piper TTS mit Thorsten-Modell
+- Service: Python Flask-Anwendung in separatem Container
+- Caching: MD5-basiertes Caching
+- API: REST-API für einfache Integration
 
 ## Schnellstart
 
@@ -49,209 +91,22 @@ cd fw-webminar
 ```bash
 cp .env.example .env
 # .env bearbeiten und JWT_SECRET ändern
-# Optional: PUID und PGID anpassen (Standard: 1000)
 ```
 
-3. **Verzeichnisse erstellen und Berechtigungen setzen**
-```bash
-mkdir -p data uploads slides assets
-# Optional: Berechtigungen für den konfigurierten Benutzer setzen
-# sudo chown -R $PUID:$PGID data uploads slides assets
-```
-
-4. **Starten**
+3. **Starten**
 ```bash
 docker-compose up -d
 ```
 
-5. **Zugriff**
+4. **Zugriff**
 - Webinar-Frontend: http://localhost:3000
 - Admin-Panel: http://localhost:3000/admin/
 
-**Hinweis**: In einer Produktionsumgebung sollte ein externer Reverse Proxy (z.B. Caddy, Traefik, Nginx) vor die Anwendung geschaltet werden.
+**Erstes Login:**
+- Benutzername: `admin`
+- Passwort: Beliebiges Passwort (wird beim ersten Login gesetzt)
 
-### Erstes Login
-
-1. Öffnen Sie http://localhost:3000/admin/login.html
-2. Benutzername: `admin`
-3. Passwort: Beliebiges Passwort (wird beim ersten Login gesetzt)
-
-Das erste eingegebene Passwort wird zum Admin-Passwort.
-
-## Konfiguration
-
-### Benutzer- und Gruppen-IDs (UID/GID)
-
-Alle Container können mit spezifischen Benutzer- und Gruppen-IDs ausgeführt werden. Dies ist besonders wichtig für korrekte Dateiberechtigungen auf dem Host-System.
-
-1. `.env` Datei bearbeiten:
-```bash
-# User/Group IDs für Container-Prozesse
-PUID=1000
-PGID=1000
-```
-
-2. UID/GID des aktuellen Benutzers ermitteln (optional):
-```bash
-id -u  # Zeigt UID
-id -g  # Zeigt GID
-```
-
-3. Container neu starten, damit Änderungen wirksam werden:
-```bash
-docker-compose down
-docker-compose up -d
-```
-
-**Hinweis:** Die Standardwerte sind PUID=1000 und PGID=1000. Dies funktioniert für die meisten Benutzer. Wenn Sie Probleme mit Dateiberechtigungen haben, passen Sie diese Werte entsprechend Ihrem System an.
-
-### SMTP E-Mail
-
-1. Im Admin-Panel zu "E-Mail (SMTP)" navigieren
-2. SMTP-Server-Details eingeben:
-   - Host: z.B. `smtp.gmail.com`
-   - Port: `587` (TLS) oder `465` (SSL)
-   - Benutzername: Ihre E-Mail-Adresse
-   - Passwort: Ihr E-Mail-Passwort oder App-Passwort
-   - Absender E-Mail: E-Mail-Adresse für ausgehende Nachrichten
-
-3. Test-E-Mail senden zur Überprüfung
-
-### Reverse Proxy Konfiguration (Empfohlen für Produktion)
-
-Für den Produktionseinsatz wird empfohlen, einen externen Reverse Proxy wie Caddy, Traefik oder Nginx zu verwenden. Dieser sollte:
-- HTTPS/TLS-Terminierung übernehmen
-- Den Backend-Container auf Port 3000 weiterleiten
-- Security-Header setzen
-- Kompression aktivieren (gzip/zstd)
-
-Beispiel-Konfiguration für verschiedene Reverse Proxies finden Sie in deren jeweiliger Dokumentation.
-
-### Header und Logo anpassen
-
-1. Im Admin-Panel zu "Einstellungen" navigieren
-2. Header-Titel eingeben
-3. Logo hochladen (PNG, JPG, SVG)
-4. Speichern
-
-## Webinar erstellen
-
-### Methode 1: Manuelle Slides
-
-1. Im Admin-Panel zu "Webinare" navigieren
-2. "Neues Webinar erstellen" klicken
-3. Titel eingeben
-4. Folien hinzufügen:
-   - Titel
-   - Inhalt (HTML erlaubt)
-   - Sprechernotiz (für automatische Sprachausgabe)
-5. Quiz-Fragen hinzufügen:
-   - Frage
-   - 4 Antwortmöglichkeiten
-   - Richtige Antwort markieren
-6. Speichern
-
-### Methode 2: PPTX/PDF-Upload (optional)
-
-1. Präsentationsdatei (PPTX oder PDF) im Bereich "Präsentationen" hochladen
-2. Bei Webinar-Erstellung Präsentationsdatei auswählen
-3. System konvertiert automatisch:
-   - **PDF**: Seiten werden als Bilder extrahiert (mit pdftoppm) und in `uploads/` gespeichert
-   - **PPTX**: Bilder und Grafiken werden extrahiert und in `uploads/` gespeichert
-   - Alle extrahierten Bilder werden automatisch den entsprechenden Folien zugeordnet
-   - **Intelligente Filterung**: Wiederkehrende Inhalte (Kopf-/Fußzeilen, Logos, Seitenzahlen, Datumsangaben) werden automatisch erkannt und entfernt
-   - Bei fehlenden Tools (pdftoppm): Fallback auf Textextraktion
-
-#### Automatische Filterung von wiederkehrenden Inhalten
-
-Das System erkennt und entfernt automatisch:
-- **Kopf- und Fußzeilen**: Text, der auf mehreren Folien/Seiten wiederholt wird
-- **Logos und Hintergrundbilder**: Bilder, die auf den meisten Folien erscheinen
-- **Seitenzahlen**: Muster wie "Seite 1", "Page 2", "1/10", reine Zahlen
-- **Datumsangaben**: Verschiedene Datumsformate (01.01.2024, 12/31/2024)
-- **Copyright-Hinweise**: z.B. "© 2024"
-- **Firmen-/Organisationsnamen**: Die auf allen Folien erscheinen
-
-Die Filterung erfolgt intelligent:
-- Nur Inhalte, die auf mindestens 60% der Folien vorkommen, werden als repetitiv erkannt
-- Für bekannte Muster (Seitenzahlen, Datum) gilt eine niedrigere Schwelle von 30%
-- Themenspezifische Inhalte (Titel, Texte, Listen, Tabellen, Grafiken) bleiben erhalten
-
-## Sprachausgabe mit Coqui AI TTS
-
-Die Webinar-Plattform verwendet **Coqui AI TTS** (Open Source) für hochwertige, natürlich klingende deutsche Sprachausgabe.
-
-### Funktionen
-
-- **Hochwertige deutsche Stimme**: Verwendet das Thorsten-DDC-Modell für natürlichen Klang
-- **Konsistente Qualität**: Gleiche Sprachqualität in allen Browsern
-- **Audio-Caching**: Einmal generierte Audiodateien werden zwischengespeichert
-- **Geschwindigkeitsregelung**: Passen Sie die Sprechgeschwindigkeit zwischen 0.5x (langsam) und 1.5x (schnell) an
-- **Selbst gehostet**: Keine externen Cloud-Dienste erforderlich
-- **Datenschutzfreundlich**: Alle Audiodaten verbleiben auf Ihrem Server
-
-### Technische Details
-
-- **TTS-Engine**: Coqui TTS mit Tacotron2-DDC-Modell
-- **Sprache**: Deutsch (Thorsten-Dataset)
-- **Service**: Python Flask-Anwendung in separatem Container
-- **Caching**: MD5-basiertes Caching für optimale Performance
-- **API**: REST-API für einfache Integration
-
-### Verwendung
-
-1. Starten Sie ein Webinar mit Sprechernotizen
-2. Die Sprachausgabe beginnt automatisch bei jeder Folie
-3. Regeln Sie die **Geschwindigkeit** mit dem Schieberegler
-4. Nutzen Sie den Stummschaltungs-Button, um die Sprachausgabe anzuhalten
-
-### Container-Architektur
-
-Die Plattform besteht aus zwei Hauptcontainern:
-- **backend**: Node.js-Anwendung (Express)
-- **tts**: Python-basierter Coqui TTS Service
-
-Der TTS-Service läuft unabhängig und wird vom Backend über eine interne REST-API angesprochen.
-
-### Tipps für beste Qualität
-
-- **Sprechernotizen**: Schreiben Sie klare, vollständige deutsche Sätze
-- **Interpunktion**: Verwenden Sie Punkte, Kommas und Semikolons für natürliche Pausen
-- **Länge**: Halten Sie Notizen übersichtlich (empfohlen: 2-4 Sätze pro Folie)
-- **Geschwindigkeit**: Beginnen Sie mit 1.0x für optimales Verständnis
-
-### Performance-Hinweise
-
-- **Erster Start**: Der TTS-Service benötigt beim ersten Start etwas Zeit zum Laden des Modells
-- **Erste Audio-Generierung**: Die erste Generierung eines Textes kann 5-10 Sekunden dauern
-- **Caching**: Bereits generierte Audiodateien werden wiederverwendet und spielen sofort ab
-- **GPU-Unterstützung**: Falls verfügbar, wird automatisch CUDA für schnellere Generierung verwendet
-
-### Sicherheit
-
-Der TTS-Service verwendet aktuelle, sichere Versionen aller Abhängigkeiten:
-- **PyTorch**: Version ≥2.6.0 (behebt bekannte Sicherheitslücken in älteren Versionen)
-- Regelmäßige Sicherheitsupdates werden empfohlen
-
-### Erweiterte Konfiguration
-
-Die TTS-Konfiguration kann in der `docker-compose.yml` angepasst werden:
-
-```yaml
-tts:
-  environment:
-    - TTS_MODEL=tts_models/de/thorsten/tacotron2-DDC  # TTS-Modell
-    - TTS_CACHE_DIR=/app/cache                        # Cache-Verzeichnis
-```
-
-Weitere Informationen finden Sie in `tts-service/README.md`.
-
-### Erweiterte Optionen
-
-Für professionelle Anwendungen, die konsistente hochwertige Sprachausgabe über alle Browser benötigen, siehe [SPRACHAUSGABE_OPTIONEN.md](SPRACHAUSGABE_OPTIONEN.md) für Informationen über:
-- Integration externer TTS-Dienste (Google Cloud TTS, Azure, AWS Polly)
-- Lokale TTS-Lösungen (Piper, Coqui)
-- Kosten-Nutzen-Analysen verschiedener Ansätze
+**Hinweis**: Für Produktionsumgebungen siehe [ADMINISTRATOR_GUIDE.md](ADMINISTRATOR_GUIDE.md) für Reverse Proxy Konfiguration und erweiterte Einstellungen.
 
 
 ## Dateistruktur
@@ -268,134 +123,14 @@ fw-webminar/
 │   ├── admin/           # Admin-Panel
 │   ├── webinar/         # Öffentliche Webinar-Seite
 │   └── assets/          # CSS, JS, Bilder
+├── tts-service/         # Piper TTS Service (Python)
 ├── data/                # JSON-Dateispeicher
-│   ├── users.json
-│   ├── settings.json
-│   ├── smtp.json
-│   ├── webinars.json
-│   ├── results.json
-│   └── audit.log
-├── uploads/             # Hochgeladene PPTX/PDF und extrahierte Bilder
-│   ├── file.pptx        # Hochgeladene Präsentationsdateien
-│   └── webinar-id/      # Extrahierte Bilder pro Webinar
+├── uploads/             # Hochgeladene PPTX/PDF und Bilder
 ├── slides/              # Generierte Präsentationen (HTML)
 ├── assets/              # Logos, Theme-Bilder
 ├── docker-compose.yml   # Docker-Konfiguration
-├── Dockerfile           # Backend-Container
 └── README.md
 ```
-
-## API-Endpunkte
-
-### Authentifizierung
-- `POST /api/auth/login` - Admin-Login
-- `POST /api/auth/setup` - Initiales Passwort setzen
-
-### Admin (authentifiziert)
-- `GET/PUT /api/admin/settings` - Einstellungen
-- `POST /api/admin/settings/logo` - Logo hochladen
-- `GET/PUT /api/admin/smtp` - SMTP-Konfiguration
-- `POST /api/admin/smtp/test` - Test-E-Mail
-- `GET /api/admin/pptx` - PPTX-Liste
-- `POST /api/admin/pptx/upload` - PPTX hochladen
-- `DELETE /api/admin/pptx/:filename` - PPTX löschen
-- `GET/POST/PUT/DELETE /api/admin/webinars` - Webinar-Verwaltung
-- `GET /api/admin/results` - Ergebnisse abrufen
-- `GET /api/admin/results/export` - CSV-Export
-
-### Öffentlich
-- `GET /api/webinar/settings` - Öffentliche Einstellungen
-- `GET /api/webinar/list` - Webinar-Liste
-- `GET /api/webinar/:id` - Webinar-Details
-- `POST /api/webinar/:id/submit` - Quiz-Ergebnis einreichen
-
-## Sicherheit
-
-- ✅ JWT-Token-Authentifizierung
-- ✅ bcrypt-Passwort-Hashing (10 Runden)
-- ✅ Rate Limiting (100 Anfragen/15 Min)
-- ✅ Helmet.js Security Headers
-- ✅ Input-Validierung
-- ✅ Datei-Upload-Validierung
-- ✅ CSRF-Schutz durch SameSite-Cookies
-- ✅ Audit-Logging
-
-## Datensicherung
-
-Wichtige Daten liegen in:
-- `./data/` - Alle JSON-Dateien
-- `./uploads/` - Hochgeladene PPTX/PDF und extrahierte Bilder
-- `./slides/` - Generierte Präsentationen
-- `./assets/` - Logos und Assets
-
-Backup-Befehl:
-```bash
-tar -czf backup-$(date +%Y%m%d).tar.gz data/ uploads/ slides/ assets/
-```
-
-## Updates durchführen
-
-Nach einem `git pull` müssen die Docker-Container neu gebaut werden, um Code-Änderungen zu laden:
-
-```bash
-# Container stoppen
-docker compose down
-
-# Code aktualisieren
-git pull
-
-# Container mit neuem Code bauen und starten
-docker compose up -d --build
-
-# Oder falls Probleme auftreten, zuerst die Images löschen:
-docker compose down
-docker compose build --no-cache
-docker compose up -d
-```
-
-**Wichtig**: Der Browser cached JavaScript- und CSS-Dateien. Nach einem Update:
-1. Browser-Cache leeren (Strg+Shift+R oder Strg+F5)
-2. Oder im Browser-DevTools "Disable cache" aktivieren
-3. Die Anwendung nutzt automatisches Cache-Busting mit Versions-Parametern
-
-**Hinweis für Entwickler**: Die Cache-Busting-Version ist aktuell manuell in HTML-Dateien gesetzt. Bei Änderungen an JS/CSS-Dateien sollte die Version aktualisiert werden, um Browser-Cache-Probleme zu vermeiden.
-
-## Fehlerbehebung
-
-### Container starten nicht
-```bash
-docker-compose logs -f
-```
-
-### LibreOffice-Warnungen (optional)
-
-Wenn der LibreOffice-Container aktiviert ist, können folgende Warnungen auftreten:
-
-**XKEYBOARD-Warnungen** (z.B. "Could not resolve keysym XF86OK"):
-- Diese Warnungen sind **harmlos** und beeinträchtigen die Funktionalität nicht
-- Sie treten auf, weil der X11-Server im Container einige spezielle Tastenzuordnungen nicht kennt
-- Die PPTX-Konvertierung funktioniert trotz dieser Meldungen einwandfrei
-- Diese Warnungen können ignoriert werden
-
-**xsettingsd-Verbindungsfehler**:
-- Ebenfalls harmlos; der Container startet trotzdem korrekt
-- Tritt während der Initialisierungsphase auf
-
-### Admin-Passwort zurücksetzen
-```bash
-# users.json bearbeiten und passwordHash löschen
-# Beim nächsten Login wird neues Passwort gesetzt
-```
-
-### SMTP funktioniert nicht
-- SMTP-Zugangsdaten überprüfen
-- Firewall-Regeln überprüfen (Port 587/465)
-- Test-E-Mail im Admin-Panel senden
-- Bei Gmail: App-Passwort verwenden
-
-### LibreOffice-Konvertierung fehlschlägt
-- LibreOffice-Container in docker-compose.yml aktivieren
-- Alternative: Manuelle Slides verwenden
 
 ## Entwicklung
 
@@ -418,16 +153,10 @@ npm run dev
 
 4. Zugriff auf http://localhost:3000
 
-**Hinweis**: Bei lokaler Entwicklung ohne Docker ist kein Reverse Proxy erforderlich.
-
 ### Logs anzeigen
 ```bash
 docker-compose logs -f backend
-```
-
-### Container neu starten
-```bash
-docker-compose restart
+docker-compose logs -f tts
 ```
 
 ## Lizenz
@@ -438,6 +167,8 @@ MIT License
 
 Bei Fragen oder Problemen:
 - GitHub Issues: https://github.com/TimUx/fw-webminar/issues
+- [ADMINISTRATOR_GUIDE.md](ADMINISTRATOR_GUIDE.md) - Detaillierte Installations- und Konfigurationsanleitung
+- [USER_GUIDE.md](USER_GUIDE.md) - Benutzerhandbuch
 
 ## Mitwirken
 
@@ -450,39 +181,18 @@ Design basiert auf: https://github.com/TimUx/fw-fragenkatalog
 ## Changelog
 
 ### Version 1.3.0 (2026)
-- **Migration zu TipTap WYSIWYG Editor**
-  - Moderner, erweiterbarer Editor basierend auf ProseMirror
-  - Alle Funktionen von Quill.js beibehalten
-  - 85% Reduzierung der Code-Komplexität
-  - Bessere Wartbarkeit und Erweiterbarkeit
-  - JSON-basierte Speicherstruktur
-  - Vollständig kompatibel mit bestehenden Webinaren
-  - Details siehe [TIPTAP_MIGRATION.md](TIPTAP_MIGRATION.md)
+- Migration zu TipTap WYSIWYG Editor
+- Moderner, erweiterbarer Editor basierend auf ProseMirror
+- 85% Reduzierung der Code-Komplexität
+- JSON-basierte Speicherstruktur
 
 ### Version 1.2.0 (2026)
-- **Intelligente Filterung von wiederkehrenden Inhalten**
-  - Automatische Erkennung von Kopf- und Fußzeilen in PPTX/PDF
-  - Entfernung von wiederkehrenden Logos und Hintergrundbildern
-  - Filterung von Seitenzahlen, Datumsangaben und Copyright-Hinweisen
-  - Erkennung von Firmen-/Organisationsnamen auf allen Folien
-  - Konfigurierbare Erkennungsschwellen (60% für allgemeine Inhalte, 30% für bekannte Muster)
-  - Erhaltung aller themenspezifischen Inhalte (Titel, Texte, Listen, Tabellen, Grafiken)
+- Intelligente Filterung von wiederkehrenden Inhalten in PPTX/PDF
+- Automatische Erkennung von Kopf-/Fußzeilen, Logos, Seitenzahlen
 
 ### Version 1.1.0 (2026)
-- **Verbesserte Sprachausgabe**
-  - Intelligente Auswahl der besten deutschen Stimme
-  - Benutzer-Kontrollen für Stimmauswahl
-  - Geschwindigkeitsregelung (0.5x - 1.2x)
-  - Natürlichere Sprachausgabe durch Text-Chunking
-  - Automatische Pausen zwischen Sätzen
-  - Optimierte Standard-Sprechgeschwindigkeit (0.85x)
-  - Fehlerbehandlung und Wiederholungslogik
+- Verbesserte Sprachausgabe mit Piper TTS
+- Geschwindigkeitsregelung und natürlichere Sprachausgabe
 
 ### Version 1.0.0 (2024)
 - Initiales Release
-- Admin-Panel
-- Webinar-Verwaltung
-- Quiz-System
-- E-Mail-Benachrichtigungen
-- Sprachausgabe
-- Docker-Deployment
