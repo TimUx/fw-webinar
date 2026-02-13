@@ -1,9 +1,20 @@
-FROM node:20-alpine
+FROM node:20-slim
 
 WORKDIR /app
 
-# Install poppler-utils for PDF to image conversion (pdftoppm)
-RUN apk add --no-cache --repository=https://dl-cdn.alpinelinux.org/alpine/edge/community poppler-utils
+# Install dependencies for PDF/PPTX conversion
+# - poppler-utils: for PDF to image conversion (pdftoppm)
+# - libreoffice: for PPTX to PDF conversion
+# - fonts-dejavu: for proper text rendering in conversions
+# - wget: for health checks
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    poppler-utils \
+    libreoffice \
+    libreoffice-writer \
+    libreoffice-impress \
+    fonts-dejavu \
+    wget \
+    && rm -rf /var/lib/apt/lists/*
 
 # Copy package files
 COPY package*.json ./
