@@ -152,24 +152,27 @@ Wenn Sie beim Import von PPTX-Dateien die Fehlermeldung "OnlyOffice cannot downl
 
 2. **Zweithäufigste Ursache - JWT-Authentifizierung**: OnlyOffice hat JWT standardmäßig aktiviert und benötigt ein JWT-Secret.
    
-   **Schnelltest**: Kann OnlyOffice die Datei herunterladen?
+   **NEU**: Das System funktioniert jetzt automatisch mit OnlyOffices Standard-Secret als Fallback!
+   Sie sehen jedoch eine Sicherheitswarnung beim Backend-Start.
+   
+   **Für Produktivbetrieb - Sicheres Secret konfigurieren**:
+   ```bash
+   # Option 1 - Neues sicheres Secret generieren (EMPFOHLEN)
+   SECRET=$(openssl rand -hex 32)
+   echo "ONLYOFFICE_JWT_SECRET=$SECRET" >> .env
+   docker-compose restart
+   
+   # Option 2 - Vorhandenes OnlyOffice-Secret verwenden
+   ./get-onlyoffice-jwt-secret.sh
+   echo "ONLYOFFICE_JWT_SECRET=<angezeigtes-secret>" >> .env
+   docker-compose restart backend
+   ```
+   
+   **Schnelltest** (ob JWT das Problem ist):
    ```bash
    docker exec webinar-onlyoffice wget http://webinar-backend:3000/uploads/test.pptx
    ```
-   
    Wenn wget erfolgreich ist (HTTP 200), aber Error -4 auftritt → **JWT ist das Problem!**
-   
-   **Lösung**:
-   ```bash
-   # 1. JWT-Secret abrufen
-   ./get-onlyoffice-jwt-secret.sh
-   
-   # 2. Secret in .env eintragen
-   echo "ONLYOFFICE_JWT_SECRET=<das-angezeigte-secret>" >> .env
-   
-   # 3. Backend neu starten
-   docker-compose restart backend
-   ```
 
 3. **Alternative Ursache - Container-Namen**: Diskrepanz zwischen Backend-Container-Namen und `BACKEND_URL`.
    
