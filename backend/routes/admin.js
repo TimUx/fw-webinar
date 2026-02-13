@@ -448,26 +448,7 @@ router.post('/webinars', async (req, res) => {
       updatedAt: new Date().toISOString()
     };
     
-    // If pptxFile is provided but no slides, automatically analyze and generate slides
-    if (pptxFile && (!slides || slides.length === 0)) {
-      const sessionId = `${webinar.id}-${Date.now()}`;
-      
-      const modeText = mode === 'screenshot' ? 'Screenshot-Modus' : 'Inhalts-Modus';
-      logAudit('FILE_ANALYZE', req.user.username, `Auto-analysiere: ${pptxFile} für Webinar: ${title} (${modeText})`);
-      
-      // Analyze presentation to get slide metadata for the webinar object
-      // This now handles both PPTX and PDF files, extracting images and text
-      // The importMode parameter controls whether to extract content or use screenshots
-      const analyzedSlides = await analyzePresentation(pptxFile, webinar.id, sessionId, mode);
-      webinar.slides = analyzedSlides;
-      
-      // Generate slides presentation from analyzed data for both PPTX and PDF
-      await generateSimpleSlides(webinar.id, analyzedSlides);
-    } else if (slides && slides.length > 0) {
-      // Generate slides if provided manually
-      await generateSimpleSlides(webinar.id, slides);
-    }
-    
+    // Save webinar first
     await webinarsStorage.update(data => {
       if (!data.webinars) data.webinars = [];
       data.webinars.push(webinar);
@@ -475,6 +456,47 @@ router.post('/webinars', async (req, res) => {
     });
     
     logAudit('WEBINAR_CREATE', req.user.username, `Webinar erstellt: ${title}`);
+    
+    // If pptxFile is provided but no slides, start analysis in background
+    if (pptxFile && (!slides || slides.length === 0)) {
+      const sessionId = `${webinar.id}-${Date.now()}`;
+      
+      const modeText = mode === 'screenshot' ? 'Screenshot-Modus' : 'Inhalts-Modus';
+      logAudit('FILE_ANALYZE', req.user.username, `Auto-analysiere: ${pptxFile} für Webinar: ${title} (${modeText})`);
+      
+      // Start analysis in background
+      analyzePresentation(pptxFile, webinar.id, sessionId, mode)
+        .then(async (analyzedSlides) => {
+          // Update webinar with analyzed slides
+          await webinarsStorage.update(data => {
+            const webinarToUpdate = data.webinars.find(w => w.id === webinar.id);
+            if (webinarToUpdate) {
+              webinarToUpdate.slides = analyzedSlides;
+              webinarToUpdate.updatedAt = new Date().toISOString();
+            }
+            return data;
+          });
+          
+          // Generate slides presentation from analyzed data
+          await generateSimpleSlides(webinar.id, analyzedSlides);
+          
+          console.log(`Analysis completed for webinar ${webinar.id}: ${analyzedSlides.length} slides`);
+        })
+        .catch(error => {
+          console.error('Analysis failed for webinar:', webinar.id, error);
+        });
+      
+      // Return immediately with sessionId for progress tracking
+      return res.status(201).json({ 
+        ...webinar, 
+        sessionId,
+        analyzing: true
+      });
+    } else if (slides && slides.length > 0) {
+      // Generate slides if provided manually
+      await generateSimpleSlides(webinar.id, slides);
+    }
+    
     res.status(201).json(webinar);
   } catch (error) {
     console.error('Create webinar error:', error);

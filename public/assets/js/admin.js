@@ -856,13 +856,8 @@ document.getElementById('webinarForm').addEventListener('submit', async (e) => {
     
     const data = { title, pptxFile, slides, questions, importMode };
     
-    // Show loading message if creating new webinar with PPTX but no slides
+    // Check if we will auto-analyze (new webinar with PPTX but no slides)
     const willAutoAnalyze = !id && pptxFile && slides.length === 0;
-    if (willAutoAnalyze) {
-      const fileType = getFileType(pptxFile);
-      const modeText = importMode === 'screenshot' ? 'im Screenshot-Modus' : 'im Inhalts-Modus';
-      showNotification(`Webinar wird erstellt und ${fileType} wird ${modeText} analysiert... Dies kann einige Sekunden dauern.`);
-    }
     
     if (id) {
       await apiCall(`/admin/webinars/${id}`, {
@@ -870,23 +865,46 @@ document.getElementById('webinarForm').addEventListener('submit', async (e) => {
         body: data
       });
       showNotification('Webinar erfolgreich aktualisiert');
+      closeWebinarModal();
+      loadWebinars();
     } else {
       const result = await apiCall('/admin/webinars', {
         method: 'POST',
         body: data
       });
       
-      // Show success message with slide count if auto-analyzed
-      if (willAutoAnalyze && result.slides && result.slides.length > 0) {
+      // If auto-analyzing, show progress modal and connect to stream
+      if (willAutoAnalyze && result.sessionId) {
+        const fileType = getFileType(pptxFile);
         const modeText = importMode === 'screenshot' ? 'Screenshot-Modus' : 'Inhalts-Modus';
-        showNotification(`Webinar erfolgreich erstellt! ${result.slides.length} Folien wurden im ${modeText} generiert.`);
+        
+        // Close the webinar modal
+        closeWebinarModal();
+        
+        // Show progress modal
+        showProgressModal(
+          `${fileType} wird importiert...`,
+          `Die Präsentation wird im ${modeText} analysiert. Bitte warten Sie...`
+        );
+        
+        // Connect to progress stream
+        connectToProgressStream(result.sessionId, (analyzedSlides) => {
+          // Analysis completed successfully
+          showNotification(`Webinar erfolgreich erstellt! ${analyzedSlides.length} Folien wurden im ${modeText} generiert.`);
+          
+          // Close progress modal after a short delay
+          setTimeout(() => {
+            closeProgressModal();
+            loadWebinars();
+          }, 1500);
+        });
       } else {
+        // No auto-analysis, just show success
         showNotification('Webinar erfolgreich erstellt');
+        closeWebinarModal();
+        loadWebinars();
       }
     }
-    
-    closeWebinarModal();
-    loadWebinars();
   } catch (error) {
     showNotification('Fehler: ' + error.message, true);
   }
@@ -1120,6 +1138,110 @@ async function deleteImportedFile(filename, displayName) {
   } catch (error) {
     showNotification('Fehler beim Löschen: ' + error.message, true);
   }
+}
+
+// ============ PROGRESS MODAL ============
+
+let progressEventSource = null;
+
+function showProgressModal(title = 'Import läuft...', message = 'Bitte warten Sie, während die Präsentation verarbeitet wird...') {
+  document.getElementById('progressModalTitle').textContent = title;
+  document.getElementById('progressModalMessage').textContent = message;
+  document.getElementById('progressBar').style.width = '0%';
+  document.getElementById('progressPercentage').textContent = '0%';
+  document.getElementById('progressStatus').textContent = '';
+  document.getElementById('progressError').classList.add('hidden');
+  document.getElementById('progressCloseBtn').disabled = true;
+  document.getElementById('progressModal').classList.remove('hidden');
+}
+
+function closeProgressModal() {
+  if (progressEventSource) {
+    progressEventSource.close();
+    progressEventSource = null;
+  }
+  document.getElementById('progressModal').classList.add('hidden');
+}
+
+function updateProgress(progress, status, error = null) {
+  const progressBar = document.getElementById('progressBar');
+  const progressPercentage = document.getElementById('progressPercentage');
+  const progressStatus = document.getElementById('progressStatus');
+  const progressError = document.getElementById('progressError');
+  const closeBtn = document.getElementById('progressCloseBtn');
+  
+  // Update progress bar
+  progressBar.style.width = `${progress}%`;
+  progressPercentage.textContent = `${progress}%`;
+  
+  // Update status message
+  if (status) {
+    progressStatus.textContent = status;
+  }
+  
+  // Show error if present
+  if (error) {
+    progressError.textContent = error;
+    progressError.classList.remove('hidden');
+    closeBtn.disabled = false;
+    progressBar.style.background = '#e74c3c'; // Red color for error
+  }
+  
+  // Enable close button when complete or error
+  if (progress >= 100 || error) {
+    closeBtn.disabled = false;
+    if (progress >= 100 && !error) {
+      progressBar.style.background = 'linear-gradient(90deg, #2ecc71, #27ae60)'; // Green for success
+    }
+  }
+}
+
+function connectToProgressStream(sessionId, onComplete) {
+  // Close any existing connection
+  if (progressEventSource) {
+    progressEventSource.close();
+  }
+  
+  // Create new EventSource connection
+  const token = localStorage.getItem('token');
+  progressEventSource = new EventSource(`/api/admin/pptx/analyze/progress/${sessionId}?token=${token}`);
+  
+  progressEventSource.onmessage = function(event) {
+    try {
+      const data = JSON.parse(event.data);
+      
+      if (data.status === 'completed') {
+        updateProgress(100, data.message || 'Analyse erfolgreich abgeschlossen');
+        progressEventSource.close();
+        progressEventSource = null;
+        
+        // Call completion callback after a short delay
+        setTimeout(() => {
+          if (onComplete) {
+            onComplete(data.slides);
+          }
+        }, 1000);
+        
+      } else if (data.status === 'error') {
+        updateProgress(data.progress || 0, data.message, data.error || data.message);
+        progressEventSource.close();
+        progressEventSource = null;
+        
+      } else {
+        // Processing
+        updateProgress(data.progress || 0, data.message || 'Verarbeitung läuft...');
+      }
+    } catch (error) {
+      console.error('Error parsing progress data:', error);
+    }
+  };
+  
+  progressEventSource.onerror = function(error) {
+    console.error('Progress stream error:', error);
+    updateProgress(0, 'Verbindungsfehler', 'Die Verbindung zum Server wurde unterbrochen. Bitte versuchen Sie es erneut.');
+    progressEventSource.close();
+    progressEventSource = null;
+  };
 }
 
 // Initialize
