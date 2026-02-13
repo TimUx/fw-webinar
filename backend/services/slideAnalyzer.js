@@ -577,24 +577,35 @@ async function extractPPTXSlideImages(filename, webinarId) {
   
   try {
     // First convert PPTX to PDF using LibreOffice
-    await spawnAsync(
-      'libreoffice',
-      ['--headless', '--convert-to', 'pdf', '--outdir', tempDir, pptxPath],
-      { timeout: 120000 }
-    );
+    try {
+      await spawnAsync(
+        'libreoffice',
+        ['--headless', '--convert-to', 'pdf', '--outdir', tempDir, pptxPath],
+        { timeout: 120000 }
+      );
+    } catch (libreofficeError) {
+      console.error('LibreOffice conversion failed:', libreofficeError);
+      throw new Error('LibreOffice konnte PPTX nicht in PDF konvertieren. Bitte stellen Sie sicher, dass LibreOffice installiert ist.');
+    }
     
     // Find the generated PDF
     const files = await fs.readdir(tempDir);
     const pdfFile = files.find(f => f.endsWith('.pdf'));
     
     if (!pdfFile) {
-      throw new Error('PDF conversion from PPTX failed');
+      throw new Error('PDF-Datei wurde von LibreOffice nicht generiert');
     }
     
     // Now convert PDF to images using pdftoppm
     const pdfPath = path.join(tempDir, pdfFile);
     const outputPrefix = path.join(imageDir, 'slide');
-    await spawnAsync('pdftoppm', [pdfPath, outputPrefix, '-png'], { timeout: 120000 });
+    
+    try {
+      await spawnAsync('pdftoppm', [pdfPath, outputPrefix, '-png'], { timeout: 120000 });
+    } catch (pdftoppmError) {
+      console.error('pdftoppm conversion failed:', pdftoppmError);
+      throw new Error('pdftoppm konnte PDF nicht in Bilder konvertieren. Bitte stellen Sie sicher, dass pdftoppm (poppler-utils) installiert ist.');
+    }
     
     // Clean up temp directory
     await fs.rm(tempDir, { recursive: true, force: true });
@@ -619,8 +630,8 @@ async function extractPPTXSlideImages(filename, webinarId) {
     } catch (cleanupError) {
       // Ignore cleanup errors
     }
-    // Return empty array if extraction fails
-    return [];
+    // Re-throw with the specific error message
+    throw error;
   }
 }
 
