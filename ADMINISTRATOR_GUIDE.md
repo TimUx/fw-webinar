@@ -363,25 +363,22 @@ docker-compose logs -f tts
 3. Cache-Verzeichnis überprüfen: `ls -la tts-service/cache/`
 4. Modell neu laden lassen: `docker-compose down && docker-compose up -d`
 
-### LibreOffice-Warnungen (optional)
+### LibreOffice-Warnungen
 
-Wenn der LibreOffice-Container aktiviert ist, können folgende Warnungen auftreten:
+**Hinweis:** Ab Version 1.4.1 ist LibreOffice direkt im Backend-Container enthalten (läuft im Headless-Modus).
 
-**XKEYBOARD-Warnungen** (z.B. "Could not resolve keysym XF86OK"):
-- Diese Warnungen sind **harmlos** und beeinträchtigen die Funktionalität nicht
-- Sie treten auf, weil der X11-Server im Container einige spezielle Tastenzuordnungen nicht kennt
-- Die PPTX-Konvertierung funktioniert trotz dieser Meldungen einwandfrei
-- Diese Warnungen können ignoriert werden
-
-**xsettingsd-Verbindungsfehler**:
-- Ebenfalls harmlos; der Container startet trotzdem korrekt
-- Tritt während der Initialisierungsphase auf
+LibreOffice läuft im Headless-Modus ohne grafische Oberfläche. Eventuelle Warnungen in den Logs sind harmlos und beeinträchtigen die PPTX-Konvertierung nicht:
+- GUI-bezogene Warnungen können ignoriert werden
+- Die Konvertierung erfolgt vollständig im Hintergrund
+- Bei Problemen: Backend-Container-Logs überprüfen mit `docker-compose logs backend`
 
 ### LibreOffice-Konvertierung fehlschlägt
 
-- LibreOffice-Container in docker-compose.yml aktivieren
-- Alternative: Manuelle Slides verwenden
-- Container-Logs überprüfen
+**Hinweis:** Ab Version 1.4.1 ist LibreOffice direkt im Backend-Container enthalten und muss nicht mehr separat aktiviert werden.
+
+- Container-Logs überprüfen: `docker-compose logs backend`
+- Sicherstellen, dass der Backend-Container neu gebaut wurde: `docker-compose build backend`
+- Alternative: Manuelle Slides verwenden oder Inhalts-Modus statt Screenshot-Modus nutzen
 
 ### Berechtigungsprobleme
 
