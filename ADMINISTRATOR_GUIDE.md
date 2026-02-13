@@ -169,6 +169,55 @@ docker compose build --no-cache
 docker compose up -d
 ```
 
+### Migration von LibreOffice zu OnlyOffice (Version 1.5.0+)
+
+**Wichtig**: Ab Version 1.5.0 wurde LibreOffice durch OnlyOffice DocumentServer ersetzt.
+
+**Upgrade-Schritte:**
+
+1. **Container stoppen:**
+   ```bash
+   docker compose down
+   ```
+
+2. **Code aktualisieren:**
+   ```bash
+   git pull
+   ```
+
+3. **Dependencies installieren:**
+   ```bash
+   npm install
+   ```
+
+4. **Container neu bauen (wichtig!):**
+   ```bash
+   docker compose build --no-cache
+   docker compose up -d
+   ```
+
+5. **OnlyOffice-Container überprüfen:**
+   ```bash
+   docker compose ps onlyoffice
+   docker compose logs onlyoffice
+   ```
+
+**Wichtige Hinweise:**
+- OnlyOffice benötigt ca. 2 Minuten zum Starten (initial start-up)
+- Mindestens 3GB RAM erforderlich (2GB für OnlyOffice)
+- Alte LibreOffice-Container können entfernt werden
+- Bestehende Präsentationen funktionieren weiterhin
+- Neue PPTX/PDF-Imports nutzen automatisch OnlyOffice
+
+**Rollback bei Problemen:**
+Falls OnlyOffice Probleme verursacht, können Sie temporär zum vorherigen Commit zurückkehren:
+```bash
+git checkout <vorheriger-commit-hash>
+docker compose down
+docker compose build --no-cache
+docker compose up -d
+```
+
 ### Browser-Cache leeren
 
 **Wichtig**: Der Browser cached JavaScript- und CSS-Dateien. Nach einem Update:
