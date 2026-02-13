@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
 """
 Piper TTS Service for Webinar Platform
-Provides text-to-speech synthesis using Piper TTS (https://github.com/rhasspy/piper)
+Provides text-to-speech synthesis using Piper TTS (https://github.com/OHF-Voice/piper1-gpl)
 """
 import os
 import hashlib
 import subprocess
+import wave
+import threading
 from flask import Flask, request, jsonify, send_file
+from piper import PiperVoice
 
 app = Flask(__name__)
 
@@ -14,32 +17,147 @@ app = Flask(__name__)
 CACHE_DIR = os.environ.get('TTS_CACHE_DIR', '/app/cache')
 MODELS_DIR = os.environ.get('MODELS_DIR', '/app/models')
 TTS_QUALITY = os.environ.get('TTS_QUALITY', 'medium')  # 'medium' or 'high'
-PIPER_BINARY = '/usr/local/bin/piper'
 
-# Ensure cache directory exists
+# Voice cache
+voice_cache = {}
+voice_cache_lock = threading.Lock()
+
+# Model download status
+model_download_lock = threading.Lock()
+model_download_status = {'in_progress': False, 'completed': False, 'error': None}
+
+# Ensure cache and models directories exist
 os.makedirs(CACHE_DIR, exist_ok=True)
+os.makedirs(MODELS_DIR, exist_ok=True)
 
 def get_model_path(quality='medium'):
     """Get the model path for the specified quality"""
     model_name = f'de_DE-thorsten-{quality}.onnx'
     return os.path.join(MODELS_DIR, model_name)
 
-def check_piper_installation():
-    """Check if Piper is installed and models are available"""
+def download_model(quality='medium'):
+    """
+    Download Piper voice model using the official piper download tool
+    Returns True if successful, False otherwise
+    """
+    model_name = f'de_DE-thorsten-{quality}'
+    
     try:
-        # Check if piper binary exists
-        result = subprocess.run([PIPER_BINARY, '--version'], 
-                              capture_output=True, 
-                              text=True, 
-                              timeout=5)
+        print(f"Downloading {quality} quality model using piper.download_voices...")
         
-        # Check if models exist
+        # Use piper's built-in download tool
+        result = subprocess.run(
+            ['python3', '-m', 'piper.download_voices', '--data-dir', MODELS_DIR, model_name],
+            capture_output=True,
+            text=True,
+            timeout=300  # 5 minutes timeout for download
+        )
+        
+        if result.returncode == 0:
+            print(f"Successfully downloaded {model_name}")
+            return True
+        else:
+            print(f"Error downloading {model_name}: {result.stderr}")
+            return False
+            
+    except subprocess.TimeoutExpired:
+        print(f"Timeout while downloading {quality} model")
+        return False
+    except Exception as e:
+        print(f"Error downloading {quality} model: {e}")
+        return False
+
+def ensure_models_available():
+    """
+    Ensure that required models are available.
+    Downloads them if they don't exist and haven't been downloaded yet.
+    """
+    global model_download_status
+    
+    with model_download_lock:
+        # Check if models already exist
         medium_model = get_model_path('medium')
         high_model = get_model_path('high')
         
-        models_exist = os.path.exists(medium_model) and os.path.exists(high_model)
+        medium_exists = os.path.exists(medium_model) and os.path.exists(medium_model + '.json')
+        high_exists = os.path.exists(high_model) and os.path.exists(high_model + '.json')
         
-        return result.returncode == 0 and models_exist
+        if medium_exists and high_exists:
+            model_download_status['completed'] = True
+            return True
+        
+        # Check if download already in progress or completed
+        if model_download_status['in_progress'] or model_download_status['completed']:
+            return model_download_status['completed']
+        
+        # Mark download as in progress
+        model_download_status['in_progress'] = True
+        
+        try:
+            # Try to download missing models
+            success = True
+            
+            if not medium_exists:
+                print("Medium quality model not found, attempting download...")
+                if not download_model('medium'):
+                    success = False
+                    model_download_status['error'] = "Failed to download medium quality model"
+            
+            if not high_exists:
+                print("High quality model not found, attempting download...")
+                if not download_model('high'):
+                    # High model is optional, just warn
+                    print("Warning: Could not download high quality model, but continuing...")
+            
+            model_download_status['completed'] = success
+            model_download_status['in_progress'] = False
+            
+            return success
+            
+        except Exception as e:
+            print(f"Error ensuring models available: {e}")
+            model_download_status['error'] = str(e)
+            model_download_status['in_progress'] = False
+            return False
+
+def get_voice(quality='medium'):
+    """
+    Get a loaded Piper voice model, using cache if available
+    """
+    with voice_cache_lock:
+        if quality in voice_cache:
+            return voice_cache[quality]
+        
+        model_path = get_model_path(quality)
+        if not os.path.exists(model_path):
+            return None
+        
+        try:
+            print(f"Loading voice model: {model_path}")
+            voice = PiperVoice.load(model_path)
+            voice_cache[quality] = voice
+            return voice
+        except Exception as e:
+            print(f"Error loading voice model {quality}: {e}")
+            return None
+
+def check_piper_installation():
+    """Check if Piper is installed and models are available"""
+    try:
+        # Check if piper module is available
+        import piper
+        
+        # Check if models exist or can be downloaded
+        medium_model = get_model_path('medium')
+        medium_config = medium_model + '.json'
+        
+        # Check if medium model exists (minimum requirement)
+        models_exist = os.path.exists(medium_model) and os.path.exists(medium_config)
+        
+        return models_exist
+    except ImportError:
+        print("Error: piper-tts package not installed")
+        return False
     except Exception as e:
         print(f"Error checking Piper installation: {e}")
         return False
@@ -95,6 +213,14 @@ def synthesize():
     if not text:
         return jsonify({'error': 'Text darf nicht leer sein'}), 400
     
+    # Ensure models are available before processing
+    if not ensure_models_available():
+        return jsonify({
+            'error': 'TTS-Modelle nicht verfügbar',
+            'details': 'Modelle konnten nicht heruntergeladen werden. Bitte Internetverbindung prüfen oder manuell herunterladen.',
+            'download_error': model_download_status.get('error')
+        }), 503
+    
     # Check if we have cached version
     cache_file = get_cache_filename(text, quality)
     
@@ -105,28 +231,23 @@ def synthesize():
     try:
         print(f"Generating audio for text: {text[:50]}... (quality: {quality})")
         
-        model_path = get_model_path(quality)
+        # Get the voice model
+        voice = get_voice(quality)
         
-        if not os.path.exists(model_path):
-            return jsonify({'error': f'Modell nicht gefunden: {quality}'}), 500
+        if voice is None:
+            # Try fallback to medium if high quality is not available
+            if quality == 'high':
+                print(f"High quality model not available, falling back to medium")
+                quality = 'medium'
+                voice = get_voice(quality)
+                cache_file = get_cache_filename(text, quality)  # Update cache file for new quality
+            
+            if voice is None:
+                return jsonify({'error': f'Modell konnte nicht geladen werden: {quality}'}), 500
         
-        # Run Piper TTS to generate speech
-        # Use subprocess to call piper binary
-        # Note: text is passed via stdin (input parameter), not through shell,
-        # so it's safe from command injection. The text parameter with text=True
-        # ensures proper encoding handling.
-        result = subprocess.run(
-            [PIPER_BINARY, '--model', model_path, '--output_file', cache_file],
-            input=text,
-            text=True,
-            capture_output=True,
-            timeout=30
-        )
-        
-        if result.returncode != 0:
-            error_msg = result.stderr if result.stderr else 'Unknown error'
-            print(f"Piper TTS error: {error_msg}")
-            return jsonify({'error': f'Sprachsynthese fehlgeschlagen: {error_msg}'}), 500
+        # Generate speech using Piper Python API
+        with wave.open(cache_file, 'wb') as wav_file:
+            voice.synthesize_wav(text, wav_file)
         
         if not os.path.exists(cache_file):
             return jsonify({'error': 'Audio-Datei wurde nicht generiert'}), 500
@@ -134,8 +255,6 @@ def synthesize():
         print(f"Audio generated and cached: {cache_file}")
         return send_file(cache_file, mimetype='audio/wav')
         
-    except subprocess.TimeoutExpired:
-        return jsonify({'error': 'Timeout bei Sprachsynthese'}), 500
     except Exception as e:
         print(f"Error generating speech: {e}")
         return jsonify({'error': f'Sprachsynthese fehlgeschlagen: {str(e)}'}), 500
@@ -180,15 +299,32 @@ def clear_cache():
         return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
-    # Check Piper installation on startup
-    if not check_piper_installation():
-        print("WARNING: Piper TTS is not properly installed or models are missing.")
-        print("Service will return errors until Piper is available.")
+    print("Starting Piper TTS Service...")
+    print(f"Models directory: {MODELS_DIR}")
+    print(f"Cache directory: {CACHE_DIR}")
+    print(f"Default quality: {TTS_QUALITY}")
+    
+    # Check if piper-tts is installed
+    try:
+        import piper
+        print(f"✓ Piper TTS package is installed (version: {piper.__version__ if hasattr(piper, '__version__') else 'unknown'})")
+    except ImportError:
+        print("⚠ ERROR: piper-tts package is not installed!")
+        print("  Please install with: pip install piper-tts")
+        exit(1)
+    
+    # Try to ensure models are available on startup
+    print("\nChecking for Piper TTS models...")
+    if ensure_models_available():
+        print("✓ Piper TTS models are available")
     else:
-        print("Piper TTS initialized successfully")
-        print(f"Using quality: {TTS_QUALITY}")
-        print(f"Models directory: {MODELS_DIR}")
+        print("⚠ WARNING: Piper TTS models could not be downloaded automatically.")
+        print("  Please download models manually using:")
+        print("  python3 -m piper.download_voices --data-dir", MODELS_DIR, "de_DE-thorsten-medium")
+        print("  python3 -m piper.download_voices --data-dir", MODELS_DIR, "de_DE-thorsten-high")
+        print("\n  Service will return errors until models are available.")
     
     # Start Flask server
+    print("\nStarting Flask server...")
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port, debug=False)

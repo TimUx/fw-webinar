@@ -1,1 +1,2 @@
 Flask==3.0.0
+piper-tts==1.2.0
