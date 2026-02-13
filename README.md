@@ -59,7 +59,7 @@ Die Plattform besteht aus zwei Hauptcontainern:
    - Hochwertige Dokumentenverarbeitung
    - REST-API für Konvertierung
 
-Der TTS-Service läuft unabhängig und wird vom Backend über eine interne REST-API angesprochen.
+Der TTS-Service und OnlyOffice laufen unabhängig und werden vom Backend über interne REST-APIs angesprochen.
 
 ### Sprachausgabe mit Piper TTS
 
@@ -78,12 +78,29 @@ Die Webinar-Plattform verwendet **Piper TTS** für hochwertige, natürlich kling
 - Caching: MD5-basiertes Caching
 - API: REST-API für einfache Integration
 
+### Dokumentenkonvertierung mit OnlyOffice
+
+Die Plattform verwendet **OnlyOffice DocumentServer** für hochwertige PPTX/PDF-Konvertierung.
+
+**Funktionen:**
+- Bessere Folien-Darstellung als LibreOffice
+- Enterprise-Grade Dokumentenverarbeitung
+- Präzise Layout-Beibehaltung
+- Unterstützung für komplexe Präsentationen
+- Selbst gehostet und datenschutzfreundlich
+
+**Technische Details:**
+- Engine: OnlyOffice DocumentServer
+- Service: Docker-Container mit eingebautem Webserver
+- API: REST-API für Konvertierung
+- Formate: PPTX, PDF, DOCX und mehr
+
 ## Schnellstart
 
 ### Voraussetzungen
 
 - Docker & Docker Compose installiert
-- Mindestens 1GB RAM
+- Mindestens 3GB RAM (2GB für OnlyOffice DocumentServer, 1GB für Backend/TTS)
 - Port 3000 verfügbar (oder anderer Port nach Wahl)
 
 ### Installation
