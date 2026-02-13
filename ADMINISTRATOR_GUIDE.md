@@ -452,19 +452,44 @@ Dieser Fehler tritt auf, wenn OnlyOffice die Datei nicht vom Backend-Server heru
        - ./onlyoffice-local.json:/etc/onlyoffice/documentserver/local.json:ro
    ```
    
-   Die `onlyoffice-local.json` Datei enthält:
+   Die `onlyoffice-local.json` Datei enthält eine vollständige OnlyOffice-Konfiguration mit:
    ```json
    {
      "services": {
        "CoAuthoring": {
+         "token": {
+           "enable": {
+             "request": {
+               "inbox": false,
+               "outbox": false
+             },
+             "browser": false
+           }
+         },
+         "secret": {
+           "inbox": {
+             "string": "secret"
+           },
+           "outbox": {
+             "string": "secret"
+           },
+           "session": {
+             "string": "secret"
+           }
+         },
          "request-filtering-agent": {
            "allowPrivateIPAddress": true,
            "allowMetaIPAddress": true
          }
        }
+     },
+     "rabbitmq": {
+       "url": "amqp://guest:guest@localhost"
      }
    }
    ```
+   
+   Der wichtigste Teil ist `request-filtering-agent` mit `allowPrivateIPAddress` und `allowMetaIPAddress` auf `true` gesetzt.
    
    **Wichtig**: Sowohl die Umgebungsvariable `DS_ALLOW_PRIVATE_IP_ADDRESS=true` als auch die 
    `local.json` Konfiguration sind notwendig. Die Umgebungsvariable alleine reicht bei v9+ nicht aus.

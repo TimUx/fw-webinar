@@ -1,10 +1,33 @@
 {
   "services": {
     "CoAuthoring": {
+      "token": {
+        "enable": {
+          "request": {
+            "inbox": false,
+            "outbox": false
+          },
+          "browser": false
+        }
+      },
+      "secret": {
+        "inbox": {
+          "string": "secret"
+        },
+        "outbox": {
+          "string": "secret"
+        },
+        "session": {
+          "string": "secret"
+        }
+      },
       "request-filtering-agent": {
         "allowPrivateIPAddress": true,
         "allowMetaIPAddress": true
       }
     }
+  },
+  "rabbitmq": {
+    "url": "amqp://guest:guest@localhost"
   }
 }
