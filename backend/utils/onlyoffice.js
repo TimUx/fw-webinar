@@ -23,9 +23,9 @@ if (!process.env.ONLYOFFICE_JWT_SECRET) {
   console.warn('   ');
   console.warn('   Option 1 - Generate new secret (RECOMMENDED):');
   console.warn('     1. Generate: openssl rand -hex 32');
-  console.warn('     2. Add to .env: ONLYOFFICE_JWT_SECRET=<generated-secret>');
-  console.warn('     3. Add to .env: ONLYOFFICE_JWT_SECRET=<same-secret> (for OnlyOffice container)');
-  console.warn('     4. Restart: docker-compose restart');
+  console.warn('     2. Add to .env file: ONLYOFFICE_JWT_SECRET=<generated-secret>');
+  console.warn('     3. Verify docker-compose.yml has: JWT_SECRET=${ONLYOFFICE_JWT_SECRET:-}');
+  console.warn('     4. Restart all containers: docker-compose restart');
   console.warn('   ');
   console.warn('   Option 2 - Use existing OnlyOffice secret:');
   console.warn('     1. Run: ./get-onlyoffice-jwt-secret.sh');
