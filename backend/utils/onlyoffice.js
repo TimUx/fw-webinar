@@ -2,6 +2,7 @@ const axios = require('axios');
 const fs = require('fs').promises;
 const path = require('path');
 const FormData = require('form-data');
+const crypto = require('crypto');
 
 const ONLYOFFICE_URL = process.env.ONLYOFFICE_URL || 'http://onlyoffice';
 
@@ -49,7 +50,7 @@ async function convertDocument(inputPath, outputPath, outputFormat = 'pdf') {
       async: false,
       filetype: getFileExtension(inputPath),
       outputtype: outputFormat,
-      key: generateKey(inputPath),
+      key: await generateKey(inputPath),
       title: fileName
     };
     
@@ -131,9 +132,8 @@ function getContentType(filePath) {
 /**
  * Generate a unique key for the conversion request
  */
-function generateKey(filePath) {
-  const crypto = require('crypto');
-  const stats = require('fs').statSync(filePath);
+async function generateKey(filePath) {
+  const stats = await fs.stat(filePath);
   const data = `${filePath}-${stats.size}-${stats.mtimeMs}`;
   return crypto.createHash('md5').update(data).digest('hex');
 }
