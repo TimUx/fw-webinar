@@ -6,7 +6,7 @@ This document describes the fix for the OnlyOffice EBUSY error and JWT authentic
 
 ## Problem
 
-The OnlyOffice DocumentServer container was experiencing two related issues:
+The OnlyOffice DocumentServer container was experiencing three related issues:
 
 1. **EBUSY File Locking Error**:
    ```
@@ -19,8 +19,14 @@ The OnlyOffice DocumentServer container was experiencing two related issues:
    - 403 Forbidden errors during PPTX/PDF conversion
    - OnlyOffice conversion API returning error -4
 
-## Root Cause
+3. **403 Forbidden on File Download**:
+   - Conversion succeeds but downloading the converted file returns 403
+   - OnlyOffice returns: `"fileUrl": "http://fw-webinar-onlyoffice/cache/files/..."`
+   - Backend trying to download from port 80 (nginx) which blocks `/cache/files` access
 
+## Root Causes
+
+### EBUSY Error
 The `docker-compose.yml` was mounting `onlyoffice-local.json` as a **read-only file** (`:ro`) to `/etc/onlyoffice/documentserver/local.json`. OnlyOffice DocumentServer needs **write access** to this file to:
 - Update JWT configuration at runtime
 - Merge user configuration with default settings
@@ -28,11 +34,20 @@ The `docker-compose.yml` was mounting `onlyoffice-local.json` as a **read-only f
 
 When OnlyOffice tried to update the file, it would create a temporary file and attempt to rename it to `local.json`, which failed because the mount was read-only.
 
+### 403 Error on Download
+OnlyOffice returns URLs pointing to nginx (port 80): `http://fw-webinar-onlyoffice/cache/files/...`
+- **Port 80** → nginx with access restrictions for `/cache/files`
+- **Port 8000** → internal docservice without nginx restrictions
+
+The backend was trying to download from port 80, which was blocked by nginx security rules.
+
 ## Solution
 
-The configuration method has been changed from **file-based** to **environment variable-based**:
+Two main changes were implemented:
 
-### Before (Read-Only File Mount)
+### 1. Configuration Method: File-Based → Environment Variable-Based
+
+#### Before (Read-Only File Mount)
 ```yaml
 onlyoffice:
   environment:
@@ -41,7 +56,7 @@ onlyoffice:
     - ./onlyoffice-local.json:/etc/onlyoffice/documentserver/local.json:ro
 ```
 
-### After (Environment Variables Only)
+#### After (Environment Variables Only)
 ```yaml
 onlyoffice:
   environment:
@@ -52,6 +67,24 @@ onlyoffice:
   volumes:
     - onlyoffice-data:/var/www/onlyoffice/Data
     - onlyoffice-logs:/var/log/onlyoffice
+```
+
+### 2. Backend Download: Port 80 → Port 8000
+
+#### Before (Blocked by nginx)
+```javascript
+const downloadUrl = response.data.fileUrl;
+// Returns: http://fw-webinar-onlyoffice/cache/files/... (port 80)
+// Result: 403 Forbidden from nginx
+```
+
+#### After (Direct docservice access)
+```javascript
+const downloadUrl = response.data.fileUrl
+  .replace('http://fw-webinar-onlyoffice/', 'http://fw-webinar-onlyoffice:8000/')
+  .replace('http://webinar-onlyoffice/', 'http://webinar-onlyoffice:8000/')
+  .replace('http://onlyoffice/', 'http://onlyoffice:8000/');
+// Result: Success - bypasses nginx restrictions
 ```
 
 ## Migration Steps

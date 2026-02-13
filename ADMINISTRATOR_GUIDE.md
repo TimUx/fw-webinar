@@ -496,6 +496,26 @@ Dieser Fehler tritt auf, wenn OnlyOffice die Datei nicht vom Backend-Server heru
    # dann ist JWT das Problem!
    ```
 
+3. **403 Forbidden beim Download der konvertierten Datei**:
+   - OnlyOffice gibt die konvertierte Datei zurück, aber der Download schlägt mit 403 fehl
+   - Dies liegt daran, dass OnlyOffice nginx (Port 80) den Zugriff auf `/cache/files` blockiert
+   
+   **Lösung - Port 8000 verwenden (BEREITS IMPLEMENTIERT):**
+   Das Backend wurde bereits angepasst, um Port 8000 (interner docservice) statt Port 80 (nginx) zu verwenden:
+   - Port 80 → nginx mit Zugriffsbeschränkungen
+   - Port 8000 → interner docservice ohne nginx-Beschränkungen
+   
+   Diese Lösung ist bereits im Code implementiert und sollte automatisch funktionieren.
+   
+   **Falls weiterhin 403 Fehler auftreten:**
+   ```bash
+   # Netzwerkverbindung testen
+   docker exec webinar-backend curl -I http://onlyoffice:8000/healthcheck
+   
+   # OnlyOffice Logs prüfen
+   docker-compose logs onlyoffice | tail -50
+   ```
+
 3. **Container-Namen stimmen nicht überein**:
    - Überprüfen Sie die BACKEND_URL Umgebungsvariable in `.env` oder `docker-compose.yml`
    - **Wichtig**: Der Hostname in BACKEND_URL muss mit dem tatsächlichen Backend-Container-Namen übereinstimmen
