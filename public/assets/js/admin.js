@@ -50,6 +50,18 @@ async function apiCall(endpoint, options = {}) {
   return response.json();
 }
 
+// HTML escape utility to prevent XSS
+function escapeHtml(unsafe) {
+  if (!unsafe) return '';
+  return unsafe
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+}
+
 // Show notification
 function showNotification(message, isError = false) {
   const notification = document.getElementById('notification');
@@ -513,12 +525,13 @@ async function loadWebinars() {
       const statusClass = isActive ? 'active' : 'inactive';
       const statusText = isActive ? 'Aktiv' : 'Inaktiv';
       const toggleText = isActive ? 'Deaktivieren' : 'Aktivieren';
-      const ariaLabel = isActive ? `Webinar "${webinar.title}" deaktivieren` : `Webinar "${webinar.title}" aktivieren`;
+      const escapedTitle = escapeHtml(webinar.title);
+      const ariaLabel = isActive ? `Webinar "${escapedTitle}" deaktivieren` : `Webinar "${escapedTitle}" aktivieren`;
       
       return `
         <div class="webinar-item ${statusClass}">
-          <h3>${webinar.title} <span class="status-badge ${statusClass}">${statusText}</span></h3>
-          <p>PPTX: ${webinar.pptxFile || 'Keine'}</p>
+          <h3>${escapedTitle} <span class="status-badge ${statusClass}">${statusText}</span></h3>
+          <p>PPTX: ${escapeHtml(webinar.pptxFile) || 'Keine'}</p>
           <p>Folien: ${webinar.slides?.length || 0}</p>
           <p>Fragen: ${webinar.questions?.length || 0}</p>
           <p>Erstellt: ${new Date(webinar.createdAt).toLocaleDateString('de-DE')}</p>
