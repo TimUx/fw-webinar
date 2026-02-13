@@ -161,6 +161,14 @@ function createPPTXViewerHTML(pptxBase64, filename) {
     .slide.active {
       display: flex;
     }
+    .slide-content {
+      padding: 60px;
+      font-family: Arial, sans-serif;
+      font-size: 32px;
+      text-align: left;
+      max-width: 90%;
+      word-wrap: break-word;
+    }
     #loading {
       width: 100%;
       height: 100%;
@@ -235,7 +243,7 @@ function createPPTXViewerHTML(pptxBase64, filename) {
           slideDiv.id = 'slide-' + index;
           
           const content = document.createElement('div');
-          content.style.cssText = 'padding: 60px; font-family: Arial, sans-serif; font-size: 32px; text-align: left; max-width: 90%; word-wrap: break-word;';
+          content.className = 'slide-content';
           content.textContent = slide.text || 'Slide ' + (index + 1);
           
           slideDiv.appendChild(content);
