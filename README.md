@@ -35,7 +35,7 @@ Eine vollständig selbst gehostete, automatisierte Webinar- und E-Learning-Platt
 - **Text-to-Speech**: Piper TTS (Python Flask Service mit deutscher Thorsten Stimme)
 - **Authentifizierung**: JWT + bcrypt
 - **E-Mail**: Nodemailer (SMTP)
-- **PPTX/PDF-Konvertierung**: Playwright + JSZip (Browser-basiertes Rendering für Screenshot-Modus)
+- **PPTX/PDF-Konvertierung**: LibreOffice + poppler-utils (für Screenshot-Modus)
 - **Speicher**: Dateibasiert (JSON)
 - **Container**: Docker & Docker Compose
 
@@ -74,23 +74,21 @@ Die Webinar-Plattform verwendet **Piper TTS** für hochwertige, natürlich kling
 - Caching: MD5-basiertes Caching
 - API: REST-API für einfache Integration
 
-### Dokumentenkonvertierung mit Playwright
+### Dokumentenkonvertierung mit LibreOffice
 
-Die Plattform verwendet **Playwright** mit headless Browser-Rendering für PPTX-Konvertierung im Screenshot-Modus.
+Die Plattform verwendet **LibreOffice** für PPTX-Konvertierung im Screenshot-Modus.
 
 **Funktionen:**
-- Browser-basiertes PPTX-Rendering
-- JSZip für PPTX-Parsing direkt im Browser
-- Pixelgenaue Screenshot-Erfassung jeder Folie
-- Keine externe Software erforderlich
+- Zuverlässiges PPTX-Rendering mit LibreOffice Impress
+- Konvertierung über PDF als Zwischenformat
+- Hochqualitative Bildausgabe (300 DPI)
 - Präzise Layout-Beibehaltung
 - Selbst gehostet und datenschutzfreundlich
 
 **Technische Details:**
-- Engine: Playwright (Chromium headless)
-- Parser: JSZip (JavaScript PPTX-Parser)
-- Workflow: PPTX → JSZip Parse → Browser Render → Screenshot (PNG)
-- Tools: Playwright + JSZip (CDN)
+- Engine: LibreOffice Impress (headless)
+- Workflow: PPTX → PDF (LibreOffice) → PNG (pdftoppm)
+- Tools: soffice + pdftoppm (poppler-utils)
 
 ## Schnellstart
 
