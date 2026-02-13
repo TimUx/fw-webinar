@@ -484,6 +484,13 @@ router.post('/webinars', async (req, res) => {
         })
         .catch(error => {
           console.error('Analysis failed for webinar:', webinar.id, error);
+          // Update progress tracker with error so SSE stream can notify frontend
+          progressTracker.update(sessionId, {
+            progress: 0,
+            status: 'error',
+            message: 'Analyse fehlgeschlagen',
+            error: error.message
+          });
         });
       
       // Return immediately with sessionId for progress tracking

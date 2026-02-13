@@ -1184,14 +1184,14 @@ function updateProgress(progress, status, error = null) {
     progressError.textContent = error;
     progressError.classList.remove('hidden');
     closeBtn.disabled = false;
-    progressBar.style.background = '#e74c3c'; // Red color for error
+    progressBar.style.background = 'var(--progress-bar-error)';
   }
   
   // Enable close button when complete or error
   if (progress >= 100 || error) {
     closeBtn.disabled = false;
     if (progress >= 100 && !error) {
-      progressBar.style.background = 'linear-gradient(90deg, #2ecc71, #27ae60)'; // Green for success
+      progressBar.style.background = 'var(--progress-bar-success)';
     }
   }
 }
@@ -1233,6 +1233,7 @@ function connectToProgressStream(sessionId, onComplete) {
       }
     } catch (error) {
       console.error('Error parsing progress data:', error);
+      updateProgress(0, 'Fehler beim Verarbeiten der Fortschrittsdaten', 'Die empfangenen Daten konnten nicht verarbeitet werden.');
     }
   };
   

@@ -1,3 +1,9 @@
+:root {
+  --progress-bar-gradient: linear-gradient(90deg, #3498db, #2ecc71);
+  --progress-bar-success: linear-gradient(90deg, #2ecc71, #27ae60);
+  --progress-bar-error: #e74c3c;
+}
+
 * {
   margin: 0;
   padding: 0;
