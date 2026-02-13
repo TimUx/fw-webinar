@@ -28,16 +28,19 @@ router.get('/settings', async (req, res) => {
 
 /**
  * GET /api/webinar/list
- * List all public webinars
+ * List all public webinars (only active ones)
  */
 router.get('/list', async (req, res) => {
   try {
     const data = await webinarsStorage.read();
-    const webinars = (data?.webinars || []).map(w => ({
-      id: w.id,
-      title: w.title,
-      createdAt: w.createdAt
-    }));
+    // Filter to only include active webinars (default to true for backward compatibility)
+    const webinars = (data?.webinars || [])
+      .filter(w => w.isActive !== false)
+      .map(w => ({
+        id: w.id,
+        title: w.title,
+        createdAt: w.createdAt
+      }));
     res.json(webinars);
   } catch (error) {
     res.status(500).json({ error: 'Fehler beim Laden der Webinare' });

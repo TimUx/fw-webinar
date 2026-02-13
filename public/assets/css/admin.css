@@ -402,6 +402,40 @@ h3 {
   font-size: 14px;
 }
 
+/* Webinar status styling */
+.webinar-item.inactive {
+  opacity: 0.7;
+  border-left-color: #95a5a6;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  margin-left: 10px;
+}
+
+.status-badge.active {
+  background: #d4edda;
+  color: #155724;
+}
+
+.status-badge.inactive {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.btn-toggle {
+  background: #17a2b8;
+  color: white;
+}
+
+.btn-toggle:hover {
+  background: #138496;
+}
+
 /* Modal */
 .modal {
   position: fixed;

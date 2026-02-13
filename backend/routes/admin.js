@@ -430,6 +430,7 @@ router.post('/webinars', async (req, res) => {
       pptxFile: pptxFile || null,
       questions: questions || [],
       slides: slides || [],
+      isActive: true, // New webinars are active by default
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
@@ -536,6 +537,44 @@ router.put('/webinars/:id', async (req, res) => {
       return res.status(404).json({ error: error.message });
     }
     res.status(500).json({ error: 'Fehler beim Aktualisieren des Webinars' });
+  }
+});
+
+/**
+ * PUT /api/admin/webinars/:id/toggle-active
+ * Toggle webinar active status
+ */
+router.put('/webinars/:id/toggle-active', async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const updatedData = await webinarsStorage.update(storageData => {
+      if (!storageData.webinars) storageData.webinars = [];
+      const index = storageData.webinars.findIndex(w => w.id === id);
+      
+      if (index === -1) {
+        throw new Error('Webinar nicht gefunden');
+      }
+      
+      // Toggle isActive status (default to true if not set)
+      const currentStatus = storageData.webinars[index].isActive !== false;
+      storageData.webinars[index].isActive = !currentStatus;
+      storageData.webinars[index].updatedAt = new Date().toISOString();
+      
+      return storageData;
+    });
+    
+    const webinar = updatedData.webinars.find(w => w.id === id);
+    const statusText = webinar.isActive ? 'aktiviert' : 'deaktiviert';
+    logAudit('WEBINAR_TOGGLE', req.user.username, `Webinar ${statusText}: ${webinar.title}`);
+    
+    res.json(webinar);
+  } catch (error) {
+    console.error('Toggle webinar error:', error);
+    if (error.message === 'Webinar nicht gefunden') {
+      return res.status(404).json({ error: error.message });
+    }
+    res.status(500).json({ error: 'Fehler beim Umschalten des Webinar-Status' });
   }
 });
 

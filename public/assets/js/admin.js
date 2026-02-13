@@ -50,6 +50,18 @@ async function apiCall(endpoint, options = {}) {
   return response.json();
 }
 
+// HTML escape utility to prevent XSS
+function escapeHtml(unsafe) {
+  if (!unsafe) return '';
+  return unsafe
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+}
+
 // Show notification
 function showNotification(message, isError = false) {
   const notification = document.getElementById('notification');
@@ -508,20 +520,31 @@ async function loadWebinars() {
       return;
     }
     
-    list.innerHTML = webinars.map(webinar => `
-      <div class="webinar-item">
-        <h3>${webinar.title}</h3>
-        <p>PPTX: ${webinar.pptxFile || 'Keine'}</p>
-        <p>Folien: ${webinar.slides?.length || 0}</p>
-        <p>Fragen: ${webinar.questions?.length || 0}</p>
-        <p>Erstellt: ${new Date(webinar.createdAt).toLocaleDateString('de-DE')}</p>
-        <div class="webinar-actions">
-          <button onclick="editWebinar('${webinar.id}')">Bearbeiten</button>
-          <button onclick="viewWebinar('${webinar.id}')" class="btn-secondary">Vorschau</button>
-          <button class="btn-danger" onclick="deleteWebinar('${webinar.id}')">Löschen</button>
+    list.innerHTML = webinars.map(webinar => {
+      const isActive = webinar.isActive !== false; // Default to true for backward compatibility
+      const statusClass = isActive ? 'active' : 'inactive';
+      const statusText = isActive ? 'Aktiv' : 'Inaktiv';
+      const toggleText = isActive ? 'Deaktivieren' : 'Aktivieren';
+      const escapedTitle = escapeHtml(webinar.title);
+      // Escape the entire aria-label for safe attribute usage
+      const ariaLabelText = isActive ? `Webinar ${escapedTitle} deaktivieren` : `Webinar ${escapedTitle} aktivieren`;
+      
+      return `
+        <div class="webinar-item ${statusClass}">
+          <h3>${escapedTitle} <span class="status-badge ${statusClass}">${statusText}</span></h3>
+          <p>PPTX: ${escapeHtml(webinar.pptxFile) || 'Keine'}</p>
+          <p>Folien: ${webinar.slides?.length || 0}</p>
+          <p>Fragen: ${webinar.questions?.length || 0}</p>
+          <p>Erstellt: ${new Date(webinar.createdAt).toLocaleDateString('de-DE')}</p>
+          <div class="webinar-actions">
+            <button onclick="toggleWebinarActive('${webinar.id}')" class="btn-toggle" aria-label="${ariaLabelText}">${toggleText}</button>
+            <button onclick="editWebinar('${webinar.id}')">Bearbeiten</button>
+            <button onclick="viewWebinar('${webinar.id}')" class="btn-secondary">Vorschau</button>
+            <button class="btn-danger" onclick="deleteWebinar('${webinar.id}')">Löschen</button>
+          </div>
         </div>
-      </div>
-    `).join('');
+      `;
+    }).join('');
   } catch (error) {
     showNotification('Fehler beim Laden der Webinare: ' + error.message, true);
   }
@@ -586,6 +609,17 @@ function closeWebinarModal() {
 
 function viewWebinar(id) {
   window.open(`/webinar/?id=${id}`, '_blank');
+}
+
+async function toggleWebinarActive(id) {
+  try {
+    const webinar = await apiCall(`/admin/webinars/${id}/toggle-active`, { method: 'PUT' });
+    const statusText = webinar.isActive ? 'aktiviert' : 'deaktiviert';
+    showNotification(`Webinar erfolgreich ${statusText}`);
+    loadWebinars();
+  } catch (error) {
+    showNotification('Fehler: ' + error.message, true);
+  }
 }
 
 async function deleteWebinar(id) {
