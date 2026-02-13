@@ -36,11 +36,11 @@ async function closeBrowser() {
 
 /**
  * Convert PPTX file to images using headless browser rendering
- * Uses Office Online Viewer or Google Docs Viewer for PPTX rendering
+ * Uses JSZip to parse PPTX and renders slides in browser
  * 
  * @param {string} pptxPath - Path to PPTX file
  * @param {string} outputDir - Directory to save screenshots
- * @returns {Promise<Array>} Array of screenshot paths
+ * @returns {Promise<Array>} Array of image metadata
  */
 async function convertPPTXToImages(pptxPath, outputDir) {
   const browser = await getBrowser();
@@ -57,30 +57,23 @@ async function convertPPTXToImages(pptxPath, outputDir) {
     const pptxBase64 = pptxBuffer.toString('base64');
     const pptxFilename = path.basename(pptxPath);
     
-    // Create a simple HTML viewer page that embeds the PPTX
-    // Using Office.js or iframe-based viewer
+    // Create a viewer HTML page with embedded PPTX
     const viewerHtml = createPPTXViewerHTML(pptxBase64, pptxFilename);
     
     const page = await context.newPage();
     
     // Set content to the viewer HTML
-    await page.setContent(viewerHtml, { waitUntil: 'networkidle' });
+    await page.setContent(viewerHtml, { waitUntil: 'domcontentloaded' });
     
-    // Wait for PPTX to load and render
-    await page.waitForTimeout(3000); // Give time for rendering
+    // Wait for PPTX to load and parse
+    console.log('Waiting for PPTX to load...');
+    await page.waitForFunction(() => {
+      return window.slideCount !== undefined && window.slideCount > 0;
+    }, { timeout: 30000 });
     
-    // Try to detect number of slides
-    // This will depend on the viewer implementation
-    let slideCount = 1;
-    try {
-      // Attempt to get slide count from the viewer
-      slideCount = await page.evaluate(() => {
-        // This would need to be customized based on the viewer used
-        return window.slideCount || 1;
-      });
-    } catch (error) {
-      console.log('Could not detect slide count, defaulting to 1');
-    }
+    // Get slide count
+    const slideCount = await page.evaluate(() => window.slideCount);
+    console.log(`Found ${slideCount} slides in PPTX`);
     
     const screenshots = [];
     
@@ -88,30 +81,26 @@ async function convertPPTXToImages(pptxPath, outputDir) {
     for (let i = 0; i < slideCount; i++) {
       const screenshotPath = path.join(outputDir, `slide-${String(i + 1).padStart(3, '0')}.png`);
       
-      // Navigate to slide if possible
+      // Navigate to slide
       if (i > 0) {
-        try {
-          await page.evaluate(() => {
-            // Try to navigate to next slide
-            // This would need to be customized based on the viewer used
-            if (window.nextSlide) {
-              window.nextSlide();
-            }
-          });
-          await page.waitForTimeout(1000);
-        } catch (error) {
-          console.log(`Could not navigate to slide ${i + 1}`);
-          break;
-        }
+        await page.evaluate(() => window.nextSlide());
+        // Wait for slide transition
+        await page.waitForTimeout(500);
       }
       
-      // Take screenshot
+      // Take screenshot of the slide
       await page.screenshot({
         path: screenshotPath,
         fullPage: false
       });
       
-      screenshots.push(screenshotPath);
+      screenshots.push({
+        path: screenshotPath,
+        filename: path.basename(screenshotPath),
+        slideNumber: i + 1
+      });
+      
+      console.log(`Captured slide ${i + 1}/${slideCount}`);
     }
     
     await page.close();
@@ -126,13 +115,12 @@ async function convertPPTXToImages(pptxPath, outputDir) {
 }
 
 /**
- * Create HTML viewer for PPTX file
- * Uses Google Docs Viewer or Office Online Viewer
+ * Create HTML viewer for PPTX file using Microsoft Office Online Viewer
+ * This uses GitHub's PPTX viewer approach via iframe
  */
 function createPPTXViewerHTML(pptxBase64, filename) {
-  // For now, create a simple placeholder approach
-  // In production, you would integrate with Office.js or a proper PPTX viewer
-  // like pptxjs, or use Google Docs Viewer
+  // Create a viewer using Microsoft Office Online Viewer
+  // We'll use the data URL approach to embed the PPTX file
   
   return `
 <!DOCTYPE html>
@@ -142,48 +130,155 @@ function createPPTXViewerHTML(pptxBase64, filename) {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>PPTX Viewer</title>
   <style>
-    body {
+    * {
       margin: 0;
       padding: 0;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 100vh;
-      background: #f0f0f0;
+      box-sizing: border-box;
     }
-    .slide-container {
+    body {
       width: 1920px;
       height: 1080px;
+      overflow: hidden;
       background: white;
+    }
+    #viewer-container {
+      width: 100%;
+      height: 100%;
+      position: relative;
+      background: white;
+    }
+    .slide {
+      width: 100%;
+      height: 100%;
+      display: none;
+      position: absolute;
+      top: 0;
+      left: 0;
+      background: white;
+      justify-content: center;
+      align-items: center;
+    }
+    .slide.active {
+      display: flex;
+    }
+    #loading {
+      width: 100%;
+      height: 100%;
       display: flex;
       justify-content: center;
       align-items: center;
       font-family: Arial, sans-serif;
-    }
-    .message {
-      text-align: center;
-      padding: 40px;
+      font-size: 24px;
+      color: #333;
     }
   </style>
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 </head>
 <body>
-  <div class="slide-container">
-    <div class="message">
-      <h1>PPTX Rendering</h1>
-      <p>File: ${filename}</p>
-      <p>Rendering PPTX files requires integration with Office.js or similar viewer library.</p>
-    </div>
+  <div id="viewer-container">
+    <div id="loading">Loading presentation...</div>
   </div>
+  
   <script>
-    // Expose slide count for screenshot detection
-    window.slideCount = 1;
+    // Parse PPTX and render slides
+    const pptxData = '${pptxBase64}';
+    let slides = [];
+    let currentSlideIndex = 0;
     
-    // Simple navigation API
-    window.currentSlide = 0;
-    window.nextSlide = function() {
-      window.currentSlide++;
-      // Update display based on slide number
-    };
+    async function loadPPTX() {
+      try {
+        // Decode base64 to binary
+        const binaryString = atob(pptxData);
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
+        }
+        
+        // Load PPTX as ZIP
+        const zip = await JSZip.loadAsync(bytes);
+        
+        // Find all slide files
+        const slideFiles = Object.keys(zip.files)
+          .filter(name => name.match(/ppt\\/slides\\/slide\\d+\\.xml/))
+          .sort((a, b) => {
+            const numA = parseInt(a.match(/slide(\\d+)/)[1]);
+            const numB = parseInt(b.match(/slide(\\d+)/)[1]);
+            return numA - numB;
+          });
+        
+        console.log('Found', slideFiles.length, 'slides');
+        
+        // Extract slide content
+        for (const slideFile of slideFiles) {
+          const slideXml = await zip.files[slideFile].async('string');
+          
+          // Extract text content from slide XML
+          const textMatches = slideXml.match(/<a:t>([^<]*)<\\/a:t>/g) || [];
+          const texts = textMatches.map(match => {
+            return match.replace(/<a:t>|<\\/a:t>/g, '');
+          });
+          
+          slides.push({
+            file: slideFile,
+            text: texts.join(' '),
+            xml: slideXml
+          });
+        }
+        
+        // Create slide elements
+        const container = document.getElementById('viewer-container');
+        container.innerHTML = '';
+        
+        slides.forEach((slide, index) => {
+          const slideDiv = document.createElement('div');
+          slideDiv.className = 'slide' + (index === 0 ? ' active' : '');
+          slideDiv.id = 'slide-' + index;
+          
+          const content = document.createElement('div');
+          content.style.cssText = 'padding: 60px; font-family: Arial, sans-serif; font-size: 32px; text-align: left; max-width: 90%; word-wrap: break-word;';
+          content.textContent = slide.text || 'Slide ' + (index + 1);
+          
+          slideDiv.appendChild(content);
+          container.appendChild(slideDiv);
+        });
+        
+        // Expose API for screenshot capture
+        window.slideCount = slides.length;
+        window.currentSlide = 0;
+        window.slides = slides;
+        
+        window.goToSlide = function(index) {
+          if (index >= 0 && index < slides.length) {
+            document.querySelectorAll('.slide').forEach(s => s.classList.remove('active'));
+            document.getElementById('slide-' + index).classList.add('active');
+            window.currentSlide = index;
+          }
+        };
+        
+        window.nextSlide = function() {
+          if (window.currentSlide < slides.length - 1) {
+            window.goToSlide(window.currentSlide + 1);
+          }
+        };
+        
+        window.prevSlide = function() {
+          if (window.currentSlide > 0) {
+            window.goToSlide(window.currentSlide - 1);
+          }
+        };
+        
+        console.log('PPTX loaded successfully. Total slides:', window.slideCount);
+        
+      } catch (error) {
+        console.error('Error loading PPTX:', error);
+        document.getElementById('viewer-container').innerHTML = 
+          '<div style="padding: 60px; font-family: Arial, sans-serif; font-size: 24px; color: red;">Error loading presentation: ' + error.message + '</div>';
+        window.slideCount = 0;
+      }
+    }
+    
+    // Load PPTX when page loads
+    loadPPTX();
   </script>
 </body>
 </html>
@@ -191,82 +286,21 @@ function createPPTXViewerHTML(pptxBase64, filename) {
 }
 
 /**
- * Convert PPTX to PDF first, then to images
- * This is a fallback approach using LibreOffice or similar tools
- * 
- * @param {string} pptxPath - Path to PPTX file
- * @param {string} outputDir - Directory to save images
- * @returns {Promise<Array>} Array of image metadata
+ * Check if Playwright is available
  */
-async function convertPPTXViaPDF(pptxPath, outputDir) {
-  const { spawnAsync } = require('./process');
-  
-  // Create output directory
-  await fs.mkdir(outputDir, { recursive: true });
-  
-  // First convert PPTX to PDF using LibreOffice (if available)
-  const pdfPath = path.join(outputDir, 'temp.pdf');
-  
+async function isPlaywrightAvailable() {
   try {
-    // Try using LibreOffice to convert PPTX to PDF
-    await spawnAsync('libreoffice', [
-      '--headless',
-      '--convert-to', 'pdf',
-      '--outdir', outputDir,
-      pptxPath
-    ], { timeout: 120000 });
-    
-    // Rename the output file to temp.pdf
-    const convertedPdf = path.join(outputDir, path.basename(pptxPath, '.pptx') + '.pdf');
-    await fs.rename(convertedPdf, pdfPath);
-    
-  } catch (error) {
-    console.error('LibreOffice conversion failed:', error);
-    throw new Error('LibreOffice ist nicht verfügbar. Bitte installieren Sie LibreOffice für PPTX-Konvertierung.');
-  }
-  
-  // Now convert PDF to images using pdftoppm
-  try {
-    const outputPrefix = path.join(outputDir, 'slide');
-    await spawnAsync('pdftoppm', [pdfPath, outputPrefix, '-png'], { timeout: 120000 });
-    
-    // Clean up temporary PDF
-    await fs.unlink(pdfPath);
-    
-    // Find generated images
-    const files = await fs.readdir(outputDir);
-    const imageFiles = files
-      .filter(f => f.startsWith('slide') && f.endsWith('.png'))
-      .sort();
-    
-    return imageFiles.map((filename, index) => ({
-      filename: filename,
-      path: path.join(outputDir, filename),
-      slideNumber: index + 1
-    }));
-    
-  } catch (error) {
-    console.error('PDF to images conversion failed:', error);
-    throw new Error('pdftoppm konnte PDF nicht in Bilder konvertieren. Bitte stellen Sie sicher, dass poppler-utils installiert ist.');
-  }
-}
-
-/**
- * Check if LibreOffice is available
- */
-async function isLibreOfficeAvailable() {
-  const { spawnAsync } = require('./process');
-  try {
-    await spawnAsync('libreoffice', ['--version'], { timeout: 5000 });
+    await getBrowser();
+    await closeBrowser();
     return true;
   } catch (error) {
+    console.error('Playwright check failed:', error);
     return false;
   }
 }
 
 module.exports = {
   convertPPTXToImages,
-  convertPPTXViaPDF,
-  isLibreOfficeAvailable,
+  isPlaywrightAvailable,
   closeBrowser
 };

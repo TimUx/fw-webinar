@@ -577,30 +577,25 @@ async function isCommandAvailable(command) {
 }
 
 /**
- * Extract PPTX slides as images using LibreOffice and pdftoppm
- * Alternative to OnlyOffice using open-source tools
+ * Extract PPTX slides as images using Playwright headless browser
+ * Renders PPTX in browser using JSZip and captures screenshots
  */
 async function extractPPTXSlideImages(filename, webinarId) {
-  const { isLibreOfficeAvailable, convertPPTXViaPDF } = require('../utils/playwright-renderer');
+  const { isPlaywrightAvailable, convertPPTXToImages } = require('../utils/playwright-renderer');
   
-  // Check if required dependencies are available
-  const hasLibreOffice = await isLibreOfficeAvailable();
-  const hasPdftoppm = await isCommandAvailable('pdftoppm');
+  // Check if Playwright is available
+  const hasPlaywright = await isPlaywrightAvailable();
   
-  if (!hasLibreOffice) {
-    throw new Error('LibreOffice ist nicht installiert. Bitte installieren Sie LibreOffice für PPTX-Konvertierung im Screenshot-Modus.');
-  }
-  
-  if (!hasPdftoppm) {
-    throw new Error('pdftoppm ist nicht installiert. Bitte installieren Sie poppler-utils, um den Screenshot-Modus zu verwenden.');
+  if (!hasPlaywright) {
+    throw new Error('Playwright ist nicht verfügbar. Bitte stellen Sie sicher, dass Playwright korrekt installiert ist.');
   }
   
   const pptxPath = path.join(UPLOADS_DIR, filename);
   const imageDir = path.join(UPLOADS_DIR, webinarId);
   
   try {
-    // Convert PPTX to images via PDF using LibreOffice
-    const images = await convertPPTXViaPDF(pptxPath, imageDir);
+    // Convert PPTX to images using Playwright browser rendering
+    const images = await convertPPTXToImages(pptxPath, imageDir);
     
     // Return image metadata in the expected format
     return images.map((img) => ({
