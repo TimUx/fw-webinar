@@ -247,7 +247,7 @@ def synthesize():
         
         # Generate speech using Piper Python API
         with wave.open(cache_file, 'wb') as wav_file:
-            voice.synthesize_wav(text, wav_file)
+            voice.synthesize(text, wav_file)
         
         if not os.path.exists(cache_file):
             return jsonify({'error': 'Audio-Datei wurde nicht generiert'}), 500
