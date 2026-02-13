@@ -19,6 +19,7 @@ services:
       - ASSETS_DIR=/app/assets
       - TTS_SERVICE_URL=http://tts:5000
       - ONLYOFFICE_URL=http://onlyoffice
+      - ONLYOFFICE_JWT_SECRET=${ONLYOFFICE_JWT_SECRET:-}
       - BACKEND_URL=http://webinar-backend:3000
     volumes:
       - ./data:/app/data
@@ -67,7 +68,12 @@ services:
     container_name: webinar-onlyoffice
     restart: unless-stopped
     environment:
+      # Note: JWT_ENABLED=false only disables JWT for document editing API
+      # The conversion API still requires JWT tokens regardless of this setting
       - JWT_ENABLED=false
+      # IMPORTANT: You must configure JWT_SECRET for conversion API to work
+      # If not set, OnlyOffice will generate a random secret at startup
+      # Run ./get-onlyoffice-jwt-secret.sh to retrieve the secret
       - JWT_SECRET=${ONLYOFFICE_JWT_SECRET:-}
     volumes:
       - onlyoffice-data:/var/www/onlyoffice/Data
