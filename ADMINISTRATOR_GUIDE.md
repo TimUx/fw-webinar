@@ -169,9 +169,9 @@ docker compose build --no-cache
 docker compose up -d
 ```
 
-### Migration von LibreOffice zu Playwright (Version 1.6.1+)
+### Migration von Playwright zu LibreOffice (Version 1.7.0+)
 
-**Wichtig**: Ab Version 1.6.1 wurde LibreOffice durch Playwright + JSZip (browser-basiertes Rendering) ersetzt.
+**Wichtig**: Ab Version 1.7.0 wurde Playwright durch LibreOffice für PPTX-Screenshot-Konvertierung ersetzt.
 
 **Upgrade-Schritte:**
 
@@ -203,12 +203,12 @@ docker compose up -d
    ```
 
 **Wichtige Hinweise:**
-- Playwright mit Chromium ist nun direkt im Backend-Container integriert
-- Keine externe Software (LibreOffice) mehr erforderlich
-- Container-Build ist schneller (keine LibreOffice-Installation)
+- LibreOffice ist nun direkt im Backend-Container integriert
+- Zuverlässigere PPTX-Konvertierung mit LibreOffice Impress
+- Kleinerer Container (keine Chromium-Browser-Abhängigkeiten)
 - Bestehende Präsentationen funktionieren weiterhin
-- Neue PPTX/PDF-Imports nutzen Playwright im Screenshot-Modus
-- PPTX-Parsing erfolgt direkt im Browser mit JSZip
+- Neue PPTX/PDF-Imports nutzen LibreOffice im Screenshot-Modus
+- PPTX-Konvertierung erfolgt über PDF als Zwischenformat
 
 
 
@@ -301,7 +301,7 @@ Alle administrativen Aktionen werden in `data/audit.log` protokolliert:
    - **Inhalts-Modus** (Standard): Text und Bilder werden getrennt extrahiert und als formatierter Markdown-Inhalt in den Folien dargestellt
    - **Screenshot-Modus**: Jede Folie wird als Ganzes als Bild/Screenshot in den Folien dargestellt, der extrahierte Text wird nur im TTS-Feld (Sprechernotiz) gespeichert
 4. System konvertiert automatisch und erstellt Folien
-5. Bei fehlenden Tools (Playwright): Fallback auf Textextraktion
+5. Bei fehlenden Tools (LibreOffice/pdftoppm): Fallback auf Textextraktion
 
 #### Import-Modi im Detail
 
@@ -315,9 +315,11 @@ Alle administrativen Aktionen werden in `data/audit.log` protokolliert:
 **Screenshot-Modus**:
 - Konvertiert jede Folie in ein vollständiges Bild
 - Behält das exakte Aussehen der Original-Folie bei
+- FullHD-optimierte Auflösung (~1920px Breite, 200 DPI)
 - Text wird nur für TTS (Text-to-Speech) extrahiert
 - Ideal für Design-intensive Präsentationen oder wenn Layout wichtig ist
 - Keine nachträgliche Textbearbeitung möglich
+- Verwendet LibreOffice für maximale Formatierungstreue
 
 ### Sprechernotizen für TTS
 
@@ -406,73 +408,72 @@ docker-compose logs -f tts
 3. Cache-Verzeichnis überprüfen: `ls -la tts-service/cache/`
 4. Modell neu laden lassen: `docker-compose down && docker-compose up -d`
 
-### Playwright PPTX-Konvertierung Probleme
+### LibreOffice PPTX-Konvertierung Probleme
 
-**Hinweis:** Ab Version 1.6.1 wird Playwright mit JSZip für PPTX-Konvertierung im Screenshot-Modus verwendet.
+**Hinweis:** Ab Version 1.7.0 wird LibreOffice für PPTX-Konvertierung im Screenshot-Modus verwendet.
 
-Playwright rendert PPTX-Dateien direkt im Browser. Bei Problemen:
+LibreOffice konvertiert PPTX-Dateien zu PDF und dann zu Bildern. Bei Problemen:
 
 **Symptome:**
 - PPTX/PDF-Import schlägt im Screenshot-Modus fehl
-- Fehlermeldung "Playwright ist nicht verfügbar"
+- Fehlermeldung "LibreOffice ist nicht verfügbar"
 - Screenshot-Modus funktioniert nicht
-- Browser-Timeout Fehler
+- Konvertierungsfehler
 
 **Lösungsschritte:**
 1. Backend-Container-Logs überprüfen: `docker-compose logs backend`
-2. Container neu bauen (falls Playwright fehlt): 
+2. Container neu bauen (falls LibreOffice fehlt): 
    ```bash
    docker-compose down
    docker-compose build --no-cache backend
    docker-compose up -d
    ```
-3. Testen ob Playwright verfügbar ist:
+3. Testen ob LibreOffice verfügbar ist:
    ```bash
-   docker exec webinar-backend npx playwright --version
+   docker exec webinar-backend soffice --version
    ```
-4. Chromium Browser überprüfen:
+4. pdftoppm überprüfen (für PDF zu Bild):
    ```bash
-   docker exec webinar-backend ls -la /root/.cache/ms-playwright/
+   docker exec webinar-backend pdftoppm -v
    ```
 
 **Häufige Fehler:**
 
-1. **Playwright oder Chromium nicht installiert:**
-   - Stellen Sie sicher, dass `npx playwright install chromium --with-deps` im Dockerfile ausgeführt wird
+1. **LibreOffice nicht installiert:**
+   - Stellen Sie sicher, dass `libreoffice` und `libreoffice-impress` im Dockerfile installiert werden
    - Container komplett neu bauen: `docker-compose build --no-cache backend`
 
-2. **PPTX-Parsing schlägt fehl:**
+2. **PPTX-Konvertierung schlägt fehl:**
    - Prüfen Sie, ob die PPTX-Datei nicht beschädigt ist
-   - Versuchen Sie die Datei in PowerPoint zu öffnen
-   - Sehr komplexe PPTX-Dateien können länger zum Parsen benötigen
+   - Versuchen Sie die Datei in PowerPoint/LibreOffice zu öffnen
+   - Sehr komplexe PPTX-Dateien können länger zum Konvertieren benötigen
 
-3. **Browser-Timeout (30 Sekunden):**
-   - Bei sehr großen PPTX-Dateien kann das Parsing länger dauern
-   - Datei vereinfachen oder in kleinere Teile aufteilen
-   - Prüfen Sie Container-Ressourcen
+3. **PDF zu Bild Konvertierung schlägt fehl:**
+   - Stellen Sie sicher, dass poppler-utils (pdftoppm) installiert ist
+   - Prüfen Sie Container-Logs für spezifische Fehler
 
 4. **Container hat zu wenig Ressourcen:**
-   - Playwright + Chromium benötigt mindestens 512MB RAM
+   - LibreOffice benötigt mindestens 512MB RAM
    - Bei großen PPTX-Dateien kann mehr RAM erforderlich sein
    - Docker-Ressourcen erhöhen, falls nötig
 
-5. **JSZip kann PPTX nicht laden:**
-   - PPTX-Datei ist möglicherweise beschädigt
-   - Datei neu speichern und erneut hochladen
-   - Prüfen Sie Browser-Console-Logs in den Backend-Logs
+5. **Timeout bei großen Dateien:**
+   - Bei sehr großen PPTX-Dateien kann die Konvertierung länger dauern (Timeout: 120 Sekunden)
+   - Datei vereinfachen oder in kleinere Teile aufteilen
+   - Prüfen Sie Container-Ressourcen
 
 **Alternative:**
 - Bei Problemen mit Screenshot-Modus: Nutzen Sie den Inhalts-Modus
-- Inhalts-Modus funktioniert auch ohne Browser-Rendering
+- Inhalts-Modus funktioniert auch ohne LibreOffice
 
-### Legacy LibreOffice-Hinweis
+### Legacy Playwright-Hinweis
 
-**Hinweis:** LibreOffice wurde in Version 1.6.1 durch Playwright + JSZip ersetzt.
+**Hinweis:** Playwright wurde in Version 1.7.0 durch LibreOffice ersetzt.
 
-Wenn Sie von Version 1.6.0 upgraden:
-- LibreOffice ist nicht mehr nötig und wurde aus dem Dockerfile entfernt
-- Container sind jetzt kleiner und schneller zu bauen
-- Keine externe Office-Software mehr erforderlich
+Wenn Sie von Version 1.6.x upgraden:
+- Playwright ist nicht mehr nötig und wurde aus dem Dockerfile entfernt
+- Container sind jetzt kleiner (keine Chromium-Browser-Abhängigkeiten)
+- LibreOffice bietet zuverlässigere PPTX-Konvertierung
 - Container neu bauen: `docker-compose build --no-cache backend`
 
 ### Berechtigungsprobleme

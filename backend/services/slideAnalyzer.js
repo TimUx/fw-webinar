@@ -579,24 +579,24 @@ async function isCommandAvailable(command) {
 }
 
 /**
- * Extract PPTX slides as images using Playwright headless browser
- * Renders PPTX in browser using JSZip and captures screenshots
+ * Extract PPTX slides as images using LibreOffice
+ * Converts PPTX to PDF, then to images using LibreOffice and pdftoppm
  */
 async function extractPPTXSlideImages(filename, webinarId) {
-  const { isPlaywrightAvailable, convertPPTXToImages } = require('../utils/playwright-renderer');
+  const { isLibreOfficeAvailable, convertPPTXToImages } = require('../utils/libreoffice-renderer');
   
-  // Check if Playwright is available
-  const hasPlaywright = await isPlaywrightAvailable();
+  // Check if LibreOffice is available
+  const hasLibreOffice = await isLibreOfficeAvailable();
   
-  if (!hasPlaywright) {
-    throw new Error('Playwright ist nicht verfügbar. Bitte stellen Sie sicher, dass Playwright korrekt installiert ist.');
+  if (!hasLibreOffice) {
+    throw new Error('LibreOffice ist nicht verfügbar. Bitte stellen Sie sicher, dass LibreOffice korrekt installiert ist.');
   }
   
   const pptxPath = path.join(UPLOADS_DIR, filename);
   const imageDir = path.join(UPLOADS_DIR, webinarId);
   
   try {
-    // Convert PPTX to images using Playwright browser rendering
+    // Convert PPTX to images using LibreOffice
     const images = await convertPPTXToImages(pptxPath, imageDir);
     
     // Return image metadata in the expected format
