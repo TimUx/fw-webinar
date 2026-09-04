@@ -1,0 +1,33 @@
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "daily"
+    open-pull-requests-limit: 5
+    pull-request-branch-name:
+      separator: "/"
+
+  - package-ecosystem: "pip"
+    directory: "/tts-service"
+    schedule:
+      interval: "daily"
+    open-pull-requests-limit: 5
+    pull-request-branch-name:
+      separator: "/"
+
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "daily"
+    open-pull-requests-limit: 5
+    pull-request-branch-name:
+      separator: "/"
+
+  - package-ecosystem: "docker"
+    directory: "/tts-service"
+    schedule:
+      interval: "daily"
+    open-pull-requests-limit: 5
+    pull-request-branch-name:
+      separator: "/"
