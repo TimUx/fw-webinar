@@ -1,6 +1,6 @@
 {
   "name": "fw-webminar",
-  "version": "1.0.0",
+  "version": "1.7.1",
   "description": "Self-hosted automated webinar and e-learning platform",
   "main": "backend/server.js",
   "scripts": {

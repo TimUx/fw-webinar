@@ -226,6 +226,11 @@ Design basiert auf: https://github.com/TimUx/fw-fragenkatalog
 
 ## Changelog
 
+### Version 1.7.1 (2026)
+- Aktualisierte Sicherheits- und Rate-Limit-Abhängigkeiten
+- TipTap-Pakete auf eine kompatible Version ausgerichtet
+- Automatisierte Backend-Smoke- und TipTap-Build-Prüfungen
+
 ### Version 1.7.0 (2026)
 - Migration von Playwright zurück zu LibreOffice
 - Zuverlässigere PPTX-Konvertierung mit LibreOffice Impress
