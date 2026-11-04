@@ -20,7 +20,7 @@ var TipTapBundle = (() => {
   // tiptap-entry.js
   var tiptap_entry_exports = {};
   __export(tiptap_entry_exports, {
-    Color: () => src_default8,
+    Color: () => src_default9,
     Editor: () => Editor,
     Image: () => src_default4,
     Link: () => src_default,
@@ -28,9 +28,9 @@ var TipTapBundle = (() => {
     StarterKit: () => src_default3,
     Table: () => Table,
     TableCell: () => src_default6,
-    TableHeader: () => index_default,
+    TableHeader: () => src_default7,
     TableRow: () => src_default5,
-    TextAlign: () => src_default7,
+    TextAlign: () => src_default8,
     TextStyle: () => TextStyle,
     Underline: () => src_default2,
     generateHTML: () => generateHTML
@@ -25887,7 +25887,7 @@ ${prefix}
   var src_default6 = TableCell;
 
   // node_modules/@tiptap/extension-table-header/dist/index.js
-  var index_default = TableHeader;
+  var src_default7 = TableHeader;
 
   // node_modules/@tiptap/extension-text-align/dist/index.js
   var TextAlign = Extension.create({
@@ -25945,7 +25945,7 @@ ${prefix}
       };
     }
   });
-  var src_default7 = TextAlign;
+  var src_default8 = TextAlign;
 
   // node_modules/@tiptap/extension-text-style/dist/index.js
   var MAX_FIND_CHILD_SPAN_DEPTH = 20;
@@ -26189,7 +26189,7 @@ ${prefix}
   });
 
   // node_modules/@tiptap/extension-color/dist/index.js
-  var src_default8 = Color;
+  var src_default9 = Color;
 
   // node_modules/@tiptap/html/dist/index.js
   function getHTMLFromFragment2(doc3, schema, options) {
