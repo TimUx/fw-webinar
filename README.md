@@ -192,6 +192,13 @@ npm run dev
 
 4. Zugriff auf http://localhost:3000
 
+### Tests und TipTap-Build
+
+```bash
+npm test
+npm run build:tiptap
+```
+
 ### Logs anzeigen
 ```bash
 docker-compose logs -f backend
