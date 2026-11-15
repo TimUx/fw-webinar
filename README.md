@@ -226,6 +226,11 @@ Design basiert auf: https://github.com/TimUx/fw-fragenkatalog
 
 ## Changelog
 
+### Version 1.7.2 (2026)
+- Sicherheitslücken in Abhängigkeiten behoben (u. a. proxy-addr, body-parser, follow-redirects, multer), nodemailer 10.5.0
+- TipTap-Pakete auf 3.34.0 und esbuild auf 0.28.2 aktualisiert, Browser-Bundle neu gebaut
+- axios 1.21.0
+
 ### Version 1.7.1 (2026)
 - Aktualisierte Sicherheits- und Rate-Limit-Abhängigkeiten
 - TipTap-Pakete auf eine kompatible Version ausgerichtet
